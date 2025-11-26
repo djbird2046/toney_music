@@ -20,7 +20,7 @@ import 'models/nav_section.dart';
 import 'sidebar/macos_sidebar.dart';
 import 'views/ai_daily_view.dart';
 import 'views/library_view.dart';
-import 'views/library_source_dialog.dart';
+import 'views/source_selector_dialog.dart';
 import 'views/playlist_view.dart';
 import 'views/settings_view.dart';
 import 'widgets/macos_mini_player.dart';
@@ -170,7 +170,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
 
   Future<void> _handleAddLibrarySource() async {
     if (_libraryImportState.isActive) return;
-    final request = await showLibrarySourceDialog(context);
+    final request = await showSourceSelectorDialog(context);
     if (!mounted || request == null || request.paths.isEmpty) {
       return;
     }

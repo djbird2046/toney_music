@@ -47,3 +47,4 @@ app.*.map.json
 # AI coder
 AGENTS.md
 SUMMARY.md
+.cursor/

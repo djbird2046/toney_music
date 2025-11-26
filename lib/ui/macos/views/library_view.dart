@@ -490,10 +490,10 @@ class _EmptyLibraryState extends StatelessWidget {
 
 Color _sourceColor(LibrarySourceType type) => switch (type) {
   LibrarySourceType.local => MacosColors.accentBlue,
-  LibrarySourceType.cloud => Colors.purpleAccent.shade200,
   LibrarySourceType.samba => Colors.orangeAccent.shade200,
   LibrarySourceType.webdav => Colors.tealAccent.shade200,
-  LibrarySourceType.nfs => Colors.indigoAccent.shade200,
+  LibrarySourceType.ftp => Colors.purpleAccent.shade200,
+  LibrarySourceType.sftp => Colors.indigoAccent.shade200,
 };
 
 SongMetadata _fallbackMetadata(TrackRow track) {
