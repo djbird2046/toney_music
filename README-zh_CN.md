@@ -4,6 +4,8 @@
 
 Toney Music 是一款以 bitPerfect 为目标的音乐播放器，目前主打 macOS，并计划拓展到 iOS、Windows、Android 甚至 HarmonyOS，以 AI 原生体验赋能发烧友级的播放需求。
 
+![playlist](images/playlist.png)
+
 ## 与传统播放器的不同
 
 传统播放器只关注播放，Toney Music 大量引入 AI Agent，帮助用户更聪明、更个性化地听歌：

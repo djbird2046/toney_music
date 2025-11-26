@@ -4,6 +4,8 @@
 
 Toney Music is a bitPerfect-focused music player targeting macOS today with expansion paths to iOS, Windows, Android, and beyond. The app marries audiophile-grade playback expectations with AI-native experiences so listeners always get the right music at the right time.
 
+![playlist](images/playlist.png)
+
 ## Why Toney Music Feels Different
 
 Traditional players stop at playback. Toney Music leans heavily on AI Agents to build smarter, more personal listening sessions:
