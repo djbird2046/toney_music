@@ -3,25 +3,25 @@ import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:ftpconnect/ftpconnect.dart';
 import 'package:dartssh2/dartssh2.dart';
 
-/// 远程文件项模型类
-/// 统一表示不同协议的文件和目录信息
+/// Remote file item model class
+/// Unified representation of file and directory info across different protocols
 class RemoteFileItem {
-  /// 文件或目录名称
+  /// File or directory name
   final String name;
 
-  /// 完整路径
+  /// Full path
   final String path;
 
-  /// 是否为目录
+  /// Whether is directory
   final bool isDirectory;
 
-  /// 文件大小（字节），目录为null
+  /// File size (bytes), null for directories
   final int? size;
 
-  /// 最后修改时间
+  /// Last modified time
   final DateTime? modifiedTime;
 
-  /// 构造函数
+  /// Constructor
   const RemoteFileItem({
     required this.name,
     required this.path,
@@ -30,7 +30,7 @@ class RemoteFileItem {
     this.modifiedTime,
   });
 
-  /// 从 SMB 文件对象创建
+  /// Create from SMB file object
   factory RemoteFileItem.fromSmbFile(SmbFile smbFile) {
     final isDir = smbFile.isDirectory();
     return RemoteFileItem(
@@ -42,7 +42,7 @@ class RemoteFileItem {
     );
   }
 
-  /// 从 WebDAV 文件对象创建
+  /// Create from WebDAV file object
   factory RemoteFileItem.fromWebDavFile(webdav.File webdavFile) {
     return RemoteFileItem(
       name: webdavFile.name ?? '',
@@ -53,9 +53,9 @@ class RemoteFileItem {
     );
   }
 
-  /// 从 FTP 文目对象创建
+  /// Create from FTP file object
   factory RemoteFileItem.fromFtpEntry(FTPEntry ftpEntry, String basePath) {
-    // FTP的路径需要手动构建
+    // FTP path needs to be built manually
     final fullPath = basePath.endsWith('/')
         ? '$basePath${ftpEntry.name}'
         : '$basePath/${ftpEntry.name}';
@@ -69,9 +69,9 @@ class RemoteFileItem {
     );
   }
 
-  /// 从 SFTP 文件对象创建
+  /// Create from SFTP file object
   factory RemoteFileItem.fromSftpName(SftpName sftpName, String basePath) {
-    // SFTP的路径需要手动构建
+    // SFTP path needs to be built manually
     final fullPath = basePath.endsWith('/')
         ? '$basePath${sftpName.filename}'
         : '$basePath/${sftpName.filename}';
@@ -90,7 +90,7 @@ class RemoteFileItem {
     );
   }
 
-  /// 获取文件扩展名
+  /// Get file extension
   String? get extension {
     if (isDirectory) return null;
     final dotIndex = name.lastIndexOf('.');
@@ -98,13 +98,13 @@ class RemoteFileItem {
     return name.substring(dotIndex + 1).toLowerCase();
   }
 
-  /// 是否为音频文件（基于扩展名判断）
+  /// Whether is audio file (based on extension)
   bool get isAudioFile {
     if (isDirectory) return false;
     final ext = extension;
     if (ext == null) return false;
     
-    // 常见音频格式
+    // Common audio formats
     const audioExtensions = {
       'mp3', 'flac', 'wav', 'aac', 'm4a', 'ogg', 
       'wma', 'ape', 'alac', 'aiff', 'opus', 'dsd', 'dsf', 'dff'
@@ -113,7 +113,7 @@ class RemoteFileItem {
     return audioExtensions.contains(ext);
   }
 
-  /// 获取可读的文件大小字符串
+  /// Get human-readable file size string
   String get sizeString {
     if (size == null) return '-';
     
@@ -143,4 +143,3 @@ class RemoteFileItem {
   @override
   int get hashCode => path.hashCode;
 }
-

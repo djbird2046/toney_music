@@ -6,27 +6,27 @@ import 'webdav_client.dart';
 import 'ftp_client.dart';
 import 'sftp_client.dart';
 
-/// 远程文件客户端工厂类
+/// Remote file client factory class
 /// 
-/// 根据协议类型创建相应的客户端实例
+/// Creates corresponding client instance based on protocol type
 class RemoteFileClientFactory {
-  /// 私有构造函数，防止实例化
+  /// Private constructor to prevent instantiation
   RemoteFileClientFactory._();
 
-  /// 创建客户端实例
+  /// Create client instance
   /// 
-  /// 参数：
-  /// - [config] 连接配置
+  /// Parameters:
+  /// - [config] Connection configuration
   /// 
-  /// 返回：
-  /// - 对应协议类型的客户端实例
+  /// Returns:
+  /// - Client instance for corresponding protocol type
   /// 
-  /// 示例：
+  /// Example:
   /// ```dart
   /// final config = ConnectionConfig(
   ///   id: 'test-1',
   ///   type: ProtocolType.webdav,
-  ///   name: '我的WebDAV',
+  ///   name: 'My WebDAV',
   ///   host: 'example.com',
   ///   port: 443,
   /// );
@@ -46,33 +46,32 @@ class RemoteFileClientFactory {
     }
   }
 
-  /// 检查协议是否已实现
+  /// Check if protocol is implemented
   /// 
-  /// 参数：
-  /// - [type] 协议类型
+  /// Parameters:
+  /// - [type] Protocol type
   /// 
-  /// 返回：
-  /// - true: 已完整实现
-  /// - false: 仅占位实现或未实现
+  /// Returns:
+  /// - true: Fully implemented
+  /// - false: Placeholder or not implemented
   static bool isImplemented(ProtocolType type) {
-    // 四种协议都已完整实现
+    // All four protocols are fully implemented
     return true;
   }
 
-  /// 获取协议的实现状态描述
+  /// Get protocol implementation status description
   /// 
-  /// 参数：
-  /// - [type] 协议类型
+  /// Parameters:
+  /// - [type] Protocol type
   /// 
-  /// 返回：
-  /// - 实现状态的中文描述
+  /// Returns:
+  /// - Implementation status description
   static String getImplementationStatus(ProtocolType type) {
-    return '已实现';
+    return 'Implemented';
   }
 
-  /// 获取所有已实现的协议类型列表
+  /// Get list of all implemented protocol types
   static List<ProtocolType> getImplementedProtocols() {
     return ProtocolType.values;
   }
 }
-

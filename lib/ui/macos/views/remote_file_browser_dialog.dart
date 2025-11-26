@@ -11,7 +11,7 @@ import '../../../core/remote/services/ftp_client.dart';
 import '../../../core/remote/services/sftp_client.dart';
 import '../macos_colors.dart';
 
-/// 显示远程文件浏览器对话框
+/// Show remote file browser dialog
 Future<List<String>?> showRemoteFileBrowserDialog(
   BuildContext context,
   ConnectionConfig config,
@@ -65,10 +65,10 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
       final connected = await _client!.connect();
       
       if (!connected) {
-        throw Exception('连接失败');
+        throw Exception('Connection failed');
       }
       
-      // 设置初始路径
+      // Set initial path
       _currentPath = widget.config.remotePath ?? '/';
       _updateBreadcrumbs();
       
@@ -78,7 +78,7 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
     } catch (e) {
       setState(() {
         _isConnecting = false;
-        _errorMessage = '连接失败：${e.toString()}';
+        _errorMessage = 'Connection failed: ${e.toString()}';
       });
     }
   }
@@ -99,7 +99,7 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = '加载文件失败：${e.toString()}';
+        _errorMessage = 'Failed to load files: ${e.toString()}';
       });
     }
   }
@@ -113,11 +113,11 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
       case ProtocolType.samba:
         final sambaClient = _client as SambaClient;
         if (path.isEmpty || path == '/') {
-          // 列出共享资源
+          // List shares
           final shares = await sambaClient.listShares();
           items.addAll(shares.map((f) => RemoteFileItem.fromSmbFile(f)));
         } else {
-          // 列出指定路径的文件
+          // List files at specified path
           final smbFiles = await sambaClient.listFiles(path);
           items.addAll(smbFiles.map((f) => RemoteFileItem.fromSmbFile(f)));
         }
@@ -142,7 +142,7 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
         break;
     }
 
-    // 过滤：只显示文件夹和音频文件
+    // Filter: only show folders and audio files
     return items.where((item) {
       if (item.name == '.' || item.name == '..') return false;
       return item.isDirectory || item.isAudioFile;
@@ -191,7 +191,7 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
     return AlertDialog(
       backgroundColor: MacosColors.menuBackground,
       title: Text(
-        '浏览 ${widget.config.name}',
+        'Browse ${widget.config.name}',
         style: const TextStyle(color: Colors.white, fontSize: 18),
       ),
       content: SizedBox(
@@ -209,7 +209,7 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
                       CircularProgressIndicator(),
                       SizedBox(height: 16),
                       Text(
-                        '正在连接...',
+                        'Connecting...',
                         style: TextStyle(color: Colors.white70),
                       ),
                     ],
@@ -233,7 +233,7 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
                       TextButton.icon(
                         onPressed: _connect,
                         icon: const Icon(Icons.refresh),
-                        label: const Text('重试'),
+                        label: const Text('Retry'),
                       ),
                     ],
                   ),
@@ -250,7 +250,7 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
                     : _files.isEmpty
                         ? const Center(
                             child: Text(
-                              '此目录为空或没有音频文件',
+                              'This directory is empty or has no audio files',
                               style: TextStyle(color: Colors.white54),
                             ),
                           )
@@ -264,7 +264,7 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
               ),
               const SizedBox(height: 12),
               Text(
-                '已选择 ${_selectedPaths.length} 项',
+                '${_selectedPaths.length} item(s) selected',
                 style: const TextStyle(color: Colors.white70, fontSize: 13),
               ),
             ],
@@ -274,13 +274,13 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: _selectedPaths.isEmpty
               ? null
               : () => Navigator.of(context).pop(_selectedPaths.toList()),
-          child: const Text('确认选择'),
+          child: const Text('Confirm Selection'),
         ),
       ],
     );
@@ -293,7 +293,7 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
           IconButton(
             onPressed: _navigateUp,
             icon: const Icon(Icons.arrow_upward, color: Colors.white70, size: 20),
-            tooltip: '返回上级',
+            tooltip: 'Go up',
           ),
         Expanded(
           child: SingleChildScrollView(
@@ -374,4 +374,3 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
     );
   }
 }
-

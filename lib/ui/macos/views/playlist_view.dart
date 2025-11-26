@@ -22,6 +22,8 @@ class MacosPlaylistView extends StatefulWidget {
     required this.onDeleteTrack,
     required this.playingIndex,
     required this.onPlayTrack,
+    this.downloadingIndex,
+    this.downloadProgress,
   });
 
   final String playlistName;
@@ -36,6 +38,8 @@ class MacosPlaylistView extends StatefulWidget {
   final void Function(int index) onDeleteTrack;
   final int? playingIndex;
   final void Function(int index) onPlayTrack;
+  final int? downloadingIndex;
+  final double? downloadProgress;
 
   @override
   State<MacosPlaylistView> createState() => _MacosPlaylistViewState();
@@ -160,6 +164,10 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                         isHovered: _hoveredIndex == index,
                         isPlaying: widget.playingIndex == index,
                         isMissing: entry.metadata.extras['Missing'] == 'true',
+                        isDownloading: widget.downloadingIndex == index,
+                        downloadProgress: widget.downloadingIndex == index
+                            ? widget.downloadProgress
+                            : null,
                         onSelect: () => widget.onRowTap(index),
                         onShowMetadata: widget.onShowMetadata,
                         onDelete: () => widget.onDeleteTrack(index),
@@ -185,6 +193,8 @@ class _PlaylistRow extends StatelessWidget {
     required this.isHovered,
     required this.isPlaying,
     required this.isMissing,
+    required this.isDownloading,
+    this.downloadProgress,
     required this.onSelect,
     required this.onShowMetadata,
     required this.onDelete,
@@ -196,6 +206,8 @@ class _PlaylistRow extends StatelessWidget {
   final bool isSelected;
   final bool isHovered;
   final bool isPlaying;
+  final bool isDownloading;
+  final double? downloadProgress;
   final VoidCallback onSelect;
   final void Function(SongMetadata metadata) onShowMetadata;
   final VoidCallback onDelete;
@@ -303,7 +315,11 @@ class _PlaylistRow extends StatelessWidget {
                 ),
               ),
             ),
-            _ArtworkTile(bytes: metadata.artwork),
+            _ArtworkTile(
+              bytes: metadata.artwork,
+              isDownloading: isDownloading,
+              downloadProgress: downloadProgress,
+            ),
             const SizedBox(width: 12),
             Expanded(
               flex: 4,
@@ -377,26 +393,65 @@ class _PlaylistRow extends StatelessWidget {
 }
 
 class _ArtworkTile extends StatelessWidget {
-  const _ArtworkTile({required this.bytes});
+  const _ArtworkTile({
+    required this.bytes,
+    this.isDownloading = false,
+    this.downloadProgress,
+  });
 
   final Uint8List? bytes;
+  final bool isDownloading;
+  final double? downloadProgress;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: 44,
       height: 44,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: MacosColors.innerDivider),
-        color: const Color(0xFF1B1B1B),
-        image: bytes != null
-            ? DecorationImage(image: MemoryImage(bytes!), fit: BoxFit.cover)
-            : null,
+      child: Stack(
+        children: [
+          // 封面图
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: MacosColors.innerDivider),
+              color: const Color(0xFF1B1B1B),
+              image: bytes != null
+                  ? DecorationImage(image: MemoryImage(bytes!), fit: BoxFit.cover)
+                  : null,
+            ),
+            child: bytes == null
+                ? const Icon(Icons.music_note, color: Colors.white30, size: 20)
+                : null,
+          ),
+          // 下载进度遮罩和圆环
+          if (isDownloading)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.black.withValues(alpha: 0.6),
+                ),
+                child: Center(
+                  child: SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      value: downloadProgress,
+                      strokeWidth: 3,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        MacosColors.accentBlue,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
-      child: bytes == null
-          ? const Icon(Icons.music_note, color: Colors.white30, size: 20)
-          : null,
     );
   }
 }

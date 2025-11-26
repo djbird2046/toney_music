@@ -2,56 +2,56 @@ import '../models/connection_config.dart';
 import '../models/connection_status.dart';
 import '../exceptions/protocol_exceptions.dart';
 
-/// 远程文件客户端抽象基类
+/// Remote file client abstract base class
 abstract class RemoteFileClient {
-  /// 连接配置
+  /// Connection configuration
   final ConnectionConfig config;
 
-  /// 连接状态
+  /// Connection status
   ConnectionStatus _status = ConnectionStatus.disconnected;
 
-  /// 错误消息
+  /// Error message
   String? _errorMessage;
 
-  /// 构造函数
+  /// Constructor
   RemoteFileClient(this.config);
 
-  /// 获取当前连接状态
+  /// Get current connection status
   ConnectionStatus get status => _status;
 
-  /// 获取错误消息
+  /// Get error message
   String? get errorMessage => _errorMessage;
 
-  /// 设置连接状态
+  /// Set connection status
   void setStatus(ConnectionStatus newStatus, {String? error}) {
     _status = newStatus;
     _errorMessage = error;
   }
 
-  /// 建立连接（抽象方法，由子类实现）
+  /// Establish connection (abstract method, implemented by subclass)
   Future<bool> connect();
 
-  /// 断开连接（抽象方法，由子类实现）
+  /// Disconnect (abstract method, implemented by subclass)
   Future<void> disconnect();
 
-  /// 测试连接（抽象方法，由子类实现）
+  /// Test connection (abstract method, implemented by subclass)
   Future<bool> testConnection();
 
-  /// 获取状态消息
+  /// Get status message
   String getStatusMessage() {
     switch (_status) {
       case ConnectionStatus.disconnected:
-        return '未连接';
+        return 'Disconnected';
       case ConnectionStatus.connecting:
-        return '正在连接到 ${config.host}:${config.port}...';
+        return 'Connecting to ${config.host}:${config.port}...';
       case ConnectionStatus.connected:
-        return '已连接到 ${config.host}:${config.port}';
+        return 'Connected to ${config.host}:${config.port}';
       case ConnectionStatus.error:
-        return _errorMessage ?? '连接错误';
+        return _errorMessage ?? 'Connection error';
     }
   }
 
-  /// 安全地执行操作并处理异常
+  /// Safely execute operation and handle exceptions
   Future<T> safeExecute<T>(
     Future<T> Function() operation, {
     String? operationName,
@@ -61,35 +61,35 @@ abstract class RemoteFileClient {
     } on ProtocolException {
       rethrow;
     } catch (e) {
-      final name = operationName ?? '操作';
+      final name = operationName ?? 'Operation';
       throw ConnectionException(
-        '$name失败',
+        '$name failed',
         protocol: config.type,
         originalError: e,
       );
     }
   }
 
-  /// 验证配置
+  /// Validate configuration
   void validateConfig() {
     if (config.host.isEmpty) {
       throw ConfigurationException(
-        '主机地址不能为空',
+        'Host address cannot be empty',
         protocol: config.type,
       );
     }
 
     if (config.port <= 0 || config.port > 65535) {
       throw ConfigurationException(
-        '端口号必须在1-65535之间',
+        'Port must be between 1-65535',
         protocol: config.type,
       );
     }
   }
 
-  /// 记录日志（可在子类中覆盖）
+  /// Log message (can be overridden in subclass)
   void log(String message) {
-    // 使用debugPrint避免在生产环境打印
+    // Use debugPrint to avoid printing in production
     // ignore: avoid_print
     print('[${config.type.displayName}] $message');
   }
@@ -99,4 +99,3 @@ abstract class RemoteFileClient {
     return '$runtimeType(config: ${config.name}, status: ${_status.displayName})';
   }
 }
-

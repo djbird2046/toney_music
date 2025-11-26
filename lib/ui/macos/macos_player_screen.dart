@@ -12,6 +12,7 @@ import '../../core/media/audio_formats.dart';
 import '../../core/media/song_metadata.dart';
 import '../../core/media/song_metadata_util.dart';
 import '../../core/playback/playback_track.dart';
+import '../../core/playback/playback_helper.dart';
 import '../../core/storage/playlist_storage.dart';
 import '../../core/storage/library_storage.dart';
 import 'macos_colors.dart';
@@ -58,6 +59,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   final PlaylistStorage _playlistStorage = PlaylistStorage();
   int? _nowPlayingIndex;
   int? _selectedLibraryIndex;
+  int? _downloadingIndex;
+  double? _downloadProgress;
 
   final tracks = [
     const TrackRow(
@@ -188,7 +191,15 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       );
     });
 
-    final files = await _collectAudioFiles(request.paths);
+    // For remote files, use paths directly; for local files, need recursive scan
+    List<String> files;
+    if (request.type == LibrarySourceType.local) {
+      files = await _collectAudioFiles(request.paths);
+    } else {
+      // Remote files: use path list directly, RemoteFileBrowserDialog only returns audio files
+      files = request.paths;
+    }
+    
     if (!mounted) return;
     if (_cancelLibraryImport) {
       _finishLibraryImport(cancelled: true, added: 0, total: files.length);
@@ -231,18 +242,48 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         break;
       }
       try {
-        final metadata = await _metadataUtil.loadFromPath(path);
+        // Select metadata extraction method based on source type
+        SongMetadata metadata;
+        if (request.type == LibrarySourceType.local) {
+          // Local file: extract metadata directly
+          metadata = await _metadataUtil.loadFromPath(path);
+        } else {
+          // Remote file: generate basic metadata from filename (avoid download during import)
+          final fileName = path.split('/').last;
+          final titleWithoutExt = fileName.lastIndexOf('.') != -1
+              ? fileName.substring(0, fileName.lastIndexOf('.'))
+              : fileName;
+          metadata = SongMetadata(
+            title: titleWithoutExt,
+            artist: 'Unknown Artist',
+            album: 'Unknown Album',
+            extras: {'Path': path, 'isRemote': 'true'},
+          );
+        }
+        
         if (!mounted || _cancelLibraryImport) break;
         final enriched = metadata.copyWith(
           extras: {...metadata.extras, 'Path': path},
         );
         final trackRow = _buildLibraryTrackRow(enriched, path, request.type);
+        
+        // Create remote file info (if remote source)
+        RemoteFileInfo? remoteInfo;
+        if (request.type != LibrarySourceType.local && 
+            request.connectionConfigId != null) {
+          remoteInfo = RemoteFileInfo(
+            configId: request.connectionConfigId!,
+            remotePath: path,
+          );
+        }
+        
         final entry = LibraryEntry(
           path: path,
           sourceType: request.type,
           metadata: enriched,
           bookmark: null,
           importedAt: DateTime.now(),
+          remoteInfo: remoteInfo,
         );
         processed++;
         added++;
@@ -435,10 +476,24 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         SongMetadata.unknown(
           track.title,
         ).copyWith(extras: {'Path': track.path});
+    
+    // Get sourceType and remoteInfo from LibraryEntry
+    final libraryIndex = _libraryPathIndex[track.path];
+    LibrarySourceType? sourceType;
+    RemoteFileInfo? remoteInfo;
+    
+    if (libraryIndex != null && libraryIndex < _libraryEntries.length) {
+      final libraryEntry = _libraryEntries[libraryIndex];
+      sourceType = libraryEntry.sourceType;
+      remoteInfo = libraryEntry.remoteInfo;
+    }
+    
     final entry = PlaylistEntry(
       path: track.path,
       metadata: metadata,
       bookmark: null,
+      sourceType: sourceType,
+      remoteInfo: remoteInfo,
     );
     _playlistEntries.putIfAbsent(playlistName, () => <PlaylistEntry>[]);
     final updated = List<PlaylistEntry>.from(_playlistEntries[playlistName]!)
@@ -470,6 +525,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           path: path,
           metadata: enriched,
           bookmark: reference.bookmark,
+          sourceType: reference.sourceType,
+          remoteInfo: reference.remoteInfo,
         ),
       );
     }
@@ -797,6 +854,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
                   path: entry.path,
                   bookmark: entry.bookmark,
                   metadata: entry.metadata,
+                  sourceType: entry.sourceType,
+                  remoteInfo: entry.remoteInfo,
                 ),
               )
               .toList(),
@@ -828,6 +887,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         index,
         previousPlaying: previousPlaying,
         previousSelection: previousSelection,
+        isRemote: _currentPlaylistEntries[index].isRemote,
+        remoteInfo: _currentPlaylistEntries[index].remoteInfo,
       ),
     );
   }
@@ -836,12 +897,67 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     int index, {
     required int? previousPlaying,
     required Set<int> previousSelection,
+    bool isRemote = false,
+    RemoteFileInfo? remoteInfo,
   }) async {
     try {
-      await widget.controller.playAt(index);
+      // If remote file, need to preprocess (download cache)
+      if (isRemote && remoteInfo != null) {
+        // Set downloading state
+        setState(() {
+          _downloadingIndex = index;
+          _downloadProgress = 0.0;
+        });
+        
+        // Create temporary LibraryEntry for preprocessing
+        final entry = _currentPlaylistEntries[index];
+        final libraryEntry = LibraryEntry(
+          path: entry.path,
+          sourceType: entry.sourceType ?? LibrarySourceType.local,
+          metadata: entry.metadata,
+          bookmark: entry.bookmark,
+          importedAt: DateTime.now(),
+          remoteInfo: remoteInfo,
+        );
+        
+        // Use PlaybackHelper to prepare playback file (auto downloads cache)
+        final playbackHelper = PlaybackHelper();
+        final playableFile = await playbackHelper.prepareForPlayback(
+          libraryEntry,
+          onDownloadProgress: (received, total) {
+            if (!mounted) return;
+            setState(() {
+              _downloadProgress = total > 0 ? received / total : 0.0;
+            });
+          },
+        );
+        
+        // Clear downloading state
+        if (mounted) {
+          setState(() {
+            _downloadingIndex = null;
+            _downloadProgress = null;
+          });
+        }
+        
+        // Load and play using cache path
+        await widget.controller.load(playableFile.path, bookmark: playableFile.bookmark);
+        await widget.controller.play();
+      } else {
+        // Local file, play directly
+        await widget.controller.playAt(index);
+      }
+      
       _updatePlaylistEntryMissingFlag(index, false);
     } catch (error, stackTrace) {
       debugPrint('Failed to play track at $index: $error\n$stackTrace');
+      // Clear downloading state on error
+      if (mounted) {
+        setState(() {
+          _downloadingIndex = null;
+          _downloadProgress = null;
+        });
+      }
       _updatePlaylistEntryMissingFlag(index, true);
       if (!mounted) return;
       setState(() {
@@ -974,6 +1090,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           onDeleteTrack: _deleteTrackAt,
           playingIndex: _nowPlayingIndex,
           onPlayTrack: _handlePlayTrack,
+          downloadingIndex: _downloadingIndex,
+          downloadProgress: _downloadProgress,
         );
       case NavSection.library:
         return MacosLibraryView(

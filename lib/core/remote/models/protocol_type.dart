@@ -1,18 +1,18 @@
-/// 远程文件协议类型枚举
+/// Remote file protocol type enum
 enum ProtocolType {
-  /// Samba (SMB/CIFS) 协议
+  /// Samba (SMB/CIFS) protocol
   samba,
 
-  /// WebDAV (Web Distributed Authoring and Versioning) 协议
+  /// WebDAV (Web Distributed Authoring and Versioning) protocol
   webdav,
 
-  /// FTP (File Transfer Protocol) 协议
+  /// FTP (File Transfer Protocol) protocol
   ftp,
 
-  /// SFTP (SSH File Transfer Protocol) 协议
+  /// SFTP (SSH File Transfer Protocol) protocol
   sftp;
 
-  /// 获取协议的显示名称
+  /// Get protocol display name
   String get displayName {
     switch (this) {
       case ProtocolType.samba:
@@ -26,7 +26,7 @@ enum ProtocolType {
     }
   }
 
-  /// 获取协议的默认端口
+  /// Get protocol default port
   int get defaultPort {
     switch (this) {
       case ProtocolType.samba:
@@ -40,21 +40,21 @@ enum ProtocolType {
     }
   }
 
-  /// 获取协议的描述
+  /// Get protocol description
   String get description {
     switch (this) {
       case ProtocolType.samba:
-        return 'Windows网络文件共享协议';
+        return 'Windows network file sharing';
       case ProtocolType.webdav:
-        return '基于HTTP的文件共享协议';
+        return 'HTTP-based file sharing';
       case ProtocolType.ftp:
-        return '传统文件传输协议';
+        return 'Traditional file transfer';
       case ProtocolType.sftp:
-        return '安全文件传输协议';
+        return 'Secure file transfer';
     }
   }
 
-  /// 从字符串转换为枚举
+  /// Convert from string to enum
   static ProtocolType fromString(String value) {
     return ProtocolType.values.firstWhere(
       (type) => type.name == value,
@@ -62,4 +62,3 @@ enum ProtocolType {
     );
   }
 }
-

@@ -1,116 +1,162 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
+
+import 'package:hive/hive.dart';
 import '../models/connection_config.dart';
 import '../exceptions/protocol_exceptions.dart';
 
-/// 连接配置管理器
+/// Connection configuration manager
 /// 
-/// 负责持久化存储和管理所有的连接配置
+/// Responsible for persistent storage and management of all connection configurations
 class ConfigManager {
-  /// SharedPreferences实例
-  SharedPreferences? _prefs;
+  /// Hive Box instance
+  Box<dynamic>? _box;
 
-  /// 存储键名
-  static const String _storageKey = 'remote_file_connections';
+  /// Box name
+  static const String _boxName = 'remote_connections';
 
-  /// 单例实例
+  /// Storage key
+  static const String _storageKey = 'configs';
+
+  /// Singleton instance
   static final ConfigManager _instance = ConfigManager._internal();
+  
+  /// Initialization completer (to prevent concurrent initialization)
+  Completer<void>? _initCompleter;
+  
+  /// Whether initialized
+  bool _isInitialized = false;
 
-  /// 私有构造函数
+  /// Private constructor
   ConfigManager._internal();
 
-  /// 获取单例实例
+  /// Get singleton instance
   factory ConfigManager() => _instance;
 
-  /// 初始化配置管理器
+  /// Initialize configuration manager
   /// 
-  /// 必须在使用其他方法之前调用此方法
+  /// Must be called before using other methods
+  /// Uses lock mechanism to prevent file lock errors from concurrent initialization
   Future<void> init() async {
+    // If already initialized, return directly
+    if (_isInitialized && _box != null) {
+      return;
+    }
+    
+    // If initializing, wait for completion
+    if (_initCompleter != null) {
+      await _initCompleter!.future;
+      return;
+    }
+    
+    // Start initialization
+    _initCompleter = Completer<void>();
+    
     try {
-      _prefs = await SharedPreferences.getInstance();
+      _box = await Hive.openBox<dynamic>(_boxName);
+      _isInitialized = true;
+      _initCompleter!.complete();
     } catch (e) {
+      _initCompleter!.completeError(e);
+      _initCompleter = null;
       throw ConfigurationException(
-        '初始化配置管理器失败',
+        'Failed to initialize configuration manager',
         originalError: e,
       );
     }
   }
-
-  /// 确保已初始化
-  void _ensureInitialized() {
-    if (_prefs == null) {
-      throw ConfigurationException('配置管理器未初始化，请先调用init()方法');
+  
+  /// Release resources
+  Future<void> dispose() async {
+    if (_box != null) {
+      await _box!.close();
+      _box = null;
+      _isInitialized = false;
+      _initCompleter = null;
     }
   }
 
-  /// 获取所有连接配置
+  /// Ensure initialized
+  void _ensureInitialized() {
+    if (_box == null) {
+      throw ConfigurationException('Configuration manager not initialized, please call init() first');
+    }
+  }
+
+  /// Get all connection configurations
   /// 
-  /// 返回：
-  /// - 所有已保存的连接配置列表
+  /// Returns:
+  /// - List of all saved connection configurations
   Future<List<ConnectionConfig>> getAllConfigs() async {
     _ensureInitialized();
 
     try {
-      final jsonString = _prefs!.getString(_storageKey);
-      if (jsonString == null || jsonString.isEmpty) {
+      final raw = _box!.get(_storageKey);
+      if (raw is! List) {
         return [];
       }
 
-      final List<dynamic> jsonList = json.decode(jsonString);
-      return jsonList
-          .map((json) => ConnectionConfig.fromJson(json as Map<String, dynamic>))
-          .toList();
+      final configs = <ConnectionConfig>[];
+      for (final item in raw) {
+        try {
+          if (item is Map) {
+            configs.add(ConnectionConfig.fromJson(Map<String, dynamic>.from(item)));
+          }
+        } catch (_) {
+          // Skip invalid configuration items
+          continue;
+        }
+      }
+      return configs;
     } catch (e) {
       throw ConfigurationException(
-        '读取配置失败',
+        'Failed to read configuration',
         originalError: e,
       );
     }
   }
 
-  /// 保存连接配置
+  /// Save connection configuration
   /// 
-  /// 如果配置ID已存在，则更新；否则新增
+  /// If configuration ID already exists, update; otherwise add new
   /// 
-  /// 参数：
-  /// - [config] 要保存的连接配置
+  /// Parameters:
+  /// - [config] The connection configuration to save
   Future<void> saveConfig(ConnectionConfig config) async {
     _ensureInitialized();
 
     try {
       final configs = await getAllConfigs();
       
-      // 查找是否存在相同ID的配置
+      // Find if configuration with same ID exists
       final index = configs.indexWhere((c) => c.id == config.id);
       
       if (index >= 0) {
-        // 更新现有配置
+        // Update existing configuration
         configs[index] = config.copyWith(updatedAt: DateTime.now());
       } else {
-        // 添加新配置
+        // Add new configuration
         configs.add(config);
       }
 
-      // 保存到SharedPreferences
+      // Save to Hive
       final jsonList = configs.map((c) => c.toJson()).toList();
-      final jsonString = json.encode(jsonList);
-      await _prefs!.setString(_storageKey, jsonString);
+      await _box!.put(_storageKey, jsonList);
     } catch (e) {
       throw ConfigurationException(
-        '保存配置失败',
+        'Failed to save configuration',
         originalError: e,
       );
     }
   }
 
-  /// 删除连接配置
+  /// Delete connection configuration
   /// 
-  /// 参数：
-  /// - [id] 要删除的配置ID
+  /// Parameters:
+  /// - [id] The configuration ID to delete
   /// 
-  /// 返回：
-  /// - true: 删除成功
-  /// - false: 未找到指定ID的配置
+  /// Returns:
+  /// - true: Deletion successful
+  /// - false: Configuration with specified ID not found
   Future<bool> deleteConfig(String id) async {
     _ensureInitialized();
 
@@ -121,30 +167,29 @@ class ConfigManager {
       configs.removeWhere((c) => c.id == id);
       
       if (configs.length == initialLength) {
-        return false; // 未找到要删除的配置
+        return false; // Configuration to delete not found
       }
 
-      // 保存到SharedPreferences
+      // Save to Hive
       final jsonList = configs.map((c) => c.toJson()).toList();
-      final jsonString = json.encode(jsonList);
-      await _prefs!.setString(_storageKey, jsonString);
+      await _box!.put(_storageKey, jsonList);
       
       return true;
     } catch (e) {
       throw ConfigurationException(
-        '删除配置失败',
+        'Failed to delete configuration',
         originalError: e,
       );
     }
   }
 
-  /// 获取单个连接配置
+  /// Get single connection configuration
   /// 
-  /// 参数：
-  /// - [id] 配置ID
+  /// Parameters:
+  /// - [id] Configuration ID
   /// 
-  /// 返回：
-  /// - 找到的配置，如果不存在则返回null
+  /// Returns:
+  /// - Found configuration, or null if not exists
   Future<ConnectionConfig?> getConfig(String id) async {
     _ensureInitialized();
 
@@ -158,41 +203,41 @@ class ConfigManager {
       return null;
     } catch (e) {
       throw ConfigurationException(
-        '读取配置失败',
+        'Failed to read configuration',
         originalError: e,
       );
     }
   }
 
-  /// 清除所有配置
+  /// Clear all configurations
   /// 
-  /// 注意：此操作不可恢复
+  /// Note: This operation is irreversible
   Future<void> clearAllConfigs() async {
     _ensureInitialized();
 
     try {
-      await _prefs!.remove(_storageKey);
+      await _box!.delete(_storageKey);
     } catch (e) {
       throw ConfigurationException(
-        '清除配置失败',
+        'Failed to clear configurations',
         originalError: e,
       );
     }
   }
 
-  /// 获取配置数量
+  /// Get configuration count
   Future<int> getConfigCount() async {
     final configs = await getAllConfigs();
     return configs.length;
   }
 
-  /// 检查配置ID是否已存在
+  /// Check if configuration ID already exists
   Future<bool> configExists(String id) async {
     final config = await getConfig(id);
     return config != null;
   }
 
-  /// 按协议类型获取配置列表
+  /// Get configurations by protocol type
   Future<List<ConnectionConfig>> getConfigsByType(
     dynamic protocolType,
   ) async {
@@ -200,4 +245,3 @@ class ConfigManager {
     return configs.where((c) => c.type == protocolType).toList();
   }
 }
-

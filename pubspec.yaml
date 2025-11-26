@@ -40,15 +40,14 @@ dependencies:
   desktop_drop: ^0.4.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  path_provider: ^2.1.1
+  crypto: ^3.0.3
   
   # 远程文件协议客户端库
   webdav_client: ^1.2.2
   ftpconnect: ^2.0.10
   dartssh2: ^2.13.0
   smb_connect: ^0.0.9
-  
-  # 配置存储
-  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:

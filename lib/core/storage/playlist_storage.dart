@@ -4,18 +4,33 @@ import 'dart:typed_data';
 import 'package:hive/hive.dart';
 
 import '../media/song_metadata.dart';
+import '../library/library_source.dart';
+import 'library_storage.dart';
 
 class PlaylistReference {
-  const PlaylistReference({required this.path, this.bookmark, this.metadata});
+  const PlaylistReference({
+    required this.path,
+    this.bookmark,
+    this.metadata,
+    this.sourceType,
+    this.remoteInfo,
+  });
 
   final String path;
   final Uint8List? bookmark;
   final SongMetadata? metadata;
+  final LibrarySourceType? sourceType;
+  final RemoteFileInfo? remoteInfo;
+  
+  /// Whether is remote file
+  bool get isRemote => sourceType != null && sourceType != LibrarySourceType.local;
 
   Map<String, dynamic> toJson() => {
     'path': path,
     if (bookmark != null) 'bookmark': base64Encode(bookmark!),
     if (metadata != null) 'metadata': metadata!.toJson(),
+    if (sourceType != null) 'sourceType': sourceType!.name,
+    if (remoteInfo != null) 'remoteInfo': remoteInfo!.toJson(),
   };
 
   static PlaylistReference fromJson(dynamic json) {
@@ -53,10 +68,39 @@ class PlaylistReference {
         metadata = null;
       }
     }
+    
+    // Parse sourceType
+    LibrarySourceType? sourceType;
+    final sourceRaw = json['sourceType'] as String?;
+    if (sourceRaw != null) {
+      try {
+        sourceType = LibrarySourceType.values.firstWhere(
+          (type) => type.name == sourceRaw,
+        );
+      } catch (_) {
+        sourceType = null;
+      }
+    }
+    
+    // Parse remoteInfo
+    RemoteFileInfo? remoteInfo;
+    final remoteInfoRaw = json['remoteInfo'];
+    if (remoteInfoRaw is Map) {
+      try {
+        remoteInfo = RemoteFileInfo.fromJson(
+          Map<String, dynamic>.from(remoteInfoRaw),
+        );
+      } catch (_) {
+        remoteInfo = null;
+      }
+    }
+    
     return PlaylistReference(
       path: path,
       bookmark: bookmark,
       metadata: metadata,
+      sourceType: sourceType,
+      remoteInfo: remoteInfo,
     );
   }
 }

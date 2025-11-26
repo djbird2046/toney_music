@@ -1,17 +1,19 @@
+import 'dart:io';
+
 import 'package:dartssh2/dartssh2.dart';
 import '../models/connection_status.dart';
 import '../exceptions/protocol_exceptions.dart';
 import 'remote_file_client.dart';
 
-/// SFTP客户端实现
+/// SFTP client implementation
 class SFTPClient extends RemoteFileClient {
-  /// SSH客户端实例
+  /// SSH client instance
   SSHClient? _sshClient;
 
-  /// SFTP会话实例
+  /// SFTP session instance
   SftpClient? _sftpClient;
 
-  /// 构造函数
+  /// Constructor
   SFTPClient(super.config);
 
   @override
@@ -19,10 +21,10 @@ class SFTPClient extends RemoteFileClient {
     return safeExecute(() async {
       validateConfig();
       setStatus(ConnectionStatus.connecting);
-      log('开始连接SFTP服务器: ${config.host}:${config.port}');
+      log('Starting SFTP connection: ${config.host}:${config.port}');
 
       try {
-        // 创建SSH客户端连接
+        // Create SSH client connection
         final socket = await SSHSocket.connect(
           config.host,
           config.port,
@@ -35,92 +37,92 @@ class SFTPClient extends RemoteFileClient {
           onPasswordRequest: () => config.password ?? '',
         );
 
-        // 等待认证完成
+        // Wait for authentication to complete
         await _sshClient!.authenticated;
-        log('SSH认证成功');
+        log('SSH authentication successful');
 
-        // 打开SFTP会话
+        // Open SFTP session
         _sftpClient = await _sshClient!.sftp();
-        log('SFTP会话已建立');
+        log('SFTP session established');
 
-        // 如果指定了远程路径，验证路径是否存在
+        // If remote path is specified, verify path exists
         if (config.remotePath != null && config.remotePath!.isNotEmpty) {
           try {
             await _sftpClient!.stat(config.remotePath!);
-            log('已验证远程路径: ${config.remotePath}');
+            log('Remote path verified: ${config.remotePath}');
           } catch (e) {
-            log('远程路径不存在或无权限访问: ${config.remotePath}');
-            // 不抛出异常，允许连接继续
+            log('Remote path does not exist or no access permission: ${config.remotePath}');
+            // Don't throw exception, allow connection to continue
           }
         }
 
         setStatus(ConnectionStatus.connected);
-        log('SFTP连接成功');
+        log('SFTP connection successful');
         return true;
       } catch (e) {
         setStatus(ConnectionStatus.error, error: e.toString());
-        log('SFTP连接失败: $e');
+        log('SFTP connection failed: $e');
 
         final errorStr = e.toString().toLowerCase();
         if (errorStr.contains('authentication') ||
             errorStr.contains('password') ||
             errorStr.contains('permission denied')) {
           throw AuthenticationException(
-            '认证失败，请检查用户名和密码',
+            'Authentication failed, please check username and password',
             protocol: config.type,
             originalError: e,
           );
         } else if (errorStr.contains('timeout')) {
           throw TimeoutException(
-            '连接超时',
+            'Connection timeout',
             protocol: config.type,
             originalError: e,
           );
         } else if (errorStr.contains('connection refused') ||
                    errorStr.contains('network')) {
           throw NetworkException(
-            '网络连接失败',
+            'Network connection failed',
             protocol: config.type,
             originalError: e,
           );
         } else {
           throw ConnectionException(
-            '连接失败',
+            'Connection failed',
             protocol: config.type,
             originalError: e,
           );
         }
       }
-    }, operationName: 'SFTP连接');
+    }, operationName: 'SFTP connection');
   }
 
   @override
   Future<void> disconnect() async {
     return safeExecute(() async {
-      log('断开SFTP连接');
+      log('Disconnecting SFTP connection');
 
-      // 关闭SFTP会话
+      // Close SFTP session
       if (_sftpClient != null) {
         try {
           _sftpClient!.close();
         } catch (e) {
-          log('关闭SFTP会话时出错: $e');
+          log('Error closing SFTP session: $e');
         }
         _sftpClient = null;
       }
 
-      // 关闭SSH连接
+      // Close SSH connection
       if (_sshClient != null) {
         try {
           _sshClient!.close();
         } catch (e) {
-          log('关闭SSH连接时出错: $e');
+          log('Error closing SSH connection: $e');
         }
         _sshClient = null;
       }
 
       setStatus(ConnectionStatus.disconnected);
-    }, operationName: 'SFTP断开连接');
+    }, operationName: 'SFTP disconnect');
   }
 
   @override
@@ -131,29 +133,29 @@ class SFTPClient extends RemoteFileClient {
       }
 
       try {
-        // 尝试列出根目录或指定路径来测试连接
+        // Try to list root directory or specified path to test connection
         final path = config.remotePath ?? '/';
         await _sftpClient!.listdir(path);
         return true;
       } catch (e) {
-        log('SFTP连接测试失败: $e');
+        log('SFTP connection test failed: $e');
         return false;
       }
-    }, operationName: 'SFTP连接测试');
+    }, operationName: 'SFTP connection test');
   }
 
-  /// 获取SSH客户端实例
+  /// Get SSH client instance
   SSHClient? get sshClient => _sshClient;
 
-  /// 获取SFTP客户端实例
+  /// Get SFTP client instance
   SftpClient? get sftpClient => _sftpClient;
 
-  /// 列出目录内容
+  /// List directory contents
   Future<List<SftpName>> listDirectory(String path) async {
     return safeExecute(() async {
       if (_sftpClient == null || status != ConnectionStatus.connected) {
         throw ConnectionException(
-          '未连接到服务器',
+          'Not connected to server',
           protocol: config.type,
         );
       }
@@ -163,21 +165,21 @@ class SFTPClient extends RemoteFileClient {
         return files;
       } catch (e) {
         throw FileOperationException(
-          '列出目录失败',
+          'Failed to list directory',
           protocol: config.type,
           originalError: e,
           filePath: path,
         );
       }
-    }, operationName: '列出目录');
+    }, operationName: 'List directory');
   }
 
-  /// 获取文件或目录状态
+  /// Get file or directory status
   Future<SftpFileAttrs> stat(String path) async {
     return safeExecute(() async {
       if (_sftpClient == null || status != ConnectionStatus.connected) {
         throw ConnectionException(
-          '未连接到服务器',
+          'Not connected to server',
           protocol: config.type,
         );
       }
@@ -186,13 +188,106 @@ class SFTPClient extends RemoteFileClient {
         return await _sftpClient!.stat(path);
       } catch (e) {
         throw FileOperationException(
-          '获取文件状态失败',
+          'Failed to get file status',
           protocol: config.type,
           originalError: e,
           filePath: path,
         );
       }
-    }, operationName: '获取文件状态');
+    }, operationName: 'Get file status');
+  }
+
+  /// Download file to local
+  /// 
+  /// Parameters:
+  /// - [remotePath] Remote file path
+  /// - [localPath] Local save path
+  /// - [onProgress] Download progress callback (optional)
+  Future<void> downloadFile(
+    String remotePath,
+    String localPath, {
+    void Function(int received, int total)? onProgress,
+  }) async {
+    return safeExecute(() async {
+      if (_sftpClient == null || status != ConnectionStatus.connected) {
+        throw ConnectionException(
+          'Not connected to server',
+          protocol: config.type,
+        );
+      }
+
+      try {
+        log('Starting file download: $remotePath -> $localPath');
+        
+        // 1. Get file size for progress calculation
+        final fileStat = await _sftpClient!.stat(remotePath);
+        final fileSize = fileStat.size ?? 0;
+        log('File size: $fileSize bytes');
+        
+        // 2. Open remote file for reading
+        final remoteFile = await _sftpClient!.open(
+          remotePath,
+          mode: SftpFileOpenMode.read,
+        );
+        
+        // 3. Create local file and prepare for writing
+        final localFile = File(localPath);
+        final sink = localFile.openWrite();
+        
+        try {
+          // 4. Read file as stream and write to local file
+          int received = 0;
+          
+          // Use the read() method which returns a Stream<Uint8List>
+          final stream = remoteFile.read(
+            length: fileSize,
+            onProgress: (bytesRead) {
+              received = bytesRead;
+              if (onProgress != null && fileSize > 0) {
+                onProgress(bytesRead, fileSize);
+              }
+            },
+          );
+          
+          // Write stream to local file
+          await for (final chunk in stream) {
+            sink.add(chunk);
+          }
+          
+          // 5. Close streams
+          await sink.flush();
+          await sink.close();
+          await remoteFile.close();
+          
+          log('File download completed: $localPath ($received bytes)');
+        } catch (e) {
+          // Ensure all streams are closed
+          await sink.close().catchError((_) {});
+          await remoteFile.close();
+          rethrow;
+        }
+      } catch (e) {
+        // Clean up potentially incomplete file
+        try {
+          final localFile = File(localPath);
+          if (await localFile.exists()) {
+            await localFile.delete();
+          }
+        } catch (_) {
+          // Cleanup failed, ignore
+        }
+        
+        if (e is ProtocolException) {
+          rethrow;
+        }
+        
+        throw FileOperationException(
+          'Failed to download file',
+          protocol: config.type,
+          originalError: e,
+          filePath: remotePath,
+        );
+      }
+    }, operationName: 'Download file');
   }
 }
-

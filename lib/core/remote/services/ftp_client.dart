@@ -1,14 +1,16 @@
+import 'dart:io';
+
 import 'package:ftpconnect/ftpconnect.dart';
 import '../models/connection_status.dart';
 import '../exceptions/protocol_exceptions.dart';
 import 'remote_file_client.dart';
 
-/// FTP客户端实现
+/// FTP client implementation
 class FTPClient extends RemoteFileClient {
-  /// FTP连接实例
+  /// FTP connection instance
   FTPConnect? _ftpConnect;
 
-  /// 构造函数
+  /// Constructor
   FTPClient(super.config);
 
   @override
@@ -16,10 +18,10 @@ class FTPClient extends RemoteFileClient {
     return safeExecute(() async {
       validateConfig();
       setStatus(ConnectionStatus.connecting);
-      log('开始连接FTP服务器: ${config.host}:${config.port}');
+      log('Starting FTP connection: ${config.host}:${config.port}');
 
       try {
-        // 创建FTP连接
+        // Create FTP connection
         _ftpConnect = FTPConnect(
           config.host,
           port: config.port,
@@ -28,70 +30,70 @@ class FTPClient extends RemoteFileClient {
           timeout: 30,
         );
 
-        // 连接到服务器
+        // Connect to server
         await _ftpConnect!.connect();
         
-        // 如果指定了远程路径，切换到该目录
+        // If remote path is specified, change to that directory
         if (config.remotePath != null && config.remotePath!.isNotEmpty) {
           try {
             await _ftpConnect!.changeDirectory(config.remotePath!);
-            log('已切换到目录: ${config.remotePath}');
+            log('Changed to directory: ${config.remotePath}');
           } catch (e) {
-            log('切换目录失败: $e');
-            // 不抛出异常，允许连接继续
+            log('Failed to change directory: $e');
+            // Don't throw exception, allow connection to continue
           }
         }
 
         setStatus(ConnectionStatus.connected);
-        log('FTP连接成功');
+        log('FTP connection successful');
         return true;
       } catch (e) {
         setStatus(ConnectionStatus.error, error: e.toString());
-        log('FTP连接失败: $e');
+        log('FTP connection failed: $e');
 
         final errorStr = e.toString().toLowerCase();
         if (errorStr.contains('authentication') || 
             errorStr.contains('login') ||
             errorStr.contains('530')) {
           throw AuthenticationException(
-            '认证失败，请检查用户名和密码',
+            'Authentication failed, please check username and password',
             protocol: config.type,
             originalError: e,
           );
         } else if (errorStr.contains('timeout')) {
           throw TimeoutException(
-            '连接超时',
+            'Connection timeout',
             protocol: config.type,
             originalError: e,
           );
         } else {
           throw ConnectionException(
-            '连接失败',
+            'Connection failed',
             protocol: config.type,
             originalError: e,
           );
         }
       }
-    }, operationName: 'FTP连接');
+    }, operationName: 'FTP connection');
   }
 
   @override
   Future<void> disconnect() async {
     return safeExecute(() async {
-      log('断开FTP连接');
+      log('Disconnecting FTP connection');
       
       if (_ftpConnect != null) {
         try {
           await _ftpConnect!.disconnect();
         } catch (e) {
-          log('断开连接时出错: $e');
-          // 即使断开失败也继续清理
+          log('Error disconnecting: $e');
+          // Continue cleanup even if disconnect fails
         }
         _ftpConnect = null;
       }
       
       setStatus(ConnectionStatus.disconnected);
-    }, operationName: 'FTP断开连接');
+    }, operationName: 'FTP disconnect');
   }
 
   @override
@@ -102,36 +104,36 @@ class FTPClient extends RemoteFileClient {
       }
 
       try {
-        // 尝试列出当前目录来测试连接
+        // Try to list current directory to test connection
         await _ftpConnect!.listDirectoryContent();
         return true;
       } catch (e) {
-        log('FTP连接测试失败: $e');
+        log('FTP connection test failed: $e');
         return false;
       }
-    }, operationName: 'FTP连接测试');
+    }, operationName: 'FTP connection test');
   }
 
-  /// 获取FTP连接实例
+  /// Get FTP connection instance
   FTPConnect? get ftpConnect => _ftpConnect;
 
-  /// 列出目录内容
+  /// List directory contents
   Future<List<FTPEntry>> listDirectory([String? path]) async {
     return safeExecute(() async {
       if (_ftpConnect == null || status != ConnectionStatus.connected) {
         throw ConnectionException(
-          '未连接到服务器',
+          'Not connected to server',
           protocol: config.type,
         );
       }
 
       try {
-        // 如果指定了路径，先切换目录
+        // If path is specified, change directory first
         if (path != null && path.isNotEmpty) {
           final currentDir = await _ftpConnect!.currentDirectory();
           await _ftpConnect!.changeDirectory(path);
           final files = await _ftpConnect!.listDirectoryContent();
-          // 切换回原目录
+          // Change back to original directory
           await _ftpConnect!.changeDirectory(currentDir);
           return files;
         } else {
@@ -139,21 +141,21 @@ class FTPClient extends RemoteFileClient {
         }
       } catch (e) {
         throw FileOperationException(
-          '列出目录失败',
+          'Failed to list directory',
           protocol: config.type,
           originalError: e,
           filePath: path,
         );
       }
-    }, operationName: '列出目录');
+    }, operationName: 'List directory');
   }
 
-  /// 获取当前目录
+  /// Get current directory
   Future<String> getCurrentDirectory() async {
     return safeExecute(() async {
       if (_ftpConnect == null || status != ConnectionStatus.connected) {
         throw ConnectionException(
-          '未连接到服务器',
+          'Not connected to server',
           protocol: config.type,
         );
       }
@@ -162,12 +164,82 @@ class FTPClient extends RemoteFileClient {
         return await _ftpConnect!.currentDirectory();
       } catch (e) {
         throw FileOperationException(
-          '获取当前目录失败',
+          'Failed to get current directory',
           protocol: config.type,
           originalError: e,
         );
       }
-    }, operationName: '获取当前目录');
+    }, operationName: 'Get current directory');
+  }
+
+  /// Download file to local
+  /// 
+  /// Parameters:
+  /// - [remotePath] Remote file path
+  /// - [localPath] Local save path
+  /// - [onProgress] Download progress callback (optional)
+  Future<void> downloadFile(
+    String remotePath,
+    String localPath, {
+    void Function(int received, int total)? onProgress,
+  }) async {
+    return safeExecute(() async {
+      if (_ftpConnect == null || status != ConnectionStatus.connected) {
+        throw ConnectionException(
+          'Not connected to server',
+          protocol: config.type,
+        );
+      }
+
+      try {
+        log('Starting file download: $remotePath -> $localPath');
+        
+        // 1. Get file size for progress calculation
+        final fileSize = await _ftpConnect!.sizeFile(remotePath);
+        log('File size: $fileSize bytes');
+        
+        // 2. Create local file
+        final localFile = File(localPath);
+        
+        // 3. Download file using FTPConnect
+        final success = await _ftpConnect!.downloadFile(remotePath, localFile);
+        
+        if (!success) {
+          throw FileOperationException(
+            'Failed to download file',
+            protocol: config.type,
+            filePath: remotePath,
+          );
+        }
+        
+        // 4. Report progress as complete
+        if (onProgress != null && fileSize > 0) {
+          onProgress(fileSize, fileSize);
+        }
+        
+        log('File download completed: $localPath');
+      } catch (e) {
+        // Clean up potentially incomplete file
+        try {
+          final localFile = File(localPath);
+          if (await localFile.exists()) {
+            await localFile.delete();
+          }
+        } catch (_) {
+          // Cleanup failed, ignore
+        }
+        
+        if (e is ProtocolException) {
+          rethrow;
+        }
+        
+        throw FileOperationException(
+          'Failed to download file',
+          protocol: config.type,
+          originalError: e,
+          filePath: remotePath,
+        );
+      }
+    }, operationName: 'Download file');
   }
 }
-

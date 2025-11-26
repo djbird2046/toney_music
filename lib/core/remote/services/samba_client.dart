@@ -1,17 +1,19 @@
+import 'dart:io';
+
 import 'package:smb_connect/smb_connect.dart';
 import '../models/connection_status.dart';
 import '../exceptions/protocol_exceptions.dart';
 import 'remote_file_client.dart';
 
-/// Samba客户端实现
+/// Samba client implementation
 /// 
-/// 使用smb_connect包实现完整的SMB/CIFS协议支持
-/// 支持SMB 1.0、CIFS、SMB 2.0和SMB 2.1
+/// Uses smb_connect package for complete SMB/CIFS protocol support
+/// Supports SMB 1.0, CIFS, SMB 2.0 and SMB 2.1
 class SambaClient extends RemoteFileClient {
-  /// SMB连接实例
+  /// SMB connection instance
   SmbConnect? _smbConnect;
 
-  /// 构造函数
+  /// Constructor
   SambaClient(super.config);
 
   @override
@@ -19,34 +21,41 @@ class SambaClient extends RemoteFileClient {
     return safeExecute(() async {
       validateConfig();
       setStatus(ConnectionStatus.connecting);
-      log('开始连接Samba服务器: ${config.host}:${config.port}');
+      log('Starting Samba connection: ${config.host}:${config.port}');
+
+      // Note: smb_connect package's SmbConnect.connectAuth does not support custom ports
+      // It always uses standard SMB port 445
+      // If you need to use non-standard ports, consider using port forwarding or other SMB libraries
+      if (config.port != 445 && config.port != 139) {
+        log('Warning: smb_connect does not support custom ports, will use standard port 445 instead of ${config.port}');
+      }
 
       try {
-        // 创建SMB连接
+        // Create SMB connection
         _smbConnect = await SmbConnect.connectAuth(
           host: config.host,
-          domain: '', // SMB域名，通常为空
+          domain: '', // SMB domain, usually empty
           username: config.username ?? 'guest',
           password: config.password ?? '',
         );
 
-        log('Samba连接已建立');
+        log('Samba connection established');
 
-        // 测试连接：尝试列出共享资源
+        // Test connection: try to list shares
         final testResult = await testConnection();
         
         if (testResult) {
           setStatus(ConnectionStatus.connected);
-          log('Samba连接成功');
+          log('Samba connection successful');
           return true;
         } else {
-          setStatus(ConnectionStatus.error, error: '连接测试失败');
-          log('Samba连接测试失败');
+          setStatus(ConnectionStatus.error, error: 'Connection test failed');
+          log('Samba connection test failed');
           return false;
         }
       } catch (e) {
         setStatus(ConnectionStatus.error, error: e.toString());
-        log('Samba连接失败: $e');
+        log('Samba connection failed: $e');
 
         final errorStr = e.toString().toLowerCase();
         if (errorStr.contains('auth') || 
@@ -54,13 +63,13 @@ class SambaClient extends RemoteFileClient {
             errorStr.contains('password') ||
             errorStr.contains('access denied')) {
           throw AuthenticationException(
-            '认证失败，请检查用户名和密码',
+            'Authentication failed, please check username and password',
             protocol: config.type,
             originalError: e,
           );
         } else if (errorStr.contains('timeout')) {
           throw TimeoutException(
-            '连接超时',
+            'Connection timeout',
             protocol: config.type,
             originalError: e,
           );
@@ -68,39 +77,39 @@ class SambaClient extends RemoteFileClient {
                    errorStr.contains('network') ||
                    errorStr.contains('connect')) {
           throw NetworkException(
-            '网络连接失败，请检查主机地址和端口',
+            'Network connection failed, please check host address and port',
             protocol: config.type,
             originalError: e,
           );
         } else {
           throw ConnectionException(
-            '连接失败',
+            'Connection failed',
             protocol: config.type,
             originalError: e,
           );
         }
       }
-    }, operationName: 'Samba连接');
+    }, operationName: 'Samba connection');
   }
 
   @override
   Future<void> disconnect() async {
     return safeExecute(() async {
-      log('断开Samba连接');
+      log('Disconnecting Samba connection');
 
       if (_smbConnect != null) {
         try {
           await _smbConnect!.close();
-          log('Samba连接已关闭');
+          log('Samba connection closed');
         } catch (e) {
-          log('关闭Samba连接时出错: $e');
-          // 即使关闭失败也继续清理
+          log('Error closing Samba connection: $e');
+          // Continue cleanup even if close fails
         }
         _smbConnect = null;
       }
 
       setStatus(ConnectionStatus.disconnected);
-    }, operationName: 'Samba断开连接');
+    }, operationName: 'Samba disconnect');
   }
 
   @override
@@ -111,103 +120,103 @@ class SambaClient extends RemoteFileClient {
       }
 
       try {
-        // 尝试列出共享资源来测试连接
+        // Try to list shares to test connection
         final shares = await _smbConnect!.listShares();
-        log('Samba连接测试成功，发现 ${shares.length} 个共享资源');
+        log('Samba connection test successful, found ${shares.length} shares');
         return true;
       } catch (e) {
-        log('Samba连接测试失败: $e');
+        log('Samba connection test failed: $e');
         return false;
       }
-    }, operationName: 'Samba连接测试');
+    }, operationName: 'Samba connection test');
   }
 
-  /// 获取SMB连接实例
+  /// Get SMB connection instance
   SmbConnect? get smbConnect => _smbConnect;
 
-  /// 列出共享资源
+  /// List shares
   Future<List<SmbFile>> listShares() async {
     return safeExecute(() async {
       if (_smbConnect == null || status != ConnectionStatus.connected) {
         throw ConnectionException(
-          '未连接到服务器',
+          'Not connected to server',
           protocol: config.type,
         );
       }
 
       try {
         final shares = await _smbConnect!.listShares();
-        log('获取到 ${shares.length} 个共享资源');
+        log('Retrieved ${shares.length} shares');
         return shares;
       } catch (e) {
         throw FileOperationException(
-          '列出共享资源失败',
+          'Failed to list shares',
           protocol: config.type,
           originalError: e,
         );
       }
-    }, operationName: '列出共享资源');
+    }, operationName: 'List shares');
   }
 
-  /// 列出指定路径的文件
+  /// List files at specified path
   Future<List<SmbFile>> listFiles(String path) async {
     return safeExecute(() async {
       if (_smbConnect == null || status != ConnectionStatus.connected) {
         throw ConnectionException(
-          '未连接到服务器',
+          'Not connected to server',
           protocol: config.type,
         );
       }
 
       try {
-        // 获取文件对象
+        // Get file object
         final folder = await _smbConnect!.file(path);
-        // 列出文件
+        // List files
         final files = await _smbConnect!.listFiles(folder);
-        log('路径 $path 包含 ${files.length} 个文件');
+        log('Path $path contains ${files.length} files');
         return files;
       } catch (e) {
         throw FileOperationException(
-          '列出文件失败',
+          'Failed to list files',
           protocol: config.type,
           originalError: e,
           filePath: path,
         );
       }
-    }, operationName: '列出文件');
+    }, operationName: 'List files');
   }
 
-  /// 创建文件夹
+  /// Create folder
   Future<SmbFile> createFolder(String path) async {
     return safeExecute(() async {
       if (_smbConnect == null || status != ConnectionStatus.connected) {
         throw ConnectionException(
-          '未连接到服务器',
+          'Not connected to server',
           protocol: config.type,
         );
       }
 
       try {
         final folder = await _smbConnect!.createFolder(path);
-        log('成功创建文件夹: $path');
+        log('Successfully created folder: $path');
         return folder;
       } catch (e) {
         throw FileOperationException(
-          '创建文件夹失败',
+          'Failed to create folder',
           protocol: config.type,
           originalError: e,
           filePath: path,
         );
       }
-    }, operationName: '创建文件夹');
+    }, operationName: 'Create folder');
   }
 
-  /// 获取文件对象
+  /// Get file object
   Future<SmbFile> getFile(String path) async {
     return safeExecute(() async {
       if (_smbConnect == null || status != ConnectionStatus.connected) {
         throw ConnectionException(
-          '未连接到服务器',
+          'Not connected to server',
           protocol: config.type,
         );
       }
@@ -216,13 +225,108 @@ class SambaClient extends RemoteFileClient {
         return await _smbConnect!.file(path);
       } catch (e) {
         throw FileOperationException(
-          '获取文件失败',
+          'Failed to get file',
           protocol: config.type,
           originalError: e,
           filePath: path,
         );
       }
-    }, operationName: '获取文件');
+    }, operationName: 'Get file');
+  }
+
+  /// Download file to local
+  /// 
+  /// Parameters:
+  /// - [remotePath] Remote file path
+  /// - [localPath] Local save path
+  /// - [onProgress] Download progress callback (optional)
+  Future<void> downloadFile(
+    String remotePath,
+    String localPath, {
+    void Function(int received, int total)? onProgress,
+  }) async {
+    return safeExecute(() async {
+      if (_smbConnect == null || status != ConnectionStatus.connected) {
+        throw ConnectionException(
+          'Not connected to server',
+          protocol: config.type,
+        );
+      }
+
+      try {
+        log('Starting file download: $remotePath -> $localPath');
+        
+        // 1. Get remote file object
+        final smbFile = await _smbConnect!.file(remotePath);
+        
+        // 2. Get file size (for progress calculation)
+        final fileSize = smbFile.size;
+        log('File size: $fileSize bytes');
+        
+        // 3. Open remote file for reading
+        final remoteFile = await _smbConnect!.open(smbFile, mode: FileMode.read);
+        
+        // 4. Create local file and prepare for writing
+        final localFile = File(localPath);
+        final sink = localFile.openWrite();
+        
+        try {
+          // 5. Read and write in chunks while updating progress
+          const chunkSize = 64 * 1024; // 64KB per chunk
+          int received = 0;
+          
+          while (received < fileSize) {
+            final remainingBytes = fileSize - received;
+            final bytesToRead = remainingBytes < chunkSize ? remainingBytes : chunkSize;
+            
+            // Read data chunk
+            final chunk = await remoteFile.read(bytesToRead);
+            
+            // Write to local file
+            sink.add(chunk);
+            
+            // Update progress
+            received += chunk.length;
+            if (onProgress != null && fileSize > 0) {
+              onProgress(received, fileSize);
+            }
+            
+            // If less data read than expected, reached end of file
+            if (chunk.length < bytesToRead) {
+              break;
+            }
+          }
+          
+          // 6. Close streams
+          await sink.flush();
+          await sink.close();
+          await remoteFile.close();
+          
+          log('File download completed: $localPath ($received bytes)');
+        } catch (e) {
+          // Ensure all streams are closed
+          await sink.close().catchError((_) {});
+          await remoteFile.close().catchError((_) {});
+          rethrow;
+        }
+      } catch (e) {
+        // Clean up potentially incomplete file
+        try {
+          final localFile = File(localPath);
+          if (await localFile.exists()) {
+            await localFile.delete();
+          }
+        } catch (_) {
+          // Cleanup failed, ignore
+        }
+        
+        throw FileOperationException(
+          'Failed to download file',
+          protocol: config.type,
+          originalError: e,
+          filePath: remotePath,
+        );
+      }
+    }, operationName: 'Download file');
   }
 }
-

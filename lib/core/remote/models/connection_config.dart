@@ -1,38 +1,38 @@
 import 'protocol_type.dart';
 
-/// 连接配置模型类
+/// Connection configuration model class
 class ConnectionConfig {
-  /// 唯一标识符
+  /// Unique identifier
   final String id;
 
-  /// 协议类型
+  /// Protocol type
   final ProtocolType type;
 
-  /// 挂载名称（显示名称）
+  /// Mount name (display name)
   final String name;
 
-  /// 域名或IP地址
+  /// Domain or IP address
   final String host;
 
-  /// 端口号
+  /// Port number
   final int port;
 
-  /// 用户名（可选）
+  /// Username (optional)
   final String? username;
 
-  /// 密码（可选）
+  /// Password (optional)
   final String? password;
 
-  /// 指定的远程路径（可选）
+  /// Specified remote path (optional)
   final String? remotePath;
 
-  /// 创建时间
+  /// Created time
   final DateTime createdAt;
 
-  /// 更新时间
+  /// Updated time
   final DateTime updatedAt;
 
-  /// 构造函数
+  /// Constructor
   ConnectionConfig({
     required this.id,
     required this.type,
@@ -47,7 +47,7 @@ class ConnectionConfig {
   })  : createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
-  /// 从JSON创建实例
+  /// Create instance from JSON
   factory ConnectionConfig.fromJson(Map<String, dynamic> json) {
     return ConnectionConfig(
       id: json['id'] as String,
@@ -63,7 +63,7 @@ class ConnectionConfig {
     );
   }
 
-  /// 转换为JSON
+  /// Convert to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -79,7 +79,7 @@ class ConnectionConfig {
     };
   }
 
-  /// 创建副本并修改部分属性
+  /// Create copy with modified properties
   ConnectionConfig copyWith({
     String? id,
     ProtocolType? type,
@@ -106,7 +106,7 @@ class ConnectionConfig {
     );
   }
 
-  /// 获取连接描述
+  /// Get connection description
   String get description {
     final userInfo = username != null ? '$username@' : '';
     final pathInfo = remotePath != null && remotePath!.isNotEmpty 
@@ -129,4 +129,3 @@ class ConnectionConfig {
   @override
   int get hashCode => id.hashCode;
 }
-

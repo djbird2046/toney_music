@@ -6,7 +6,7 @@ import '../../../core/remote/services/config_manager.dart';
 import '../../../core/remote/services/client_factory.dart';
 import '../macos_colors.dart';
 
-/// 显示远程配置对话框
+/// Show remote configuration dialog
 Future<ConnectionConfig?> showRemoteConfigDialog(
   BuildContext context, {
   ConnectionConfig? existingConfig,
@@ -75,7 +75,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
     return AlertDialog(
       backgroundColor: MacosColors.menuBackground,
       title: Text(
-        widget.existingConfig == null ? '添加远程挂载' : '编辑远程挂载',
+        widget.existingConfig == null ? 'Add Remote Mount' : 'Edit Remote Mount',
         style: const TextStyle(color: Colors.white, fontSize: 18),
       ),
       content: SizedBox(
@@ -91,11 +91,11 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _nameController,
-                  label: '挂载名称',
-                  hint: '例如：我的Samba服务器',
+                  label: 'Mount Name',
+                  hint: 'e.g., My Samba Server',
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return '请输入挂载名称';
+                      return 'Please enter mount name';
                     }
                     return null;
                   },
@@ -107,11 +107,11 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                       flex: 3,
                       child: _buildTextField(
                         controller: _hostController,
-                        label: '主机地址',
-                        hint: 'IP地址或域名',
+                        label: 'Host Address',
+                        hint: 'IP address or domain',
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return '请输入主机地址';
+                            return 'Please enter host address';
                           }
                           return null;
                         },
@@ -121,16 +121,16 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                     Expanded(
                       child: _buildTextField(
                         controller: _portController,
-                        label: '端口',
+                        label: 'Port',
                         keyboardType: TextInputType.number,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return '请输入端口';
+                            return 'Please enter port';
                           }
                           final port = int.tryParse(value);
                           if (port == null || port <= 0 || port > 65535) {
-                            return '无效端口';
+                            return 'Invalid port';
                           }
                           return null;
                         },
@@ -141,20 +141,20 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _usernameController,
-                  label: '用户名（可选）',
-                  hint: '留空使用默认用户',
+                  label: 'Username (optional)',
+                  hint: 'Leave empty for default user',
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _passwordController,
-                  label: '密码（可选）',
+                  label: 'Password (optional)',
                   obscureText: true,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _remotePathController,
-                  label: '远程路径（可选）',
-                  hint: '例如：/share/music',
+                  label: 'Remote Path (optional)',
+                  hint: 'e.g., /share/music',
                 ),
                 if (_testMessage != null) ...[
                   const SizedBox(height: 16),
@@ -200,7 +200,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
       actions: [
         TextButton(
           onPressed: _isTesting || _isSaving ? null : () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: const Text('Cancel'),
         ),
         TextButton.icon(
           onPressed: _isTesting || _isSaving ? null : _testConnection,
@@ -211,11 +211,11 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.wifi_tethering, size: 18),
-          label: Text(_isTesting ? '测试中...' : '测试连接'),
+          label: Text(_isTesting ? 'Testing...' : 'Test Connection'),
         ),
         FilledButton(
           onPressed: _isTesting || _isSaving ? null : _saveConfig,
-          child: Text(_isSaving ? '保存中...' : '保存'),
+          child: Text(_isSaving ? 'Saving...' : 'Save'),
         ),
       ],
     );
@@ -224,7 +224,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
   Widget _buildProtocolSelector() {
     return InputDecorator(
       decoration: const InputDecoration(
-        labelText: '协议类型',
+        labelText: 'Protocol Type',
         labelStyle: TextStyle(color: Colors.white70),
         enabledBorder: UnderlineInputBorder(
           borderSide: BorderSide(color: Colors.white24),
@@ -236,7 +236,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
           dropdownColor: MacosColors.menuBackground,
           iconEnabledColor: Colors.white,
           onChanged: widget.existingConfig != null
-              ? null // 编辑模式下不允许修改协议类型
+              ? null // Protocol type cannot be changed in edit mode
               : (value) {
                   if (value == null) return;
                   setState(() {
@@ -315,10 +315,10 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
       setState(() {
         _isTesting = false;
         if (connected) {
-          _testMessage = '连接测试成功！';
+          _testMessage = 'Connection test successful!';
           _testSuccess = true;
         } else {
-          _testMessage = '连接测试失败，请检查配置';
+          _testMessage = 'Connection test failed, please check configuration';
           _testSuccess = false;
         }
       });
@@ -327,7 +327,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
     } catch (e) {
       setState(() {
         _isTesting = false;
-        _testMessage = '连接失败：${e.toString()}';
+        _testMessage = 'Connection failed: ${e.toString()}';
         _testSuccess = false;
       });
     }
@@ -353,15 +353,15 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: MacosColors.menuBackground,
-            title: const Text('保存失败', style: TextStyle(color: Colors.white)),
+            title: const Text('Save Failed', style: TextStyle(color: Colors.white)),
             content: Text(
-              '无法保存配置：${e.toString()}',
+              'Unable to save configuration: ${e.toString()}',
               style: const TextStyle(color: Colors.white70),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('确定'),
+                child: const Text('OK'),
               ),
             ],
           ),
@@ -384,4 +384,3 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
     );
   }
 }
-

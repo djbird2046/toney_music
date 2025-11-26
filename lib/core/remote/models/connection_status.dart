@@ -1,40 +1,39 @@
-/// 连接状态枚举
+/// Connection status enum
 enum ConnectionStatus {
-  /// 未连接
+  /// Disconnected
   disconnected,
 
-  /// 连接中
+  /// Connecting
   connecting,
 
-  /// 已连接
+  /// Connected
   connected,
 
-  /// 错误
+  /// Error
   error;
 
-  /// 获取状态的显示名称（中文）
+  /// Get status display name
   String get displayName {
     switch (this) {
       case ConnectionStatus.disconnected:
-        return '未连接';
+        return 'Disconnected';
       case ConnectionStatus.connecting:
-        return '连接中';
+        return 'Connecting';
       case ConnectionStatus.connected:
-        return '已连接';
+        return 'Connected';
       case ConnectionStatus.error:
-        return '错误';
+        return 'Error';
     }
   }
 
-  /// 是否处于活动状态（连接中或已连接）
+  /// Whether in active state (connecting or connected)
   bool get isActive {
     return this == ConnectionStatus.connecting ||
         this == ConnectionStatus.connected;
   }
 
-  /// 是否可以进行操作（已连接）
+  /// Whether can perform operations (connected)
   bool get canOperate {
     return this == ConnectionStatus.connected;
   }
 }
-

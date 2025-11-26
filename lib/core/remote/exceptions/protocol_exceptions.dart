@@ -1,14 +1,14 @@
 import '../models/protocol_type.dart';
 
-/// 协议异常基类
+/// Protocol exception base class
 abstract class ProtocolException implements Exception {
-  /// 错误消息
+  /// Error message
   final String message;
 
-  /// 协议类型
+  /// Protocol type
   final ProtocolType? protocol;
 
-  /// 原始错误
+  /// Original error
   final dynamic originalError;
 
   const ProtocolException(
@@ -20,12 +20,12 @@ abstract class ProtocolException implements Exception {
   @override
   String toString() {
     final protocolInfo = protocol != null ? '[${protocol!.displayName}] ' : '';
-    final originalInfo = originalError != null ? ' (原因: $originalError)' : '';
+    final originalInfo = originalError != null ? ' (Cause: $originalError)' : '';
     return '$runtimeType: $protocolInfo$message$originalInfo';
   }
 }
 
-/// 连接异常
+/// Connection exception
 class ConnectionException extends ProtocolException {
   const ConnectionException(
     super.message, {
@@ -34,7 +34,7 @@ class ConnectionException extends ProtocolException {
   });
 }
 
-/// 认证异常
+/// Authentication exception
 class AuthenticationException extends ProtocolException {
   const AuthenticationException(
     super.message, {
@@ -43,7 +43,7 @@ class AuthenticationException extends ProtocolException {
   });
 }
 
-/// 超时异常
+/// Timeout exception
 class TimeoutException extends ProtocolException {
   const TimeoutException(
     super.message, {
@@ -52,7 +52,7 @@ class TimeoutException extends ProtocolException {
   });
 }
 
-/// 不支持的操作异常
+/// Unsupported operation exception
 class UnsupportedOperationException extends ProtocolException {
   const UnsupportedOperationException(
     super.message, {
@@ -61,9 +61,9 @@ class UnsupportedOperationException extends ProtocolException {
   });
 }
 
-/// 文件操作异常
+/// File operation exception
 class FileOperationException extends ProtocolException {
-  /// 文件路径
+  /// File path
   final String? filePath;
 
   const FileOperationException(
@@ -76,13 +76,13 @@ class FileOperationException extends ProtocolException {
   @override
   String toString() {
     final protocolInfo = protocol != null ? '[${protocol!.displayName}] ' : '';
-    final fileInfo = filePath != null ? ' (文件: $filePath)' : '';
-    final originalInfo = originalError != null ? ' (原因: $originalError)' : '';
+    final fileInfo = filePath != null ? ' (File: $filePath)' : '';
+    final originalInfo = originalError != null ? ' (Cause: $originalError)' : '';
     return '$runtimeType: $protocolInfo$message$fileInfo$originalInfo';
   }
 }
 
-/// 配置异常
+/// Configuration exception
 class ConfigurationException extends ProtocolException {
   const ConfigurationException(
     super.message, {
@@ -91,7 +91,7 @@ class ConfigurationException extends ProtocolException {
   });
 }
 
-/// 网络异常
+/// Network exception
 class NetworkException extends ProtocolException {
   const NetworkException(
     super.message, {
@@ -99,4 +99,3 @@ class NetworkException extends ProtocolException {
     super.originalError,
   });
 }
-

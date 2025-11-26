@@ -8,7 +8,7 @@ import '../macos_colors.dart';
 import 'remote_config_dialog.dart';
 import 'remote_file_browser_dialog.dart';
 
-/// 来源选择请求模型
+/// Source selection request model
 class LibrarySourceRequest {
   const LibrarySourceRequest({
     required this.type,
@@ -21,7 +21,7 @@ class LibrarySourceRequest {
   final String? connectionConfigId;
 }
 
-/// 显示来源选择器对话框
+/// Show source selector dialog
 Future<LibrarySourceRequest?> showSourceSelectorDialog(BuildContext context) {
   return showDialog<LibrarySourceRequest>(
     context: context,
@@ -60,7 +60,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        _showErrorDialog('加载配置失败：${e.toString()}');
+        _showErrorDialog('Failed to load configurations: ${e.toString()}');
       }
     }
   }
@@ -70,7 +70,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
     return AlertDialog(
       backgroundColor: MacosColors.menuBackground,
       title: const Text(
-        '选择音乐来源',
+        'Select Music Source',
         style: TextStyle(color: Colors.white, fontSize: 18),
       ),
       content: SizedBox(
@@ -83,7 +83,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '点击卡片选择来源，或添加新的远程挂载',
+                      'Click a card to select source, or add a new remote mount',
                       style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                     const SizedBox(height: 20),
@@ -91,7 +91,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                     const SizedBox(height: 16),
                     if (_remoteConfigs.isNotEmpty) ...[
                       const Text(
-                        '远程挂载',
+                        'Remote Mounts',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15,
@@ -112,7 +112,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
       actions: [
         TextButton(
           onPressed: _isPicking ? null : () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: const Text('Cancel'),
         ),
       ],
     );
@@ -232,11 +232,11 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                 itemBuilder: (context) => [
                   const PopupMenuItem(
                     value: 'edit',
-                    child: Text('编辑', style: TextStyle(color: Colors.white)),
+                    child: Text('Edit', style: TextStyle(color: Colors.white)),
                   ),
                   const PopupMenuItem(
                     value: 'delete',
-                    child: Text('删除', style: TextStyle(color: Colors.redAccent)),
+                    child: Text('Delete', style: TextStyle(color: Colors.redAccent)),
                   ),
                 ],
               ),
@@ -265,7 +265,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
               Icon(Icons.add_circle_outline, color: Colors.white70),
               SizedBox(width: 8),
               Text(
-                '添加远程挂载',
+                'Add Remote Mount',
                 style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],
@@ -370,20 +370,20 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: MacosColors.menuBackground,
-        title: const Text('确认删除', style: TextStyle(color: Colors.white)),
+        title: const Text('Confirm Delete', style: TextStyle(color: Colors.white)),
         content: Text(
-          '确定要删除远程挂载"${config.name}"吗？',
+          'Are you sure you want to delete remote mount "${config.name}"?',
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-            child: const Text('删除'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -395,7 +395,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
         await _loadRemoteConfigs();
       } catch (e) {
         if (mounted) {
-          _showErrorDialog('删除失败：${e.toString()}');
+          _showErrorDialog('Failed to delete: ${e.toString()}');
         }
       }
     }
@@ -406,12 +406,12 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: MacosColors.menuBackground,
-        title: const Text('错误', style: TextStyle(color: Colors.white)),
+        title: const Text('Error', style: TextStyle(color: Colors.white)),
         content: Text(message, style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('确定'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -419,7 +419,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
   }
 }
 
-/// 本地文件选择器对话框
+/// Local file picker dialog
 class _LocalFilePickerDialog extends StatefulWidget {
   @override
   State<_LocalFilePickerDialog> createState() => _LocalFilePickerDialogState();
@@ -434,7 +434,7 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
     return AlertDialog(
       backgroundColor: MacosColors.menuBackground,
       title: const Text(
-        '选择本地文件或文件夹',
+        'Select Local Files or Folders',
         style: TextStyle(color: Colors.white, fontSize: 18),
       ),
       content: SizedBox(
@@ -448,7 +448,7 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
                   child: FilledButton.icon(
                     onPressed: _isPicking ? null : _pickFiles,
                     icon: const Icon(Icons.audio_file),
-                    label: const Text('选择音频文件'),
+                    label: const Text('Select Audio Files'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -456,7 +456,7 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
                   child: FilledButton.tonalIcon(
                     onPressed: _isPicking ? null : _pickDirectory,
                     icon: const Icon(Icons.folder),
-                    label: const Text('选择文件夹'),
+                    label: const Text('Select Folder'),
                   ),
                 ),
               ],
@@ -499,13 +499,13 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: _selectedPaths.isEmpty
               ? null
               : () => Navigator.of(context).pop(_selectedPaths),
-          child: const Text('确定'),
+          child: const Text('OK'),
         ),
       ],
     );
@@ -557,4 +557,3 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
     }
   }
 }
-
