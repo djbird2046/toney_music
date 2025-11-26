@@ -1,0 +1,38 @@
+import Cocoa
+import FlutterMacOS
+
+class MainFlutterWindow: NSWindow {
+  override func awakeFromNib() {
+    let flutterViewController = FlutterViewController()
+    self.contentViewController = flutterViewController
+
+    let desiredSize = NSSize(width: 1000, height: 750)
+    if let screen = NSScreen.main {
+      let origin = NSPoint(
+        x: screen.frame.midX - desiredSize.width / 2,
+        y: screen.frame.midY - desiredSize.height / 2
+      )
+      let rect = NSRect(origin: origin, size: desiredSize)
+      self.setFrame(rect, display: true)
+    } else {
+      self.setContentSize(desiredSize)
+      self.center()
+    }
+    self.title = "Toney"
+    self.titleVisibility = .hidden
+    self.titlebarAppearsTransparent = true
+    self.styleMask.insert(.fullSizeContentView)
+    self.isMovableByWindowBackground = true
+    if #available(macOS 11.0, *) {
+      self.standardWindowButton(.closeButton)?.contentTintColor = NSColor.systemRed
+      self.standardWindowButton(.miniaturizeButton)?.contentTintColor = NSColor.systemYellow
+      self.standardWindowButton(.zoomButton)?.contentTintColor = NSColor.systemGreen
+    }
+
+    RegisterGeneratedPlugins(registry: flutterViewController)
+    let registrar = flutterViewController.registrar(forPlugin: "AudioEnginePlugin")
+    AudioEnginePlugin.register(with: registrar)
+
+    super.awakeFromNib()
+  }
+}

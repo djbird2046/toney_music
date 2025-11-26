@@ -1,0 +1,127 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:hive/hive.dart';
+
+import '../media/song_metadata.dart';
+
+class PlaylistReference {
+  const PlaylistReference({required this.path, this.bookmark, this.metadata});
+
+  final String path;
+  final Uint8List? bookmark;
+  final SongMetadata? metadata;
+
+  Map<String, dynamic> toJson() => {
+    'path': path,
+    if (bookmark != null) 'bookmark': base64Encode(bookmark!),
+    if (metadata != null) 'metadata': metadata!.toJson(),
+  };
+
+  static PlaylistReference fromJson(dynamic json) {
+    if (json is String) {
+      return PlaylistReference(path: json);
+    }
+    if (json is! Map) {
+      throw ArgumentError('Invalid playlist entry: $json');
+    }
+    final path = json['path'] as String?;
+    if (path == null) {
+      throw ArgumentError('Missing path in playlist entry: $json');
+    }
+    final bookmarkRaw = json['bookmark'];
+    Uint8List? bookmark;
+    if (bookmarkRaw is String && bookmarkRaw.isNotEmpty) {
+      try {
+        bookmark = Uint8List.fromList(base64Decode(bookmarkRaw));
+      } catch (_) {
+        bookmark = null;
+      }
+    } else if (bookmarkRaw is Uint8List) {
+      bookmark = bookmarkRaw;
+    } else if (bookmarkRaw is List<int>) {
+      bookmark = Uint8List.fromList(bookmarkRaw);
+    }
+    SongMetadata? metadata;
+    final metadataRaw = json['metadata'];
+    if (metadataRaw is Map) {
+      try {
+        metadata = SongMetadata.fromJson(
+          Map<String, dynamic>.from(metadataRaw),
+        );
+      } catch (_) {
+        metadata = null;
+      }
+    }
+    return PlaylistReference(
+      path: path,
+      bookmark: bookmark,
+      metadata: metadata,
+    );
+  }
+}
+
+class PlaylistSnapshot {
+  const PlaylistSnapshot({required this.names, required this.entries});
+
+  final List<String> names;
+  final Map<String, List<PlaylistReference>> entries;
+
+  bool get isEmpty => names.isEmpty;
+
+  static const empty = PlaylistSnapshot(
+    names: <String>[],
+    entries: <String, List<PlaylistReference>>{},
+  );
+}
+
+class PlaylistStorage {
+  static const _boxName = 'toney_playlists';
+  static const _snapshotKey = 'snapshot';
+
+  Box<dynamic>? _box;
+
+  Future<void> init() async {
+    _box ??= await Hive.openBox<Map<dynamic, dynamic>>(_boxName);
+  }
+
+  PlaylistSnapshot load() {
+    final box = _box;
+    if (box == null) {
+      return PlaylistSnapshot.empty;
+    }
+    final raw = box.get(_snapshotKey);
+    if (raw is! Map) {
+      return PlaylistSnapshot.empty;
+    }
+    final names = (raw['names'] as List?)?.cast<String>() ?? const <String>[];
+    final entriesRaw = (raw['entries'] as Map?) ?? const {};
+    final entries = <String, List<PlaylistReference>>{};
+    entriesRaw.forEach((key, value) {
+      if (key is String && value is List) {
+        final refs = <PlaylistReference>[];
+        for (final item in value) {
+          try {
+            refs.add(PlaylistReference.fromJson(item));
+          } catch (_) {
+            continue;
+          }
+        }
+        entries[key] = refs;
+      }
+    });
+    return PlaylistSnapshot(names: names, entries: entries);
+  }
+
+  Future<void> save(PlaylistSnapshot snapshot) async {
+    final box = _box;
+    if (box == null) return;
+    await box.put(_snapshotKey, {
+      'names': snapshot.names,
+      'entries': snapshot.entries.map(
+        (key, value) =>
+            MapEntry(key, value.map((entry) => entry.toJson()).toList()),
+      ),
+    });
+  }
+}
