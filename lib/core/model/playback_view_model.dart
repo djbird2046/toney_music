@@ -1,5 +1,5 @@
-import 'playback/engine_track_models.dart';
-import 'playback/playback_track.dart';
+import 'engine_track_models.dart';
+import 'playback_track.dart';
 
 class PlaybackViewModel {
   const PlaybackViewModel({

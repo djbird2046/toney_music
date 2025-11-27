@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../core/media/song_metadata.dart';
+import '../../../core/model/song_metadata.dart';
 import '../macos_colors.dart';
 import '../models/media_models.dart';
 import '../../../core/library/library_source.dart';

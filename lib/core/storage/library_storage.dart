@@ -1,29 +1,20 @@
-import 'dart:convert';
-
 import 'package:hive/hive.dart';
-
 import '../library/library_source.dart';
-import '../media/song_metadata.dart';
+import '../model/song_metadata.dart';
 
 /// Remote file info model
 /// Used for storing connection configuration and path info for remote audio files
 class RemoteFileInfo {
-  const RemoteFileInfo({
-    required this.configId,
-    required this.remotePath,
-  });
+  const RemoteFileInfo({required this.configId, required this.remotePath});
 
   /// Connection configuration ID (references configuration in ConfigManager)
   final String configId;
-  
+
   /// Remote file path
   final String remotePath;
 
   Map<String, dynamic> toJson() {
-    return {
-      'configId': configId,
-      'remotePath': remotePath,
-    };
+    return {'configId': configId, 'remotePath': remotePath};
   }
 
   factory RemoteFileInfo.fromJson(Map<String, dynamic> json) {
@@ -47,7 +38,7 @@ class LibraryEntry {
   final LibrarySourceType sourceType;
   final SongMetadata metadata;
   final DateTime importedAt;
-  
+
   /// Remote file info (only has value when sourceType is remote type)
   final RemoteFileInfo? remoteInfo;
 
@@ -80,7 +71,7 @@ class LibraryEntry {
     );
     final importedAtMs = json['importedAt'] as int?;
     final remoteInfoRaw = json['remoteInfo'];
-    
+
     RemoteFileInfo? remoteInfo;
     if (remoteInfoRaw is Map) {
       try {
@@ -91,7 +82,7 @@ class LibraryEntry {
         // Ignore invalid remote info
       }
     }
-    
+
     return LibraryEntry(
       path: path,
       sourceType: sourceType,
@@ -102,7 +93,7 @@ class LibraryEntry {
       remoteInfo: remoteInfo,
     );
   }
-  
+
   /// Whether is remote file
   bool get isRemote => sourceType != LibrarySourceType.local;
 }

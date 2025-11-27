@@ -9,6 +9,7 @@ public enum AudioEngineError: Error {
     case audioUnit(OSStatus, String)
     case missingDevice
     case decoderUnavailable(String)
+    case bitPerfectUnavailable(String)
 }
 
 extension AudioEngineError: LocalizedError {
@@ -20,6 +21,8 @@ extension AudioEngineError: LocalizedError {
             return "Audio output device unavailable"
         case .decoderUnavailable(let message):
             return message.isEmpty ? "Decoder unavailable" : message
+        case .bitPerfectUnavailable(let message):
+            return message
         }
     }
 }
@@ -192,6 +195,9 @@ final class AudioEngine {
     private var currentMetadata: TrackMetadata?
     private var fileDurationEstimateMs: Int = 0
     private var currentFileURL: URL?
+    private var bitPerfectModeEnabled = false
+    private let bitPerfectAtomic = ManagedAtomic<Int>(0)
+    private let volumePermille = ManagedAtomic<Int>(1000)
 
     private init() {}
 
@@ -449,6 +455,35 @@ final class AudioEngine {
         controlQueue.sync { currentMetadata }
     }
 
+    func setVolume(_ value: Double) throws {
+        try controlQueue.sync {
+            if bitPerfectModeEnabled {
+                throw AudioEngineError.bitPerfectUnavailable("Volume control is disabled while Bit-perfect mode is active")
+            }
+            let clamped = max(0.0, min(1.0, value))
+            volumePermille.store(Int(clamped * 1000.0), ordering: .releasing)
+        }
+    }
+
+    func currentVolume() -> Double {
+        Double(volumePermille.load(ordering: .acquiring)) / 1000.0
+    }
+
+    func setBitPerfectMode(enabled: Bool) throws {
+        try controlQueue.sync {
+            if enabled {
+                try validateBitPerfectSupportLocked()
+                bitPerfectModeEnabled = true
+                bitPerfectAtomic.store(1, ordering: .releasing)
+                volumePermille.store(1000, ordering: .releasing)
+            } else {
+                bitPerfectModeEnabled = false
+                bitPerfectAtomic.store(0, ordering: .releasing)
+                releaseHogModeIfNeededLocked()
+            }
+        }
+    }
+
     private func startDecoderLoopLocked() {
         decoderShouldStop = false
 
@@ -527,6 +562,22 @@ final class AudioEngine {
         }
         
         logger.info("Decoder loop ended. Total decoded: \(totalBytesDecoded) bytes")
+    }
+
+    private func validateBitPerfectSupportLocked() throws {
+        let targetDevice = try ensureDeviceIDLocked()
+        do {
+            let info = try dac.getDeviceInfo(id: targetDevice)
+            try dac.setSampleRate(info.currentRate, for: targetDevice)
+        } catch {
+            throw AudioEngineError.bitPerfectUnavailable("Failed to control device sample rate: \(error.localizedDescription)")
+        }
+        do {
+            try dac.acquireHogMode(targetDevice)
+            try? dac.releaseHogMode(targetDevice)
+        } catch {
+            throw AudioEngineError.bitPerfectUnavailable("Exclusive access denied: \(error.localizedDescription)")
+        }
     }
 
     private func stopDecoderLocked() {
@@ -625,14 +676,20 @@ final class AudioEngine {
             try dac.setSampleRate(currentFormat.sampleRate, for: targetDevice)
             logger.info("Set device sample rate to \(self.currentFormat.sampleRate) Hz")
         } catch {
+            if bitPerfectModeEnabled {
+                throw AudioEngineError.bitPerfectUnavailable("Failed to set device sample rate: \(error.localizedDescription)")
+            }
             logger.error("Failed to set sample rate: \(error.localizedDescription, privacy: .public)")
-            // Continue anyway - AudioUnit may handle conversion
         }
         
         // Verify the actual device sample rate
         if let deviceInfo = try? dac.getDeviceInfo(id: targetDevice) {
             if abs(deviceInfo.currentRate - currentFormat.sampleRate) > 1.0 {
-                logger.warning("Sample rate mismatch! File: \(self.currentFormat.sampleRate) Hz, Device: \(deviceInfo.currentRate) Hz")
+                let warning = "Sample rate mismatch! File: \(self.currentFormat.sampleRate) Hz, Device: \(deviceInfo.currentRate) Hz"
+                if bitPerfectModeEnabled {
+                    throw AudioEngineError.bitPerfectUnavailable(warning)
+                }
+                logger.warning("\(warning, privacy: .public)")
             }
         }
         
@@ -640,6 +697,9 @@ final class AudioEngine {
             try dac.acquireHogMode(targetDevice)
             hoggedDevice = targetDevice
         } catch {
+            if bitPerfectModeEnabled {
+                throw AudioEngineError.bitPerfectUnavailable("Exclusive access denied: \(error.localizedDescription)")
+            }
             logger.warning("Hog mode unavailable: \(error.localizedDescription, privacy: .public). Fallback to shared mode.")
         }
 
@@ -744,6 +804,14 @@ final class AudioEngine {
            let mData = buffer.mData {
             let destination = mData.assumingMemoryBound(to: UInt8.self)
             let pulled = pcmPlayer.pullBytes(into: destination, count: bytesNeeded)
+            let isBitPerfect = bitPerfectAtomic.load(ordering: .acquiring) == 1
+            if pulled > 0 && !isBitPerfect {
+                let volumeValue = volumePermille.load(ordering: .acquiring)
+                if volumeValue < 1000 {
+                    let gain = Double(volumeValue) / 1000.0
+                    applyVolume(to: destination, byteCount: pulled, volume: gain)
+                }
+            }
             
             // Log if we're running low on buffer (less than 50% of needed)
             if pulled < bytesNeeded && bufferedBefore < bytesNeeded * 2 {
@@ -764,6 +832,97 @@ final class AudioEngine {
     private func checkStatus(_ status: OSStatus, operation: String) throws {
         guard status == noErr else {
             throw AudioEngineError.audioUnit(status, operation)
+        }
+    }
+
+    private func applyVolume(to buffer: UnsafeMutablePointer<UInt8>, byteCount: Int, volume: Double) {
+        guard byteCount > 0 else { return }
+        if currentFormat.isFloat {
+            if Int(currentFormat.bitDepth) > 32 {
+                let sampleCount = byteCount / MemoryLayout<Double>.size
+                let gain = volume
+                buffer.withMemoryRebound(to: Double.self, capacity: sampleCount) { ptr in
+                    for i in 0..<sampleCount { ptr[i] *= gain }
+                }
+            } else {
+                let sampleCount = byteCount / MemoryLayout<Float>.size
+                let gain = Float(volume)
+                buffer.withMemoryRebound(to: Float.self, capacity: sampleCount) { ptr in
+                    for i in 0..<sampleCount { ptr[i] *= gain }
+                }
+            }
+            return
+        }
+
+        let bitDepth = Int(currentFormat.bitDepth)
+        switch bitDepth {
+        case ..<9:
+            let sampleCount = byteCount / MemoryLayout<Int8>.size
+            buffer.withMemoryRebound(to: Int8.self, capacity: sampleCount) { ptr in
+                applyVolume(toInt8: ptr, count: sampleCount, gain: volume)
+            }
+        case ..<17:
+            let sampleCount = byteCount / MemoryLayout<Int16>.size
+            buffer.withMemoryRebound(to: Int16.self, capacity: sampleCount) { ptr in
+                applyVolume(toInt16: ptr, count: sampleCount, gain: volume)
+            }
+        case ..<25:
+            let sampleCount = byteCount / 3
+            applyVolumeTo24Bit(buffer: buffer, sampleCount: sampleCount, gain: volume)
+        default:
+            let sampleCount = byteCount / MemoryLayout<Int32>.size
+            buffer.withMemoryRebound(to: Int32.self, capacity: sampleCount) { ptr in
+                applyVolume(toInt32: ptr, count: sampleCount, gain: volume)
+            }
+        }
+    }
+
+    private func applyVolume(toInt8 buffer: UnsafeMutablePointer<Int8>, count: Int, gain: Double) {
+        let minValue = Double(Int8.min)
+        let maxValue = Double(Int8.max)
+        for index in 0..<count {
+            let scaled = Double(buffer[index]) * gain
+            let clamped = min(maxValue, max(minValue, scaled))
+            buffer[index] = Int8(Int(clamped.rounded()))
+        }
+    }
+
+    private func applyVolume(toInt16 buffer: UnsafeMutablePointer<Int16>, count: Int, gain: Double) {
+        let minValue = Double(Int16.min)
+        let maxValue = Double(Int16.max)
+        for index in 0..<count {
+            let scaled = Double(buffer[index]) * gain
+            let clamped = min(maxValue, max(minValue, scaled))
+            buffer[index] = Int16(Int(clamped.rounded()))
+        }
+    }
+
+    private func applyVolume(toInt32 buffer: UnsafeMutablePointer<Int32>, count: Int, gain: Double) {
+        let minValue = Double(Int32.min)
+        let maxValue = Double(Int32.max)
+        for index in 0..<count {
+            let scaled = Double(buffer[index]) * gain
+            let clamped = min(maxValue, max(minValue, scaled))
+            buffer[index] = Int32(Int(clamped.rounded()))
+        }
+    }
+
+    private func applyVolumeTo24Bit(buffer: UnsafeMutablePointer<UInt8>, sampleCount: Int, gain: Double) {
+        let minValue = -8_388_608.0
+        let maxValue = 8_388_607.0
+        for sampleIndex in 0..<sampleCount {
+            let offset = sampleIndex * 3
+            var value = Int32(buffer[offset])
+            value |= Int32(buffer[offset + 1]) << 8
+            value |= Int32(buffer[offset + 2]) << 16
+            if (value & 0x0080_0000) != 0 {
+                value |= Int32(bitPattern: 0xFF00_0000)
+            }
+            let scaled = Double(value) * gain
+            let clamped = Int32(Int(min(maxValue, max(minValue, scaled)).rounded()))
+            buffer[offset] = UInt8(truncatingIfNeeded: clamped & 0xFF)
+            buffer[offset + 1] = UInt8(truncatingIfNeeded: (clamped >> 8) & 0xFF)
+            buffer[offset + 2] = UInt8(truncatingIfNeeded: (clamped >> 16) & 0xFF)
         }
     }
 }

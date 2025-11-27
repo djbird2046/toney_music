@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:dart_tags/dart_tags.dart';
 import 'package:path/path.dart' as p;
 
-import 'song_metadata.dart';
+import '../model/song_metadata.dart';
 
 /// Parses audio metadata using [dart_tags] with sane fallbacks for missing tags.
 class SongMetadataUtil {

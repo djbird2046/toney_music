@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
 import '../../core/audio_controller.dart';
-import '../../core/playback_view_model.dart';
+import '../../core/model/playback_view_model.dart';
 
 class IosPlayerScreen extends StatefulWidget {
   const IosPlayerScreen({super.key, required this.controller});

@@ -9,9 +9,9 @@ import 'package:path/path.dart' as p;
 import '../../core/audio_controller.dart';
 import '../../core/library/library_source.dart';
 import '../../core/media/audio_formats.dart';
-import '../../core/media/song_metadata.dart';
+import '../../core/model/song_metadata.dart';
 import '../../core/media/song_metadata_util.dart';
-import '../../core/playback/playback_track.dart';
+import '../../core/model/playback_track.dart';
 import '../../core/playback/playback_helper.dart';
 import '../../core/storage/playlist_storage.dart';
 import '../../core/storage/library_storage.dart';
@@ -61,6 +61,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   int? _selectedLibraryIndex;
   int? _downloadingIndex;
   double? _downloadProgress;
+  bool _bitPerfectEnabled = false;
+  bool _bitPerfectBusy = false;
 
   final tracks = [
     const TrackRow(
@@ -199,7 +201,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       // Remote files: use path list directly, RemoteFileBrowserDialog only returns audio files
       files = request.paths;
     }
-    
+
     if (!mounted) return;
     if (_cancelLibraryImport) {
       _finishLibraryImport(cancelled: true, added: 0, total: files.length);
@@ -260,23 +262,23 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
             extras: {'Path': path, 'isRemote': 'true'},
           );
         }
-        
+
         if (!mounted || _cancelLibraryImport) break;
         final enriched = metadata.copyWith(
           extras: {...metadata.extras, 'Path': path},
         );
         final trackRow = _buildLibraryTrackRow(enriched, path, request.type);
-        
+
         // Create remote file info (if remote source)
         RemoteFileInfo? remoteInfo;
-        if (request.type != LibrarySourceType.local && 
+        if (request.type != LibrarySourceType.local &&
             request.connectionConfigId != null) {
           remoteInfo = RemoteFileInfo(
             configId: request.connectionConfigId!,
             remotePath: path,
           );
         }
-        
+
         final entry = LibraryEntry(
           path: path,
           sourceType: request.type,
@@ -475,18 +477,18 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         SongMetadata.unknown(
           track.title,
         ).copyWith(extras: {'Path': track.path});
-    
+
     // Get sourceType and remoteInfo from LibraryEntry
     final libraryIndex = _libraryPathIndex[track.path];
     LibrarySourceType? sourceType;
     RemoteFileInfo? remoteInfo;
-    
+
     if (libraryIndex != null && libraryIndex < _libraryEntries.length) {
       final libraryEntry = _libraryEntries[libraryIndex];
       sourceType = libraryEntry.sourceType;
       remoteInfo = libraryEntry.remoteInfo;
     }
-    
+
     final entry = PlaylistEntry(
       path: track.path,
       metadata: metadata,
@@ -746,9 +748,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         extras: {...metadata.extras, 'Path': path},
       );
       _metadataCache[path] = enriched;
-      metadataList.add(
-        PlaylistEntry(path: path, metadata: enriched),
-      );
+      metadataList.add(PlaylistEntry(path: path, metadata: enriched));
     }
     if (!mounted) return;
     setState(() {
@@ -896,7 +896,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           _downloadingIndex = index;
           _downloadProgress = 0.0;
         });
-        
+
         // Create temporary LibraryEntry for preprocessing
         final entry = _currentPlaylistEntries[index];
         final libraryEntry = LibraryEntry(
@@ -906,7 +906,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           importedAt: DateTime.now(),
           remoteInfo: remoteInfo,
         );
-        
+
         // Use PlaybackHelper to prepare playback file (auto downloads cache)
         final playbackHelper = PlaybackHelper();
         final playableFile = await playbackHelper.prepareForPlayback(
@@ -918,7 +918,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
             });
           },
         );
-        
+
         // Clear downloading state
         if (mounted) {
           setState(() {
@@ -926,17 +926,14 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
             _downloadProgress = null;
           });
         }
-        
+
         // Use playAt with cache path to ensure consistent state update
-        await widget.controller.playAt(
-          index,
-          overridePath: playableFile.path,
-        );
+        await widget.controller.playAt(index, overridePath: playableFile.path);
       } else {
         // Local file, play directly
         await widget.controller.playAt(index);
       }
-      
+
       _updatePlaylistEntryMissingFlag(index, false);
     } catch (error, stackTrace) {
       debugPrint('Failed to play track at $index: $error\n$stackTrace');
@@ -1098,8 +1095,62 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
               setState(() => _selectedLibraryIndex = index),
         );
       case NavSection.settings:
-        return const MacosSettingsView();
+        return MacosSettingsView(
+          bitPerfectEnabled: _bitPerfectEnabled,
+          bitPerfectBusy: _bitPerfectBusy,
+          onToggleBitPerfect: _handleBitPerfectToggle,
+        );
     }
+  }
+
+  Future<void> _handleBitPerfectToggle(bool value) async {
+    if (_bitPerfectBusy) return;
+    final previous = _bitPerfectEnabled;
+    setState(() {
+      _bitPerfectBusy = true;
+    });
+    try {
+      await widget.controller.setBitPerfectMode(value);
+      if (!mounted) return;
+      setState(() {
+        _bitPerfectEnabled = value;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _bitPerfectEnabled = previous;
+      });
+      _showBitPerfectError(error);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _bitPerfectBusy = false;
+        });
+      }
+    }
+  }
+
+  void _showBitPerfectError(Object error) {
+    final description = error is PlatformException
+        ? (error.message?.isNotEmpty == true ? error.message! : error.code)
+        : error.toString();
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: MacosColors.menuBackground,
+        title: const Text('Bit-perfect mode unavailable'),
+        content: Text(
+          description,
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showMetadataDialog(SongMetadata metadata) {
@@ -1200,7 +1251,10 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
               ),
             ),
             const Divider(height: 1, color: MacosColors.divider),
-            MacosMiniPlayer(controller: widget.controller),
+            MacosMiniPlayer(
+              controller: widget.controller,
+              bitPerfectEnabled: _bitPerfectEnabled,
+            ),
           ],
         ),
       ),

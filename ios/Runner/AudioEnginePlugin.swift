@@ -78,6 +78,28 @@ public class AudioEnginePlugin: NSObject, FlutterPlugin {
                 AudioEngineFacade.shared.seek(toMs: pos)
             }
 
+        case "setBitPerfectMode":
+            result(FlutterError(
+                code: "UNSUPPORTED",
+                message: "Bit-perfect mode is only available on macOS",
+                details: call.method,
+            ))
+
+        case "setVolume":
+            guard let args = call.arguments as? [String: Any],
+                  let value = args["value"] as? Double else {
+                return result(FlutterError(code: "INVALID", message: nil, details: nil))
+            }
+            performAsync {
+                try AudioEngineFacade.shared.setVolume(value)
+            }
+
+        case "getVolume":
+            workQueue.async {
+                let value = AudioEngineFacade.shared.currentVolume()
+                DispatchQueue.main.async { result(value) }
+            }
+
         default:
             result(FlutterMethodNotImplemented)
         }

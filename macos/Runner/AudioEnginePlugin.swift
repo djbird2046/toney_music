@@ -93,6 +93,30 @@ public class AudioEnginePlugin: NSObject, FlutterPlugin {
                 DispatchQueue.main.async { result(status) }
             }
 
+        case "setBitPerfectMode":
+            guard let args = call.arguments as? [String: Any],
+                  let enabled = args["enabled"] as? Bool else {
+                return result(FlutterError(code: "INVALID", message: nil, details: nil))
+            }
+            performAsync {
+                try AudioEngineFacade.shared.setBitPerfectMode(enabled: enabled)
+            }
+
+        case "setVolume":
+            guard let args = call.arguments as? [String: Any],
+                  let value = args["value"] as? Double else {
+                return result(FlutterError(code: "INVALID", message: nil, details: nil))
+            }
+            performAsync {
+                try AudioEngineFacade.shared.setVolume(value)
+            }
+
+        case "getVolume":
+            workQueue.async {
+                let value = AudioEngineFacade.shared.currentVolume()
+                DispatchQueue.main.async { result(value) }
+            }
+
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -117,6 +141,12 @@ public class AudioEnginePlugin: NSObject, FlutterPlugin {
                 return FlutterError(
                     code: "decoder_unavailable",
                     message: message.isEmpty ? "Decoder unavailable" : message,
+                    details: method
+                )
+            case .bitPerfectUnavailable(let message):
+                return FlutterError(
+                    code: "bitperfect_unavailable",
+                    message: message,
                     details: method
                 )
             }

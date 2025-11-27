@@ -43,6 +43,18 @@ public final class AudioEngineFacade {
         engine.currentTrackURL()
     }
 
+    public func setVolume(_ value: Double) throws {
+        try engine.setVolume(value)
+    }
+
+    public func currentVolume() -> Double {
+        engine.currentVolume()
+    }
+
+    public func setBitPerfectMode(enabled: Bool) throws {
+        try engine.setBitPerfectMode(enabled: enabled)
+    }
+
     public var isPlaying: Bool {
         engine.isPlaying
     }

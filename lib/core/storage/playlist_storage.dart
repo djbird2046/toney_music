@@ -1,9 +1,6 @@
-import 'dart:convert';
-
 import 'package:hive/hive.dart';
-
-import '../media/song_metadata.dart';
 import '../library/library_source.dart';
+import '../model/song_metadata.dart';
 import 'library_storage.dart';
 
 class PlaylistReference {
@@ -18,9 +15,10 @@ class PlaylistReference {
   final SongMetadata? metadata;
   final LibrarySourceType? sourceType;
   final RemoteFileInfo? remoteInfo;
-  
+
   /// Whether is remote file
-  bool get isRemote => sourceType != null && sourceType != LibrarySourceType.local;
+  bool get isRemote =>
+      sourceType != null && sourceType != LibrarySourceType.local;
 
   Map<String, dynamic> toJson() => {
     'path': path,
@@ -51,7 +49,7 @@ class PlaylistReference {
         metadata = null;
       }
     }
-    
+
     // Parse sourceType
     LibrarySourceType? sourceType;
     final sourceRaw = json['sourceType'] as String?;
@@ -64,7 +62,7 @@ class PlaylistReference {
         sourceType = null;
       }
     }
-    
+
     // Parse remoteInfo
     RemoteFileInfo? remoteInfo;
     final remoteInfoRaw = json['remoteInfo'];
@@ -77,7 +75,7 @@ class PlaylistReference {
         remoteInfo = null;
       }
     }
-    
+
     return PlaylistReference(
       path: path,
       metadata: metadata,

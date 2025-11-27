@@ -2,15 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:toney_music/toney_core.dart';
 
 import '../macos_colors.dart';
 
 class MacosMiniPlayer extends StatefulWidget {
-  const MacosMiniPlayer({super.key, required this.controller});
+  const MacosMiniPlayer({
+    super.key,
+    required this.controller,
+    required this.bitPerfectEnabled,
+  });
 
   final AudioController controller;
+  final bool bitPerfectEnabled;
 
   @override
   State<MacosMiniPlayer> createState() => _MacosMiniPlayerState();
@@ -28,6 +34,21 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
   bool _isQueueVisible = false;
   final ValueNotifier<int> _queueSelection = ValueNotifier<int>(0);
   OverlayEntry? _queueOverlayEntry;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVolume();
+  }
+
+  @override
+  void didUpdateWidget(covariant MacosMiniPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.bitPerfectEnabled != widget.bitPerfectEnabled) {
+      _loadVolume();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,21 +118,16 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
                     width: 200,
                     child: _VolumeControl(
                       volume: _isMuted ? 0 : _volume,
-                      onChanged: (value) {
-                        setState(() {
-                          _volume = value;
-                          if (value <= 0.001) {
-                            _isMuted = true;
-                          } else {
-                            _isMuted = false;
-                            _preMuteVolume = value;
-                          }
-                        });
-                      },
-                      onToggleMute: _toggleMute,
+                      onChanged: widget.bitPerfectEnabled
+                          ? null
+                          : _handleVolumeChange,
+                      onToggleMute: widget.bitPerfectEnabled
+                          ? null
+                          : _toggleMute,
                       isMuted: _isMuted || _volume == 0,
                       onToggleQueue: _handleQueueToggle,
                       isQueueVisible: _isQueueVisible,
+                      isDisabled: widget.bitPerfectEnabled,
                     ),
                   ),
                 ],
@@ -175,15 +191,14 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
   }
 
   void _toggleMute() {
-    setState(() {
-      if (_isMuted) {
-        _isMuted = false;
-        _volume = _preMuteVolume.clamp(0.0, 1.0);
-      } else {
-        _preMuteVolume = _volume;
-        _isMuted = true;
-      }
-    });
+    if (widget.bitPerfectEnabled) return;
+    if (_isMuted) {
+      final target = _preMuteVolume.clamp(0.0, 1.0);
+      _handleVolumeChange(target == 0 ? 1.0 : target);
+    } else {
+      _preMuteVolume = _volume <= 0.001 ? 0.7 : _volume;
+      _handleVolumeChange(0.0);
+    }
   }
 
   void _handleQueueToggle() {
@@ -227,6 +242,66 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
     }
     _queueSelection.value = index;
     unawaited(widget.controller.playAt(index));
+  }
+
+  Future<void> _loadVolume() async {
+    try {
+      final value = await widget.controller.getVolume();
+      if (!mounted) return;
+      setState(() {
+        _volume = value;
+        _isMuted = value <= 0.001;
+        if (!_isMuted) {
+          _preMuteVolume = value;
+        }
+      });
+    } catch (_) {
+      // Ignore volume sync failures in UI.
+    }
+  }
+
+  void _handleVolumeChange(double value) {
+    if (widget.bitPerfectEnabled) return;
+    final normalized = value.clamp(0.0, 1.0);
+    setState(() {
+      _volume = normalized;
+      if (normalized <= 0.001) {
+        _isMuted = true;
+      } else {
+        _isMuted = false;
+        _preMuteVolume = normalized;
+      }
+    });
+    unawaited(
+      widget.controller.setVolume(normalized).catchError((error, _) {
+        if (!mounted) return;
+        _showVolumeError(error);
+        _loadVolume();
+      }),
+    );
+  }
+
+  void _showVolumeError(Object error) {
+    final description = error is PlatformException
+        ? (error.message?.isNotEmpty == true ? error.message! : error.code)
+        : error.toString();
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: MacosColors.menuBackground,
+        title: const Text('Volume adjustment failed'),
+        content: Text(
+          description,
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -722,19 +797,21 @@ class _QueueArtwork extends StatelessWidget {
 class _VolumeControl extends StatelessWidget {
   const _VolumeControl({
     required this.volume,
-    required this.onChanged,
-    required this.onToggleMute,
+    this.onChanged,
+    this.onToggleMute,
     required this.isMuted,
     required this.onToggleQueue,
     required this.isQueueVisible,
+    this.isDisabled = false,
   });
 
   final double volume;
-  final ValueChanged<double> onChanged;
-  final VoidCallback onToggleMute;
+  final ValueChanged<double>? onChanged;
+  final VoidCallback? onToggleMute;
   final bool isMuted;
   final VoidCallback onToggleQueue;
   final bool isQueueVisible;
+  final bool isDisabled;
 
   @override
   Widget build(BuildContext context) {
@@ -753,7 +830,7 @@ class _VolumeControl extends StatelessWidget {
           onPressed: onToggleMute,
           icon: Icon(
             isMuted ? Icons.volume_off : Icons.volume_up,
-            color: Colors.white70,
+            color: isDisabled ? Colors.white24 : Colors.white70,
             size: 20,
           ),
         ),
@@ -766,7 +843,12 @@ class _VolumeControl extends StatelessWidget {
               inactiveTrackColor: MacosColors.divider,
               activeTrackColor: MacosColors.accentBlue,
             ),
-            child: Slider(value: volume, onChanged: onChanged, min: 0, max: 1),
+            child: Slider(
+              value: volume,
+              onChanged: isDisabled ? null : onChanged,
+              min: 0,
+              max: 1,
+            ),
           ),
         ),
       ],

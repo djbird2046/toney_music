@@ -1,4 +1,4 @@
-import '../media/song_metadata.dart';
+import 'song_metadata.dart';
 
 /// Represents a track ready for playback.
 class PlaybackTrack {

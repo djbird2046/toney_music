@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: ">=3.8.0 <4.0.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -40,10 +40,15 @@ dependencies:
   desktop_drop: ^0.4.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  json_annotation: ^4.9.0
+
+  liteagent_sdk_dart:
+    path: ../liteagent_sdk_dart
+  opentool_dart:
+    path: ../opentool-hub/opentool-dart
   path_provider: ^2.1.1
   crypto: ^3.0.3
-  
-  # 远程文件协议客户端库
+
   webdav_client: ^1.2.2
   ftpconnect: ^2.0.10
   dartssh2: ^2.13.0
@@ -62,6 +67,9 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+  build_runner: ^2.6.0
+  json_serializable: ^6.10.0
 
 # The following section is specific to Flutter packages.
 flutter:

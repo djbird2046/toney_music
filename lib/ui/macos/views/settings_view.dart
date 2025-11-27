@@ -3,7 +3,16 @@ import 'package:flutter/material.dart';
 import '../macos_colors.dart';
 
 class MacosSettingsView extends StatelessWidget {
-  const MacosSettingsView({super.key});
+  const MacosSettingsView({
+    super.key,
+    required this.bitPerfectEnabled,
+    required this.bitPerfectBusy,
+    required this.onToggleBitPerfect,
+  });
+
+  final bool bitPerfectEnabled;
+  final bool bitPerfectBusy;
+  final ValueChanged<bool> onToggleBitPerfect;
 
   @override
   Widget build(BuildContext context) {
@@ -11,26 +20,28 @@ class MacosSettingsView extends StatelessWidget {
       color: MacosColors.contentBackground,
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       child: ListView(
-        children: const [
-          _SettingsHeader('Playback'),
+        children: [
+          const _SettingsHeader('Playback'),
           _ToggleRow(
             title: 'Bit-perfect mode',
             subtitle: 'Bypass system DSP for CoreAudio output',
-            value: true,
+            value: bitPerfectEnabled,
+            isBusy: bitPerfectBusy,
+            onChanged: onToggleBitPerfect,
           ),
-          _ToggleRow(
+          const _ToggleRow(
             title: 'Auto sample-rate switching',
             subtitle: 'Follow source file sample rate on device output',
             value: true,
           ),
-          Divider(color: MacosColors.innerDivider),
-          _SettingsHeader('Library'),
-          _ToggleRow(
+          const Divider(color: MacosColors.innerDivider),
+          const _SettingsHeader('Library'),
+          const _ToggleRow(
             title: 'Watch Music folder',
             subtitle: 'Automatically import new files inside ~/Music',
             value: false,
           ),
-          _ToggleRow(
+          const _ToggleRow(
             title: 'Enable AI tagging',
             subtitle: 'Send fingerprints to on-device model',
             value: true,
@@ -67,18 +78,22 @@ class _ToggleRow extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.value,
+    this.onChanged,
+    this.isBusy = false,
   });
 
   final String title;
   final String subtitle;
   final bool value;
+  final ValueChanged<bool>? onChanged;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
     return SwitchListTile.adaptive(
       contentPadding: EdgeInsets.zero,
       value: value,
-      onChanged: (_) {},
+      onChanged: onChanged == null || isBusy ? null : onChanged,
       title: Text(
         title,
         style: const TextStyle(
@@ -87,6 +102,13 @@ class _ToggleRow extends StatelessWidget {
         ),
       ),
       subtitle: Text(subtitle, style: TextStyle(color: Colors.grey.shade500)),
+      secondary: isBusy
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : null,
     );
   }
 }

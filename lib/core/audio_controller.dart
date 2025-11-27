@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-import 'playback/engine_track_models.dart';
-import 'playback/playback_track.dart';
-import 'playback_view_model.dart';
+import 'model/engine_track_models.dart';
+import 'model/playback_track.dart';
+import 'model/playback_view_model.dart';
 
 /// Shared coordinator that wraps the MethodChannel API exposed by the native
 /// AudioEnginePlugin. UI layers should depend on this instead of touching
@@ -19,6 +19,7 @@ class AudioController {
   int? _currentIndex;
   Timer? _positionTimer;
   DateTime? _lastTick;
+  double? _cachedVolume;
 
   final ValueNotifier<PlaybackViewModel> state = ValueNotifier(
     PlaybackViewModel.initial(),
@@ -29,10 +30,7 @@ class AudioController {
       updateEngineMetadata: true,
       engineMetadata: null,
     );
-    await _run(
-      'load',
-      () => _channel.invokeMethod('load', {'path': path}),
-    );
+    await _run('load', () => _channel.invokeMethod('load', {'path': path}));
     _markLoaded();
     await _refreshEngineMetadata();
   }
@@ -72,6 +70,28 @@ class AudioController {
     _lastTick = DateTime.now();
   }
 
+  Future<void> setBitPerfectMode(bool enabled) async {
+    await _channel.invokeMethod('setBitPerfectMode', {'enabled': enabled});
+    if (enabled) {
+      _cachedVolume = 1.0;
+    }
+  }
+
+  Future<double> getVolume() async {
+    final cached = _cachedVolume;
+    if (cached != null) return cached;
+    final value = await _channel.invokeMethod<double>('getVolume');
+    final resolved = (value ?? 1.0).clamp(0.0, 1.0).toDouble();
+    _cachedVolume = resolved;
+    return resolved;
+  }
+
+  Future<void> setVolume(double volume) async {
+    final clamped = volume.clamp(0.0, 1.0).toDouble();
+    _cachedVolume = clamped;
+    await _channel.invokeMethod('setVolume', {'value': clamped});
+  }
+
   void setQueue(List<PlaybackTrack> tracks, {int? startIndex}) {
     _queue = List.unmodifiable(tracks);
     if (startIndex != null) {
@@ -84,6 +104,7 @@ class AudioController {
   }
 
   Future<void> playAt(int index, {String? overridePath}) async {
+    await stop();
     if (index < 0 || index >= _queue.length) return;
     _currentIndex = index;
     final track = _queue[index];

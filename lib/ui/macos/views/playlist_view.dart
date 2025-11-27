@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 
-import '../../../core/media/song_metadata.dart';
+import '../../../core/model/song_metadata.dart';
 import '../macos_colors.dart';
 import '../models/media_models.dart';
 
@@ -330,7 +330,9 @@ class _PlaylistRow extends StatelessWidget {
                     metadata.title,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: isMissing ? Colors.white.withValues(alpha: 0.25) : Colors.white,
+                      color: isMissing
+                          ? Colors.white.withValues(alpha: 0.25)
+                          : Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -419,7 +421,10 @@ class _ArtworkTile extends StatelessWidget {
               border: Border.all(color: MacosColors.innerDivider),
               color: const Color(0xFF1B1B1B),
               image: bytes != null
-                  ? DecorationImage(image: MemoryImage(bytes!), fit: BoxFit.cover)
+                  ? DecorationImage(
+                      image: MemoryImage(bytes!),
+                      fit: BoxFit.cover,
+                    )
                   : null,
             ),
             child: bytes == null

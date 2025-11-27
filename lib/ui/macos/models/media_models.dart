@@ -1,5 +1,5 @@
 import '../../../core/library/library_source.dart';
-import '../../../core/media/song_metadata.dart';
+import '../../../core/model/song_metadata.dart';
 import '../../../core/storage/library_storage.dart';
 
 class TrackRow {
@@ -67,9 +67,10 @@ class PlaylistEntry {
   final SongMetadata metadata;
   final LibrarySourceType? sourceType;
   final RemoteFileInfo? remoteInfo;
-  
+
   /// Whether is remote file
-  bool get isRemote => sourceType != null && sourceType != LibrarySourceType.local;
+  bool get isRemote =>
+      sourceType != null && sourceType != LibrarySourceType.local;
 
   PlaylistEntry copyWith({
     String? path,
