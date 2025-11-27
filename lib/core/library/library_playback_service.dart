@@ -37,7 +37,7 @@ class LibraryPlaybackService {
     );
     
     // Load and play
-    await controller.load(playableFile.path, bookmark: playableFile.bookmark);
+    await controller.load(playableFile.path);
     await controller.play();
   }
   
@@ -56,7 +56,6 @@ class LibraryPlaybackService {
     return entries.map((entry) => PlaybackTrack(
       path: entry.path,
       metadata: entry.metadata,
-      bookmark: entry.bookmark,
       duration: null,
     )).toList();
   }
@@ -115,7 +114,7 @@ class LibraryPlaybackService {
     );
     
     // Update controller current index and play
-    await controller.load(playableFile.path, bookmark: playableFile.bookmark);
+    await controller.load(playableFile.path);
     
     // Update state
     final tracks = createPlaybackQueue(entries);
@@ -178,5 +177,3 @@ class LibraryPlaybackService {
     await _playbackHelper.clearCache(entry);
   }
 }
-
-

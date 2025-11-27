@@ -281,7 +281,6 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           path: path,
           sourceType: request.type,
           metadata: enriched,
-          bookmark: null,
           importedAt: DateTime.now(),
           remoteInfo: remoteInfo,
         );
@@ -491,7 +490,6 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     final entry = PlaylistEntry(
       path: track.path,
       metadata: metadata,
-      bookmark: null,
       sourceType: sourceType,
       remoteInfo: remoteInfo,
     );
@@ -524,7 +522,6 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         PlaylistEntry(
           path: path,
           metadata: enriched,
-          bookmark: reference.bookmark,
           sourceType: reference.sourceType,
           remoteInfo: reference.remoteInfo,
         ),
@@ -685,7 +682,6 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
               album: 'Unknown Album',
               extras: {'Path': track.path, 'Duration': track.duration},
             ),
-            bookmark: null,
           ),
         )
         .toList();
@@ -745,19 +741,13 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   Future<void> _addFilesToCurrentPlaylist(List<String> paths) async {
     final metadataList = <PlaylistEntry>[];
     for (final path in paths) {
-      Uint8List? bookmark;
-      try {
-        bookmark = await widget.controller.createBookmark(path);
-      } catch (_) {
-        bookmark = null;
-      }
       final metadata = await _metadataUtil.loadFromPath(path);
       final enriched = metadata.copyWith(
         extras: {...metadata.extras, 'Path': path},
       );
       _metadataCache[path] = enriched;
       metadataList.add(
-        PlaylistEntry(path: path, metadata: enriched, bookmark: bookmark),
+        PlaylistEntry(path: path, metadata: enriched),
       );
     }
     if (!mounted) return;
@@ -852,7 +842,6 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
               .map(
                 (entry) => PlaylistReference(
                   path: entry.path,
-                  bookmark: entry.bookmark,
                   metadata: entry.metadata,
                   sourceType: entry.sourceType,
                   remoteInfo: entry.remoteInfo,
@@ -870,7 +859,6 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           (entry) => PlaybackTrack(
             path: entry.path,
             metadata: entry.metadata,
-            bookmark: entry.bookmark,
             duration: _durationFromMetadata(entry.metadata),
           ),
         )
@@ -915,7 +903,6 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           path: entry.path,
           sourceType: entry.sourceType ?? LibrarySourceType.local,
           metadata: entry.metadata,
-          bookmark: entry.bookmark,
           importedAt: DateTime.now(),
           remoteInfo: remoteInfo,
         );
@@ -940,9 +927,11 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           });
         }
         
-        // Load and play using cache path
-        await widget.controller.load(playableFile.path, bookmark: playableFile.bookmark);
-        await widget.controller.play();
+        // Use playAt with cache path to ensure consistent state update
+        await widget.controller.playAt(
+          index,
+          overridePath: playableFile.path,
+        );
       } else {
         // Local file, play directly
         await widget.controller.playAt(index);

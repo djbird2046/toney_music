@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:hive/hive.dart';
 
@@ -40,7 +39,6 @@ class LibraryEntry {
     required this.path,
     required this.sourceType,
     required this.metadata,
-    this.bookmark,
     required this.importedAt,
     this.remoteInfo,
   });
@@ -48,7 +46,6 @@ class LibraryEntry {
   final String path;
   final LibrarySourceType sourceType;
   final SongMetadata metadata;
-  final Uint8List? bookmark;
   final DateTime importedAt;
   
   /// Remote file info (only has value when sourceType is remote type)
@@ -60,7 +57,6 @@ class LibraryEntry {
       'sourceType': sourceType.name,
       'metadata': metadata.toJson(includeArtwork: false),
       'importedAt': importedAt.millisecondsSinceEpoch,
-      if (bookmark != null) 'bookmark': base64Encode(bookmark!),
       if (remoteInfo != null) 'remoteInfo': remoteInfo!.toJson(),
     };
   }
@@ -83,7 +79,6 @@ class LibraryEntry {
       Map<String, dynamic>.from(metadataRaw),
     );
     final importedAtMs = json['importedAt'] as int?;
-    final bookmarkRaw = json['bookmark'] as String?;
     final remoteInfoRaw = json['remoteInfo'];
     
     RemoteFileInfo? remoteInfo;
@@ -101,9 +96,6 @@ class LibraryEntry {
       path: path,
       sourceType: sourceType,
       metadata: metadata,
-      bookmark: bookmarkRaw == null
-          ? null
-          : Uint8List.fromList(base64Decode(bookmarkRaw)),
       importedAt: importedAtMs == null
           ? DateTime.now()
           : DateTime.fromMillisecondsSinceEpoch(importedAtMs),

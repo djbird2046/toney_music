@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import '../../../core/library/library_source.dart';
 import '../../../core/media/song_metadata.dart';
 import '../../../core/storage/library_storage.dart';
@@ -61,14 +59,12 @@ class PlaylistEntry {
   const PlaylistEntry({
     required this.path,
     required this.metadata,
-    this.bookmark,
     this.sourceType,
     this.remoteInfo,
   });
 
   final String path;
   final SongMetadata metadata;
-  final Uint8List? bookmark;
   final LibrarySourceType? sourceType;
   final RemoteFileInfo? remoteInfo;
   
@@ -78,8 +74,6 @@ class PlaylistEntry {
   PlaylistEntry copyWith({
     String? path,
     SongMetadata? metadata,
-    Uint8List? bookmark,
-    bool clearBookmark = false,
     LibrarySourceType? sourceType,
     RemoteFileInfo? remoteInfo,
     bool clearRemoteInfo = false,
@@ -87,7 +81,6 @@ class PlaylistEntry {
     return PlaylistEntry(
       path: path ?? this.path,
       metadata: metadata ?? this.metadata,
-      bookmark: clearBookmark ? null : (bookmark ?? this.bookmark),
       sourceType: sourceType ?? this.sourceType,
       remoteInfo: clearRemoteInfo ? null : (remoteInfo ?? this.remoteInfo),
     );

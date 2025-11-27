@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:hive/hive.dart';
 
@@ -10,14 +9,12 @@ import 'library_storage.dart';
 class PlaylistReference {
   const PlaylistReference({
     required this.path,
-    this.bookmark,
     this.metadata,
     this.sourceType,
     this.remoteInfo,
   });
 
   final String path;
-  final Uint8List? bookmark;
   final SongMetadata? metadata;
   final LibrarySourceType? sourceType;
   final RemoteFileInfo? remoteInfo;
@@ -27,7 +24,6 @@ class PlaylistReference {
 
   Map<String, dynamic> toJson() => {
     'path': path,
-    if (bookmark != null) 'bookmark': base64Encode(bookmark!),
     if (metadata != null) 'metadata': metadata!.toJson(),
     if (sourceType != null) 'sourceType': sourceType!.name,
     if (remoteInfo != null) 'remoteInfo': remoteInfo!.toJson(),
@@ -43,19 +39,6 @@ class PlaylistReference {
     final path = json['path'] as String?;
     if (path == null) {
       throw ArgumentError('Missing path in playlist entry: $json');
-    }
-    final bookmarkRaw = json['bookmark'];
-    Uint8List? bookmark;
-    if (bookmarkRaw is String && bookmarkRaw.isNotEmpty) {
-      try {
-        bookmark = Uint8List.fromList(base64Decode(bookmarkRaw));
-      } catch (_) {
-        bookmark = null;
-      }
-    } else if (bookmarkRaw is Uint8List) {
-      bookmark = bookmarkRaw;
-    } else if (bookmarkRaw is List<int>) {
-      bookmark = Uint8List.fromList(bookmarkRaw);
     }
     SongMetadata? metadata;
     final metadataRaw = json['metadata'];
@@ -97,7 +80,6 @@ class PlaylistReference {
     
     return PlaylistReference(
       path: path,
-      bookmark: bookmark,
       metadata: metadata,
       sourceType: sourceType,
       remoteInfo: remoteInfo,

@@ -69,4 +69,9 @@ final class PCMPlayer {
     func consumeUnderflows() -> Int {
         return underflowCounter.exchange(0, ordering: .acquiringAndReleasing)
     }
+
+    /// Returns the number of bytes currently buffered and available for playback.
+    var bufferedBytes: Int {
+        ring.availableBytes
+    }
 }

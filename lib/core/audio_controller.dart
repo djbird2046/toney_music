@@ -24,17 +24,14 @@ class AudioController {
     PlaybackViewModel.initial(),
   );
 
-  Future<void> load(String path, {Uint8List? bookmark}) async {
+  Future<void> load(String path) async {
     state.value = state.value.copyWith(
       updateEngineMetadata: true,
       engineMetadata: null,
     );
     await _run(
       'load',
-      () => _channel.invokeMethod('load', {
-        'path': path,
-        if (bookmark != null) 'bookmark': bookmark,
-      }),
+      () => _channel.invokeMethod('load', {'path': path}),
     );
     _markLoaded();
     await _refreshEngineMetadata();
@@ -86,11 +83,12 @@ class AudioController {
     );
   }
 
-  Future<void> playAt(int index) async {
+  Future<void> playAt(int index, {String? overridePath}) async {
     if (index < 0 || index >= _queue.length) return;
     _currentIndex = index;
     final track = _queue[index];
-    await load(track.path, bookmark: track.bookmark);
+    final pathToLoad = overridePath ?? track.path;
+    await load(pathToLoad);
     state.value = state.value.copyWith(
       queue: _queue,
       currentIndex: _currentIndex,
@@ -127,17 +125,6 @@ class AudioController {
       return;
     }
     await play();
-  }
-
-  Future<Uint8List?> createBookmark(String path) async {
-    final result = await _channel.invokeMethod('createBookmark', {
-      'path': path,
-    });
-    if (result is Uint8List) return result;
-    if (result is ByteData) {
-      return result.buffer.asUint8List();
-    }
-    return null;
   }
 
   void dispose() {

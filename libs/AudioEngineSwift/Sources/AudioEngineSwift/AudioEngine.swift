@@ -113,6 +113,13 @@ final class LockFreeRingBuffer {
         writeHead.store(0, ordering: .relaxed)
         readHead.store(0, ordering: .relaxed)
     }
+
+    /// Returns the number of bytes currently available in the buffer for reading.
+    var availableBytes: Int {
+        let localWrite = writeHead.load(ordering: .acquiring)
+        let localRead = readHead.load(ordering: .acquiring)
+        return max(0, localWrite &- localRead)
+    }
 }
 
 struct PCMFormat {
@@ -140,10 +147,18 @@ final class AudioEngine {
 
     private enum PlaybackState { case stopped, playing, paused }
 
+    /// Minimum bytes to buffer before starting playback to prevent initial underruns.
+    /// 512KB provides approximately 1s buffer at 48kHz/32bit/2ch or 0.35s at 192kHz/32bit/2ch.
+    private static let prebufferThreshold: Int = 512 * 1024
+    
+    /// Maximum time to wait for prebuffering before starting playback anyway.
+    private static let prebufferTimeoutSeconds: Double = 3.0
+
     private let controlQueue = DispatchQueue(label: "com.audioengine.control")
-    private let decoderQueue = DispatchQueue(label: "com.audioengine.decoder")
+    // Use high priority for decoder to ensure it can keep up with playback
+    private let decoderQueue = DispatchQueue(label: "com.audioengine.decoder", qos: .userInteractive)
     private let logger = Logger(subsystem: "com.audioengine.hires", category: "engine")
-    private let pcmPlayer = PCMPlayer(bufferSize: 1 << 20)
+    private let pcmPlayer = PCMPlayer(bufferSize: 1 << 22)  // 4MB buffer for high-res audio
     private let dac = DacManager.shared
 
     private var audioUnit: AudioUnit?
@@ -195,8 +210,11 @@ final class AudioEngine {
             logger.info("Loading file: \(url.lastPathComponent, privacy: .public)")
 
             internalStop()
-            stopDecoderLocked()
+            // Tear down AudioUnit to prevent render callbacks from using stale format during update
+            tearDownAudioUnitLocked()
+            // Reset buffer first to unblock decoder if it's stuck in pushBytes due to full buffer
             pcmPlayer.reset()
+            stopDecoderLocked()
             currentMetadata = nil
 
             guard let decoder = FFmpegDecoder(url: url) else {
@@ -265,6 +283,19 @@ final class AudioEngine {
     }
 
     func play() throws {
+        // First, wait for prebuffer outside of controlQueue to avoid blocking
+        // This allows decoder to continue filling buffer without contention
+        let needsPrebuffer = controlQueue.sync { () -> Bool in
+            guard decoder != nil else { return false }
+            // Only need prebuffer if buffer is low (not resuming from pause with data)
+            return pcmPlayer.bufferedBytes < Self.prebufferThreshold
+        }
+        
+        if needsPrebuffer {
+            waitForPrebuffer()
+        }
+        
+        // Now start playback with controlQueue locked
         try controlQueue.sync {
             guard decoder != nil else {
                 logger.error("Decoder not ready. Call loadFile(url:) before play().")
@@ -275,7 +306,33 @@ final class AudioEngine {
             try prepareAudioUnitLocked()
             try startAudioOutputLocked()
             playbackState = .playing
+            logger.info("Playback started with \(self.pcmPlayer.bufferedBytes) bytes in buffer")
         }
+    }
+    
+    /// Waits until the buffer has enough data or timeout is reached.
+    /// This prevents audio underruns at playback start.
+    /// Called outside of controlQueue to allow decoder to continue working.
+    private func waitForPrebuffer() {
+        let startTime = Date()
+        let threshold = Self.prebufferThreshold
+        let timeout = Self.prebufferTimeoutSeconds
+        
+        logger.info("Waiting for prebuffer (target: \(threshold) bytes)...")
+        
+        while pcmPlayer.bufferedBytes < threshold {
+            let elapsed = Date().timeIntervalSince(startTime)
+            if elapsed >= timeout {
+                logger.warning("Prebuffer timeout after \(String(format: "%.2f", elapsed))s with \(self.pcmPlayer.bufferedBytes) bytes buffered")
+                break
+            }
+            // Short sleep to avoid busy-waiting
+            Thread.sleep(forTimeInterval: 0.005)
+        }
+        
+        let buffered = pcmPlayer.bufferedBytes
+        let bufferSeconds = Double(buffered) / Double(max(1, currentFormat.bytesPerFrame)) / currentFormat.sampleRate
+        logger.info("Prebuffer complete: \(buffered) bytes (\(String(format: "%.2f", bufferSeconds))s)")
     }
 
     func pause() throws {
@@ -298,12 +355,48 @@ final class AudioEngine {
     }
 
     func seek(toMs position: Int) throws {
+        let wasPlaying = controlQueue.sync { playbackState == .playing }
+        
+        // Temporarily pause audio output during seek to prevent glitches
+        if wasPlaying {
+            try controlQueue.sync {
+                if let unit = audioUnit {
+                    try checkStatus(AudioOutputUnitStop(unit), operation: "AudioOutputUnitStop (seek)")
+                }
+            }
+        }
+        
+        // Perform seek and reset buffer
         try controlQueue.sync {
             guard let decoder else {
                 throw AudioEngineError.decoderUnavailable("Cannot seek without an active decoder")
             }
             decoder.seek(toMs: position)
             pcmPlayer.reset()
+        }
+        
+        // Wait for some data to be buffered before resuming
+        if wasPlaying {
+            // Use smaller threshold for seek to reduce perceived latency
+            let seekBufferThreshold = min(Self.prebufferThreshold / 2, 256 * 1024)
+            let startTime = Date()
+            let timeout: TimeInterval = 1.0
+            
+            while pcmPlayer.bufferedBytes < seekBufferThreshold {
+                if Date().timeIntervalSince(startTime) >= timeout {
+                    logger.warning("Seek prebuffer timeout")
+                    break
+                }
+                Thread.sleep(forTimeInterval: 0.005)
+            }
+            
+            // Resume playback
+            try controlQueue.sync {
+                guard let unit = audioUnit else { return }
+                try checkStatus(AudioOutputUnitStart(unit), operation: "AudioOutputUnitStart (seek resume)")
+            }
+            
+            logger.info("Seek complete, resumed with \(self.pcmPlayer.bufferedBytes) bytes buffered")
         }
     }
 
@@ -375,19 +468,39 @@ final class AudioEngine {
     private func decoderLoop() {
         guard let decoder else { return }
 
-        let chunkSize = max(Int(currentFormat.bytesPerFrame) * 1024, 4096)
+        // Use larger chunk size for better decoding efficiency
+        // 16384 frames provides good balance between latency and throughput for high-res audio
+        let chunkSize = max(Int(currentFormat.bytesPerFrame) * 16384, 65536)
         var scratch = [UInt8](repeating: 0, count: chunkSize)
+        var consecutiveEmptyReads = 0
+        let maxConsecutiveEmptyReads = 100  // ~100ms of empty reads before logging
+        var totalBytesDecoded: Int64 = 0
+        let startTime = Date()
+        var lastLogTime = startTime
+
+        logger.info("Decoder loop started. ChunkSize=\(chunkSize), Format=\(self.currentFormat.sampleRate)Hz/\(self.currentFormat.bitDepth)bit/\(self.currentFormat.channels)ch")
 
         while !decoderShouldStop {
+            let decodeStart = Date()
             let bytesRead: Int = scratch.withUnsafeMutableBufferPointer { buffer in
                 guard let base = buffer.baseAddress else { return 0 }
                 return decoder.read(into: base, maxBytes: buffer.count)
             }
+            let decodeTime = Date().timeIntervalSince(decodeStart)
 
             if bytesRead <= 0 {
-                Thread.sleep(forTimeInterval: 0.002)
+                consecutiveEmptyReads += 1
+                if consecutiveEmptyReads >= maxConsecutiveEmptyReads {
+                    if consecutiveEmptyReads == maxConsecutiveEmptyReads {
+                        logger.debug("Decoder waiting for data (possible EOF)")
+                    }
+                }
+                Thread.sleep(forTimeInterval: 0.001)
                 continue
             }
+            
+            consecutiveEmptyReads = 0
+            totalBytesDecoded += Int64(bytesRead)
 
             scratch.withUnsafeBufferPointer { ptr in
                 guard let base = ptr.baseAddress else { return }
@@ -396,9 +509,24 @@ final class AudioEngine {
 
             let underflows = pcmPlayer.consumeUnderflows()
             if underflows > 0 {
-                logger.error("Render underflow count=\(underflows, privacy: .public)")
+                let buffered = pcmPlayer.bufferedBytes
+                let elapsed = Date().timeIntervalSince(startTime)
+                let avgRate = Double(totalBytesDecoded) / elapsed / 1024.0
+                logger.warning("UNDERFLOW! count=\(underflows), buffer=\(buffered)B, avgDecodeRate=\(String(format: "%.1f", avgRate))KB/s, lastDecodeTime=\(String(format: "%.1f", decodeTime * 1000))ms")
+            }
+            
+            // Periodic status log every 5 seconds
+            let now = Date()
+            if now.timeIntervalSince(lastLogTime) >= 5.0 {
+                lastLogTime = now
+                let elapsed = now.timeIntervalSince(startTime)
+                let avgRate = Double(totalBytesDecoded) / elapsed / 1024.0
+                let buffered = pcmPlayer.bufferedBytes
+                logger.info("Decoder status: \(String(format: "%.1f", avgRate))KB/s avg, buffer=\(buffered)B")
             }
         }
+        
+        logger.info("Decoder loop ended. Total decoded: \(totalBytesDecoded) bytes")
     }
 
     private func stopDecoderLocked() {
@@ -491,7 +619,23 @@ final class AudioEngine {
 
     private func startAudioOutputLocked() throws {
         let targetDevice = try ensureDeviceIDLocked()
-        try dac.setSampleRate(currentFormat.sampleRate, for: targetDevice)
+        
+        // Set device sample rate to match file
+        do {
+            try dac.setSampleRate(currentFormat.sampleRate, for: targetDevice)
+            logger.info("Set device sample rate to \(self.currentFormat.sampleRate) Hz")
+        } catch {
+            logger.error("Failed to set sample rate: \(error.localizedDescription, privacy: .public)")
+            // Continue anyway - AudioUnit may handle conversion
+        }
+        
+        // Verify the actual device sample rate
+        if let deviceInfo = try? dac.getDeviceInfo(id: targetDevice) {
+            if abs(deviceInfo.currentRate - currentFormat.sampleRate) > 1.0 {
+                logger.warning("Sample rate mismatch! File: \(self.currentFormat.sampleRate) Hz, Device: \(deviceInfo.currentRate) Hz")
+            }
+        }
+        
         do {
             try dac.acquireHogMode(targetDevice)
             hoggedDevice = targetDevice
@@ -594,16 +738,28 @@ final class AudioEngine {
         guard bytesPerFrame > 0 else { return kAudio_ParamError }
 
         let bytesNeeded = Int(frameCount) * bytesPerFrame
+        let bufferedBefore = pcmPlayer.bufferedBytes
 
         if let buffer = UnsafeMutableAudioBufferListPointer(ioData).first,
            let mData = buffer.mData {
             let destination = mData.assumingMemoryBound(to: UInt8.self)
-            _ = pcmPlayer.pullBytes(into: destination, count: bytesNeeded)
+            let pulled = pcmPlayer.pullBytes(into: destination, count: bytesNeeded)
+            
+            // Log if we're running low on buffer (less than 50% of needed)
+            if pulled < bytesNeeded && bufferedBefore < bytesNeeded * 2 {
+                // This is called from real-time audio thread, use os_log_info level
+                // to avoid blocking. Only log occasionally.
+                renderUnderrunCounter += 1
+            }
+            
             return noErr
         } else {
             return kAudio_ParamError
         }
     }
+    
+    // Counter for render underruns (accessed from audio thread)
+    private var renderUnderrunCounter: Int = 0
 
     private func checkStatus(_ status: OSStatus, operation: String) throws {
         guard status == noErr else {

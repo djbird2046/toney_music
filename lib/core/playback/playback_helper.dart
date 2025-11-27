@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import '../storage/library_storage.dart';
 import '../remote/services/cache_manager.dart';
 
@@ -28,7 +26,7 @@ class PlaybackHelper {
   /// - [onDownloadProgress] Download progress callback (optional)
   /// 
   /// Returns:
-  /// - Playable local file path and bookmark
+  /// - Playable local file path
   Future<PlayableFile> prepareForPlayback(
     LibraryEntry entry, {
     void Function(int received, int total)? onDownloadProgress,
@@ -37,7 +35,6 @@ class PlaybackHelper {
     if (!entry.isRemote) {
       return PlayableFile(
         path: entry.path,
-        bookmark: entry.bookmark,
         isFromCache: false,
       );
     }
@@ -60,7 +57,6 @@ class PlaybackHelper {
       // Already cached, use cache file directly
       return PlayableFile(
         path: cachedPath,
-        bookmark: null, // Cache file doesn't need bookmark
         isFromCache: true,
       );
     }
@@ -74,7 +70,6 @@ class PlaybackHelper {
     
     return PlayableFile(
       path: downloadedPath,
-      bookmark: null, // Cache file doesn't need bookmark
       isFromCache: true,
     );
   }
@@ -163,15 +158,11 @@ class PlaybackHelper {
 class PlayableFile {
   const PlayableFile({
     required this.path,
-    required this.bookmark,
     required this.isFromCache,
   });
   
   /// File path
   final String path;
-  
-  /// File bookmark (for accessing protected files)
-  final Uint8List? bookmark;
   
   /// Whether from cache
   final bool isFromCache;
