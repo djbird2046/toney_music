@@ -9,23 +9,39 @@ import '../model/song_metadata.dart';
 
 /// Parses audio metadata using [dart_tags] with sane fallbacks for missing tags.
 class SongMetadataUtil {
-  SongMetadataUtil({TagProcessor? processor})
-    : _processor = processor ?? TagProcessor();
+  SongMetadataUtil({
+    TagProcessor? processor,
+    this.metadataFetcher,
+  }) : _processor = processor ?? TagProcessor();
 
   static const _fallbackExtensions = {'wav', 'wave', 'aif', 'aiff', 'pcm'};
 
   final TagProcessor _processor;
+  final Future<Map<String, dynamic>> Function(String path)? metadataFetcher;
 
   Future<SongMetadata> loadFromPath(String filePath) async {
     final extension = _extensionOf(filePath);
     final fallbackTitle = _deriveTitle(filePath);
 
+    // Fetch extra metadata (like duration) if a fetcher is provided
+    Map<String, dynamic> extraMetadata = {};
+    if (metadataFetcher != null) {
+      try {
+        extraMetadata = await metadataFetcher!(filePath);
+      } catch (_) {}
+    }
+
     if (_fallbackExtensions.contains(extension)) {
+      final extras = {
+        'File Name': p.basename(filePath),
+        'Source': 'Filename',
+        ..._formatExtraMetadata(extraMetadata),
+      };
       return SongMetadata(
         title: fallbackTitle,
         artist: 'Unknown Artist',
         album: 'Unknown Album',
-        extras: {'File Name': p.basename(filePath), 'Source': 'Filename'},
+        extras: extras,
         isFallback: true,
       );
     }
@@ -40,7 +56,11 @@ class SongMetadataUtil {
       final metadata = _extractMetadata(tags);
       if (metadata != null) {
         return metadata.copyWith(
-          extras: {...metadata.extras, 'File Name': p.basename(filePath)},
+          extras: {
+            ...metadata.extras,
+            'File Name': p.basename(filePath),
+            ..._formatExtraMetadata(extraMetadata),
+          },
         );
       }
     } catch (_) {
@@ -49,7 +69,28 @@ class SongMetadataUtil {
 
     return SongMetadata.unknown(
       fallbackTitle,
-    ).copyWith(extras: {'File Name': p.basename(filePath)});
+    ).copyWith(
+      extras: {
+        'File Name': p.basename(filePath),
+        ..._formatExtraMetadata(extraMetadata),
+      },
+    );
+  }
+
+  Map<String, String> _formatExtraMetadata(Map<String, dynamic> data) {
+    final result = <String, String>{};
+    if (data.containsKey('durationMs')) {
+      final ms = data['durationMs'] as int;
+      if (ms > 0) {
+        result['duration_ms'] = ms.toString();
+        // Also format as pretty string for display
+        final duration = Duration(milliseconds: ms);
+        final minutes = duration.inMinutes;
+        final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+        result['Duration'] = '$minutes:$seconds';
+      }
+    }
+    return result;
   }
 
   String _extensionOf(String path) {

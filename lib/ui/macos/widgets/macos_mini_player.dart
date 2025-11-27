@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:toney_music/toney_core.dart';
+import '../../../../core/model/playback_mode.dart';
+import '../../../core/favorites_controller.dart';
 
 import '../macos_colors.dart';
 
@@ -12,10 +14,12 @@ class MacosMiniPlayer extends StatefulWidget {
   const MacosMiniPlayer({
     super.key,
     required this.controller,
+    required this.favoritesController,
     required this.bitPerfectEnabled,
   });
 
   final AudioController controller;
+  final FavoritesController favoritesController;
   final bool bitPerfectEnabled;
 
   @override
@@ -55,136 +59,156 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
     return ValueListenableBuilder<PlaybackViewModel>(
       valueListenable: widget.controller.state,
       builder: (context, playback, _) {
-        final metadata = playback.currentTrack?.metadata;
-        final engineMetadata = playback.engineMetadata;
-        final engineFormat = engineMetadata?.pcm;
-        final formatLabel =
-            engineFormat?.formatLabel ??
-            _statValue(metadata, [
-              'Format',
-              'format',
-              'File Type',
-            ], _defaultFormat);
-        final bitrateLabel =
-            engineFormat?.bitrateLabel ??
-            _statValue(metadata, ['Bitrate', 'bitrate'], _defaultBitrate);
-        final sampleRateLabel =
-            engineFormat?.sampleRateLabel ??
-            _statValue(metadata, [
-              'Sample Rate',
-              'sample_rate',
-            ], _defaultSampleRate);
-        final channelLabel =
-            engineFormat?.channelsLabel ??
-            _statValue(metadata, ['Channels', 'Channel Mode'], _defaultChannel);
-        final effectiveDuration =
-            playback.engineMetadata?.duration ?? playback.duration;
-        final positionSeconds = playback.position.inMilliseconds / 1000.0;
-        final durationSeconds = effectiveDuration.inMilliseconds / 1000.0;
-        final double sliderMax = durationSeconds > 0 ? durationSeconds : 1.0;
+        return AnimatedBuilder(
+          animation: widget.favoritesController,
+          builder: (context, _) {
+            final metadata = playback.currentTrack?.metadata;
+            final engineMetadata = playback.engineMetadata;
+            final engineFormat = engineMetadata?.pcm;
+            final formatLabel =
+                engineFormat?.formatLabel ??
+                _statValue(metadata, [
+                  'Format',
+                  'format',
+                  'File Type',
+                ], _defaultFormat);
+            final bitrateLabel =
+                engineFormat?.bitrateLabel ??
+                _statValue(metadata, ['Bitrate', 'bitrate'], _defaultBitrate);
+            final sampleRateLabel =
+                engineFormat?.sampleRateLabel ??
+                _statValue(metadata, [
+                  'Sample Rate',
+                  'sample_rate',
+                ], _defaultSampleRate);
+            final channelLabel =
+                engineFormat?.channelsLabel ??
+                _statValue(
+                    metadata, ['Channels', 'Channel Mode'], _defaultChannel);
+            final effectiveDuration =
+                playback.engineMetadata?.duration ?? playback.duration;
+            final positionSeconds = playback.position.inMilliseconds / 1000.0;
+            final durationSeconds = effectiveDuration.inMilliseconds / 1000.0;
+            final double sliderMax =
+                durationSeconds > 0 ? durationSeconds : 1.0;
 
-        return Container(
-          constraints: const BoxConstraints(minHeight: 120),
-          color: MacosColors.miniPlayerBackground,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+            final isFavorite = playback.currentTrack != null &&
+                widget.favoritesController
+                    .isFavorite(playback.currentTrack!.path);
+
+            return Container(
+              constraints: const BoxConstraints(minHeight: 120),
+              color: MacosColors.miniPlayerBackground,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(
-                    width: 260,
-                    child: _NowPlayingInfo(metadata: metadata),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    width: 300,
-                    child: _PlaybackControlsGroup(
-                      isPlaying: playback.isPlaying,
-                      onTogglePlay: () =>
-                          unawaited(widget.controller.togglePlayPause()),
-                      onNext: () => unawaited(widget.controller.playNext()),
-                      onPrevious: () =>
-                          unawaited(widget.controller.playPrevious()),
-                      formatLabel: formatLabel,
-                      bitrateLabel: bitrateLabel,
-                      sampleRateLabel: sampleRateLabel,
-                      channelLabel: channelLabel,
-                    ),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    width: 200,
-                    child: _VolumeControl(
-                      volume: _isMuted ? 0 : _volume,
-                      onChanged: widget.bitPerfectEnabled
-                          ? null
-                          : _handleVolumeChange,
-                      onToggleMute: widget.bitPerfectEnabled
-                          ? null
-                          : _toggleMute,
-                      isMuted: _isMuted || _volume == 0,
-                      onToggleQueue: _handleQueueToggle,
-                      isQueueVisible: _isQueueVisible,
-                      isDisabled: widget.bitPerfectEnabled,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    _formatTimestamp(positionSeconds),
-                    style: const TextStyle(
-                      color: MacosColors.secondaryGrey,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        trackHeight: 4,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 5,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 260,
+                        child: _NowPlayingInfo(metadata: metadata),
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        width: 300,
+                        child: _PlaybackControlsGroup(
+                          isPlaying: playback.isPlaying,
+                          onTogglePlay: () =>
+                              unawaited(widget.controller.togglePlayPause()),
+                          onNext: () => unawaited(widget.controller.playNext()),
+                          onPrevious: () =>
+                              unawaited(widget.controller.playPrevious()),
+                          onToggleFavorite: () {
+                            if (playback.currentTrack != null) {
+                              widget.favoritesController
+                                  .toggleFavorite(playback.currentTrack!);
+                            }
+                          },
+                          isFavorite: isFavorite,
+                          playbackMode: playback.playbackMode,
+                          onPlaybackModeChanged:
+                              widget.controller.setPlaybackMode,
+                          formatLabel: formatLabel,
+                          bitrateLabel: bitrateLabel,
+                          sampleRateLabel: sampleRateLabel,
+                          channelLabel: channelLabel,
                         ),
-                        inactiveTrackColor: MacosColors.innerDivider,
-                        activeTrackColor: MacosColors.accentBlue,
                       ),
-                      child: Slider(
-                        value: durationSeconds > 0
-                            ? positionSeconds
-                                  .clamp(0.0, durationSeconds)
-                                  .toDouble()
-                            : 0.0,
-                        max: sliderMax,
-                        onChanged: durationSeconds > 0
-                            ? (value) {
-                                unawaited(
-                                  widget.controller.seek(
-                                    (value * 1000).round(),
-                                  ),
-                                );
-                              }
-                            : null,
+                      const Spacer(),
+                      SizedBox(
+                        width: 200,
+                        child: _VolumeControl(
+                          volume: _isMuted ? 0 : _volume,
+                          onChanged: widget.bitPerfectEnabled
+                              ? null
+                              : _handleVolumeChange,
+                          onToggleMute:
+                              widget.bitPerfectEnabled ? null : _toggleMute,
+                          isMuted: _isMuted || _volume == 0,
+                          onToggleQueue: _handleQueueToggle,
+                          isQueueVisible: _isQueueVisible,
+                          isDisabled: widget.bitPerfectEnabled,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    _formatTimestamp(durationSeconds),
-                    style: const TextStyle(
-                      color: MacosColors.secondaryGrey,
-                      fontSize: 12,
-                    ),
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        _formatTimestamp(positionSeconds),
+                        style: const TextStyle(
+                          color: MacosColors.secondaryGrey,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 4,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 5,
+                            ),
+                            inactiveTrackColor: MacosColors.innerDivider,
+                            activeTrackColor: MacosColors.accentBlue,
+                          ),
+                          child: Slider(
+                            value: durationSeconds > 0
+                                ? positionSeconds
+                                    .clamp(0.0, durationSeconds)
+                                    .toDouble()
+                                : 0.0,
+                            max: sliderMax,
+                            onChanged: durationSeconds > 0
+                                ? (value) {
+                                    unawaited(
+                                      widget.controller.seek(
+                                        (value * 1000).round(),
+                                      ),
+                                    );
+                                  }
+                                : null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        _formatTimestamp(durationSeconds),
+                        style: const TextStyle(
+                          color: MacosColors.secondaryGrey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -338,16 +362,132 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
   }
 }
 
+class _PlaybackControlsGroup extends StatefulWidget {
+  const _PlaybackControlsGroup({
+    required this.isPlaying,
+    required this.onTogglePlay,
+    required this.onNext,
+    required this.onPrevious,
+    required this.onToggleFavorite,
+    required this.isFavorite,
+    required this.playbackMode,
+    required this.onPlaybackModeChanged,
+    required this.formatLabel,
+    required this.bitrateLabel,
+    required this.sampleRateLabel,
+    required this.channelLabel,
+  });
+
+  final bool isPlaying;
+  final VoidCallback onTogglePlay;
+  final VoidCallback onNext;
+  final VoidCallback onPrevious;
+  final VoidCallback onToggleFavorite;
+  final bool isFavorite;
+  final PlayMode playbackMode;
+  final ValueChanged<PlayMode> onPlaybackModeChanged;
+  final String formatLabel;
+  final String bitrateLabel;
+  final String sampleRateLabel;
+  final String channelLabel;
+
+  @override
+  State<_PlaybackControlsGroup> createState() => _PlaybackControlsGroupState();
+}
+
+class _PlaybackControlsGroupState extends State<_PlaybackControlsGroup> {
+  IconData get _playModeIcon {
+    switch (widget.playbackMode) {
+      case PlayMode.sequence:
+        return Icons.playlist_play;
+      case PlayMode.loop:
+        return Icons.repeat;
+      case PlayMode.single:
+        return Icons.repeat_one;
+      case PlayMode.shuffle:
+        return Icons.shuffle;
+    }
+  }
+
+  String _playModeLabel(PlayMode mode) {
+    switch (mode) {
+      case PlayMode.sequence:
+        return 'Finish List (Default)';
+      case PlayMode.loop:
+        return 'Loop List';
+      case PlayMode.single:
+        return 'Loop Track';
+      case PlayMode.shuffle:
+        return 'Shuffle';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Favorite Button
+            _MiniPlayerButton(
+              icon: widget.isFavorite ? Icons.favorite : Icons.favorite_border,
+              iconColor: widget.isFavorite ? Colors.redAccent : null,
+              onPressed: widget.onToggleFavorite,
+            ),
+            const SizedBox(width: 12),
+            _MiniPlayerButton(
+                icon: Icons.skip_previous, onPressed: widget.onPrevious),
+            const SizedBox(width: 12),
+            _MiniPlayerButton(
+              icon: widget.isPlaying ? Icons.pause : Icons.play_arrow,
+              isPrimary: true,
+              onPressed: widget.onTogglePlay,
+            ),
+            const SizedBox(width: 12),
+            _MiniPlayerButton(
+                icon: Icons.skip_next, onPressed: widget.onNext),
+            const SizedBox(width: 12),
+            // Play Mode Button
+            _MiniPlayerButton(
+              icon: _playModeIcon,
+              onPressed: () {
+                final nextMode = PlayMode.values[
+                    (widget.playbackMode.index + 1) % PlayMode.values.length];
+                widget.onPlaybackModeChanged(nextMode);
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          width: 300,
+          child: _TrackStats(
+            format: widget.formatLabel,
+            bitrate: widget.bitrateLabel,
+            sampleRate: widget.sampleRateLabel,
+            channels: widget.channelLabel,
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _MiniPlayerButton extends StatelessWidget {
   const _MiniPlayerButton({
     required this.icon,
     required this.onPressed,
     this.isPrimary = false,
+    this.iconColor,
   });
 
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isPrimary;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -364,66 +504,11 @@ class _MiniPlayerButton extends StatelessWidget {
           height: isPrimary ? 44 : 36,
           child: Icon(
             icon,
-            color: isPrimary ? Colors.white : MacosColors.iconGrey,
+            color: iconColor ?? (isPrimary ? Colors.white : MacosColors.iconGrey),
+            size: 20,
           ),
         ),
       ),
-    );
-  }
-}
-
-class _PlaybackControlsGroup extends StatelessWidget {
-  const _PlaybackControlsGroup({
-    required this.isPlaying,
-    required this.onTogglePlay,
-    required this.onNext,
-    required this.onPrevious,
-    required this.formatLabel,
-    required this.bitrateLabel,
-    required this.sampleRateLabel,
-    required this.channelLabel,
-  });
-
-  final bool isPlaying;
-  final VoidCallback onTogglePlay;
-  final VoidCallback onNext;
-  final VoidCallback onPrevious;
-  final String formatLabel;
-  final String bitrateLabel;
-  final String sampleRateLabel;
-  final String channelLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _MiniPlayerButton(icon: Icons.skip_previous, onPressed: onPrevious),
-            const SizedBox(width: 12),
-            _MiniPlayerButton(
-              icon: isPlaying ? Icons.pause : Icons.play_arrow,
-              isPrimary: true,
-              onPressed: onTogglePlay,
-            ),
-            const SizedBox(width: 12),
-            _MiniPlayerButton(icon: Icons.skip_next, onPressed: onNext),
-          ],
-        ),
-        const SizedBox(height: 6),
-        SizedBox(
-          width: 300,
-          child: _TrackStats(
-            format: formatLabel,
-            bitrate: bitrateLabel,
-            sampleRate: sampleRateLabel,
-            channels: channelLabel,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
     );
   }
 }

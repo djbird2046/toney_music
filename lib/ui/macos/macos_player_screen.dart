@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/audio_controller.dart';
+import '../../core/favorites_controller.dart';
 import '../../core/library/library_source.dart';
 import '../../core/media/audio_formats.dart';
 import '../../core/model/song_metadata.dart';
@@ -23,6 +24,7 @@ import 'views/ai_daily_view.dart';
 import 'views/library_view.dart';
 import 'views/source_selector_dialog.dart';
 import 'views/playlist_view.dart';
+import 'views/favorites_view.dart';
 import 'views/settings_view.dart';
 import 'widgets/macos_mini_player.dart';
 
@@ -43,7 +45,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   final TextEditingController _playlistNameController = TextEditingController(
     text: 'Default',
   );
-  final SongMetadataUtil _metadataUtil = SongMetadataUtil();
+  late final SongMetadataUtil _metadataUtil;
   final Map<String, SongMetadata> _metadataCache = {};
   final List<TrackRow> _libraryTracks = [];
   final Set<String> _libraryTrackPaths = <String>{};
@@ -63,6 +65,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   double? _downloadProgress;
   bool _bitPerfectEnabled = false;
   bool _bitPerfectBusy = false;
+  late final FavoritesController _favoritesController;
 
   final tracks = [
     const TrackRow(
@@ -105,16 +108,35 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   @override
   void initState() {
     super.initState();
+    _metadataUtil = SongMetadataUtil(
+      metadataFetcher: widget.controller.extractMetadata,
+    );
+    _favoritesController = FavoritesController(
+      metadataFetcher: widget.controller.extractMetadata,
+    );
     _keyboardFocusNode = FocusNode();
     unawaited(_initializeLibrary());
     _initializePlaylists();
+    unawaited(_favoritesController.init());
+    widget.controller.state.addListener(_onPlaybackStateChanged);
   }
 
   @override
   void dispose() {
+    widget.controller.state.removeListener(_onPlaybackStateChanged);
+    _favoritesController.dispose();
     _playlistNameController.dispose();
     _keyboardFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onPlaybackStateChanged() {
+    final newState = widget.controller.state.value;
+    if (newState.currentIndex != _nowPlayingIndex) {
+      setState(() {
+        _nowPlayingIndex = newState.currentIndex;
+      });
+    }
   }
 
   Future<void> _initializePlaylists() async {
@@ -511,11 +533,28 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     for (final reference in references) {
       final path = reference.path;
       SongMetadata metadata;
+      
+      bool needsRefresh = false;
       if (reference.metadata != null) {
         metadata = reference.metadata!;
+        if (_durationFromMetadata(metadata) == null) {
+          needsRefresh = true;
+        }
       } else {
-        metadata = await _metadataUtil.loadFromPath(path);
+        needsRefresh = true;
+        metadata = SongMetadata.unknown(path);
       }
+
+      if (needsRefresh) {
+        try {
+          // If metadata is missing or duration is missing, force reload
+          // which now uses native fetcher for duration
+          metadata = await _metadataUtil.loadFromPath(path);
+        } catch (_) {
+          // Keep existing if fetch fails (e.g. file moved)
+        }
+      }
+
       final enriched = metadata.copyWith(
         extras: {...metadata.extras, 'Path': path},
       );
@@ -1079,6 +1118,11 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           downloadingIndex: _downloadingIndex,
           downloadProgress: _downloadProgress,
         );
+      case NavSection.favorites:
+        return MacosFavoritesView(
+          controller: _favoritesController,
+          audioController: widget.controller,
+        );
       case NavSection.library:
         return MacosLibraryView(
           tracks: _libraryTracks,
@@ -1253,6 +1297,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
             const Divider(height: 1, color: MacosColors.divider),
             MacosMiniPlayer(
               controller: widget.controller,
+              favoritesController: _favoritesController,
               bitPerfectEnabled: _bitPerfectEnabled,
             ),
           ],

@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'model/engine_track_models.dart';
+import 'model/playback_mode.dart';
 import 'model/playback_track.dart';
 import 'model/playback_view_model.dart';
 
@@ -12,7 +14,9 @@ import 'model/playback_view_model.dart';
 /// MethodChannels directly.
 class AudioController {
   AudioController({MethodChannel? channel})
-    : _channel = channel ?? const MethodChannel('audio_engine');
+    : _channel = channel ?? const MethodChannel('audio_engine') {
+    _channel.setMethodCallHandler(_handleMethodCall);
+  }
 
   final MethodChannel _channel;
   List<PlaybackTrack> _queue = const [];
@@ -20,10 +24,67 @@ class AudioController {
   Timer? _positionTimer;
   DateTime? _lastTick;
   double? _cachedVolume;
+  PlayMode _playbackMode = PlayMode.sequence;
+  final Random _random = Random();
 
   final ValueNotifier<PlaybackViewModel> state = ValueNotifier(
     PlaybackViewModel.initial(),
   );
+
+  Future<dynamic> _handleMethodCall(MethodCall call) async {
+    switch (call.method) {
+      case 'onPlaybackEnded':
+        _onPlaybackEnded();
+        break;
+    }
+  }
+
+  void _onPlaybackEnded() {
+    if (_queue.isEmpty || _currentIndex == null) {
+      stop();
+      return;
+    }
+
+    switch (_playbackMode) {
+      case PlayMode.single:
+        // Loop current track
+        playAt(_currentIndex!);
+        break;
+      case PlayMode.loop:
+        // Play next or loop back to start
+        final nextIndex = (_currentIndex! + 1) % _queue.length;
+        playAt(nextIndex);
+        break;
+      case PlayMode.shuffle:
+        // Pick random next track (avoiding current if possible)
+        if (_queue.length > 1) {
+          int nextIndex;
+          do {
+            nextIndex = _random.nextInt(_queue.length);
+          } while (nextIndex == _currentIndex);
+          playAt(nextIndex);
+        } else {
+          // Only one track, just replay it
+          playAt(0);
+        }
+        break;
+      case PlayMode.sequence:
+      default:
+        // Default behavior: play next, stop at end
+        final nextIndex = _currentIndex! + 1;
+        if (nextIndex < _queue.length) {
+          playAt(nextIndex);
+        } else {
+          stop();
+        }
+        break;
+    }
+  }
+
+  void setPlaybackMode(PlayMode mode) {
+    _playbackMode = mode;
+    state.value = state.value.copyWith(playbackMode: mode);
+  }
 
   Future<void> load(String path) async {
     state.value = state.value.copyWith(
@@ -92,6 +153,21 @@ class AudioController {
     await _channel.invokeMethod('setVolume', {'value': clamped});
   }
 
+  Future<Map<String, dynamic>> extractMetadata(String path) async {
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'extractMetadata',
+        {'path': path},
+      );
+      return result ?? {};
+    } on MissingPluginException {
+      return {};
+    } catch (e) {
+      debugPrint('Error extracting metadata for $path: $e');
+      return {};
+    }
+  }
+
   void setQueue(List<PlaybackTrack> tracks, {int? startIndex}) {
     _queue = List.unmodifiable(tracks);
     if (startIndex != null) {
@@ -121,9 +197,22 @@ class AudioController {
 
   Future<void> playNext() async {
     if (_queue.isEmpty) return;
-    final nextIndex = _currentIndex == null
-        ? 0
-        : (_currentIndex! + 1) % _queue.length;
+
+    int nextIndex;
+    if (_playbackMode == PlayMode.shuffle) {
+      if (_queue.length > 1) {
+        do {
+          nextIndex = _random.nextInt(_queue.length);
+        } while (nextIndex == _currentIndex);
+      } else {
+        nextIndex = 0;
+      }
+    } else {
+      nextIndex = _currentIndex == null
+          ? 0
+          : (_currentIndex! + 1) % _queue.length;
+    }
+    
     await playAt(nextIndex);
   }
 

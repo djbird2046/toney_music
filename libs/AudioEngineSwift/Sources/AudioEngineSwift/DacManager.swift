@@ -1,6 +1,7 @@
 import Foundation
 import CoreAudio
 import AudioToolbox
+import Darwin
 
 struct AudioDeviceInfo {
     let id: AudioDeviceID
@@ -109,7 +110,15 @@ final class DacManager {
                                                        &pid),
                             operation: "Read hog mode")
             if pid != 0 && pid != getpid() {
-                throw DacManagerError.deviceBusy
+                // Check if the holding process is still alive
+                let killResult = kill(pid, 0)
+                let killErrno = errno
+                print("[DacManager] Hogged by PID: \(pid), MyPID: \(getpid()), kill(\(pid), 0) returned \(killResult), errno: \(killErrno)")
+
+                if killResult == 0 || killErrno != ESRCH {
+                    throw DacManagerError.deviceBusy
+                }
+                print("[DacManager] PID \(pid) seems dead (ESRCH), stealing hog mode.")
             }
             var newPID = getpid()
             try checkStatus(AudioObjectSetPropertyData(id,

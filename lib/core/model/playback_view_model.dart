@@ -1,4 +1,5 @@
 import 'engine_track_models.dart';
+import 'playback_mode.dart';
 import 'playback_track.dart';
 
 class PlaybackViewModel {
@@ -11,6 +12,7 @@ class PlaybackViewModel {
     required this.currentIndex,
     required this.position,
     required this.duration,
+    required this.playbackMode,
     this.engineMetadata,
   });
 
@@ -22,6 +24,7 @@ class PlaybackViewModel {
   final int? currentIndex;
   final Duration position;
   final Duration duration;
+  final PlayMode playbackMode;
   final EngineTrackMetadata? engineMetadata;
 
   PlaybackTrack? get currentTrack =>
@@ -38,6 +41,7 @@ class PlaybackViewModel {
     currentIndex: null,
     position: Duration.zero,
     duration: Duration.zero,
+    playbackMode: PlayMode.sequence,
     engineMetadata: null,
   );
 
@@ -50,6 +54,7 @@ class PlaybackViewModel {
     int? currentIndex,
     Duration? position,
     Duration? duration,
+    PlayMode? playbackMode,
     EngineTrackMetadata? engineMetadata,
     bool updateEngineMetadata = false,
   }) {
@@ -62,6 +67,7 @@ class PlaybackViewModel {
       currentIndex: currentIndex ?? this.currentIndex,
       position: position ?? this.position,
       duration: duration ?? this.duration,
+      playbackMode: playbackMode ?? this.playbackMode,
       engineMetadata: updateEngineMetadata
           ? engineMetadata
           : this.engineMetadata,

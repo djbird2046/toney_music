@@ -199,6 +199,8 @@ final class AudioEngine {
     private let bitPerfectAtomic = ManagedAtomic<Int>(0)
     private let volumePermille = ManagedAtomic<Int>(1000)
 
+    var onPlaybackEnded: (() -> Void)?
+
     private init() {}
 
     deinit {
@@ -508,10 +510,11 @@ final class AudioEngine {
         let chunkSize = max(Int(currentFormat.bytesPerFrame) * 16384, 65536)
         var scratch = [UInt8](repeating: 0, count: chunkSize)
         var consecutiveEmptyReads = 0
-        let maxConsecutiveEmptyReads = 100  // ~100ms of empty reads before logging
+        let maxConsecutiveEmptyReads = 5  // Reduced threshold for faster EOF detection
         var totalBytesDecoded: Int64 = 0
         let startTime = Date()
         var lastLogTime = startTime
+        var reachedEOF = false
 
         logger.info("Decoder loop started. ChunkSize=\(chunkSize), Format=\(self.currentFormat.sampleRate)Hz/\(self.currentFormat.bitDepth)bit/\(self.currentFormat.channels)ch")
 
@@ -526,11 +529,11 @@ final class AudioEngine {
             if bytesRead <= 0 {
                 consecutiveEmptyReads += 1
                 if consecutiveEmptyReads >= maxConsecutiveEmptyReads {
-                    if consecutiveEmptyReads == maxConsecutiveEmptyReads {
-                        logger.debug("Decoder waiting for data (possible EOF)")
-                    }
+                    logger.info("Decoder reached EOF. Total decoded: \(totalBytesDecoded) bytes")
+                    reachedEOF = true
+                    break
                 }
-                Thread.sleep(forTimeInterval: 0.001)
+                Thread.sleep(forTimeInterval: 0.005)
                 continue
             }
             
@@ -560,12 +563,35 @@ final class AudioEngine {
                 logger.info("Decoder status: \(String(format: "%.1f", avgRate))KB/s avg, buffer=\(buffered)B")
             }
         }
+
+        if reachedEOF && !decoderShouldStop {
+            waitForPlaybackCompletion()
+        }
         
         logger.info("Decoder loop ended. Total decoded: \(totalBytesDecoded) bytes")
     }
 
+    private func waitForPlaybackCompletion() {
+        logger.info("Waiting for playback buffer to empty...")
+        // Wait until buffer is empty or we are told to stop
+        while !decoderShouldStop {
+            if pcmPlayer.bufferedBytes == 0 {
+                logger.info("Playback buffer empty. Triggering onPlaybackEnded.")
+                onPlaybackEnded?()
+                break
+            }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+    }
+
     private func validateBitPerfectSupportLocked() throws {
         let targetDevice = try ensureDeviceIDLocked()
+        
+        // If we already own the device in hog mode, validation is implicit
+        if hoggedDevice == targetDevice {
+            return
+        }
+
         do {
             let info = try dac.getDeviceInfo(id: targetDevice)
             try dac.setSampleRate(info.currentRate, for: targetDevice)

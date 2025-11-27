@@ -64,6 +64,11 @@ class MacosSidebar extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   _NavButton(
+                    label: 'Favorites',
+                    isSelected: selectedSection == NavSection.favorites,
+                    onTap: () => onSelectSection(NavSection.favorites),
+                  ),
+                  _NavButton(
                     label: 'Library',
                     isSelected: selectedSection == NavSection.library,
                     onTap: () => onSelectSection(NavSection.library),

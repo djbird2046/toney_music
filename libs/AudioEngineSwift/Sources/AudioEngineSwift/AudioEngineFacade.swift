@@ -55,6 +55,11 @@ public final class AudioEngineFacade {
         try engine.setBitPerfectMode(enabled: enabled)
     }
 
+    public var onPlaybackEnded: (() -> Void)? {
+        get { engine.onPlaybackEnded }
+        set { engine.onPlaybackEnded = newValue }
+    }
+
     public var isPlaying: Bool {
         engine.isPlaying
     }

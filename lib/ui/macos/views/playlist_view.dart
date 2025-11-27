@@ -362,6 +362,18 @@ class _PlaylistRow extends StatelessWidget {
                 ),
               ),
             ),
+            SizedBox(
+              width: 60,
+              child: Text(
+                metadata.extras['Duration'] ?? '--:--',
+                style: TextStyle(
+                  color: isMissing
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : Colors.white70,
+                  fontSize: 13,
+                ),
+              ),
+            ),
             if (isPlaying)
               const Padding(
                 padding: EdgeInsets.only(left: 8),
@@ -482,6 +494,10 @@ class _PlaylistHeader extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text('Album', style: TextStyle(color: Colors.white54)),
+          ),
+          SizedBox(
+            width: 60,
+            child: Text('Duration', style: TextStyle(color: Colors.white54)),
           ),
         ],
       ),

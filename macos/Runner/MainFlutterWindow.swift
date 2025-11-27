@@ -18,7 +18,7 @@ class MainFlutterWindow: NSWindow {
       self.setContentSize(desiredSize)
       self.center()
     }
-    self.title = "Toney"
+    self.title = "Toney Music"
     self.titleVisibility = .hidden
     self.titlebarAppearsTransparent = true
     self.styleMask.insert(.fullSizeContentView)

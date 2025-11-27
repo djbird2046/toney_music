@@ -1,6 +1,7 @@
 import FlutterMacOS
 import Cocoa
 import AudioEngineSwift
+import AVFoundation
 
 public class AudioEnginePlugin: NSObject, FlutterPlugin {
 
@@ -13,6 +14,12 @@ public class AudioEnginePlugin: NSObject, FlutterPlugin {
         )
         let instance = AudioEnginePlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
+
+        AudioEngineFacade.shared.onPlaybackEnded = {
+            DispatchQueue.main.async {
+                channel.invokeMethod("onPlaybackEnded", arguments: nil)
+            }
+        }
     }
 
     public func handle(_ call: FlutterMethodCall,
@@ -115,6 +122,21 @@ public class AudioEnginePlugin: NSObject, FlutterPlugin {
             workQueue.async {
                 let value = AudioEngineFacade.shared.currentVolume()
                 DispatchQueue.main.async { result(value) }
+            }
+
+        case "extractMetadata":
+            guard let args = call.arguments as? [String: Any],
+                  let path = args["path"] as? String else {
+                return result(FlutterError(code: "INVALID", message: nil, details: nil))
+            }
+            workQueue.async {
+                let url = URL(fileURLWithPath: path)
+                let asset = AVURLAsset(url: url)
+                let durationSeconds = CMTimeGetSeconds(asset.duration)
+                let durationMs = durationSeconds.isNaN ? 0 : Int(durationSeconds * 1000)
+                DispatchQueue.main.async {
+                    result(["durationMs": durationMs])
+                }
             }
 
         default:

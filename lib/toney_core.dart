@@ -4,6 +4,7 @@ export 'core/audio_controller.dart';
 export 'core/model/song_metadata.dart';
 export 'core/media/song_metadata_util.dart';
 export 'core/model/playback_track.dart';
+export 'core/model/playback_mode.dart';
 export 'core/playback/playback_helper.dart';
 export 'core/model/playback_view_model.dart';
 export 'core/library/library_source.dart';
