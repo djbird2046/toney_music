@@ -7,7 +7,7 @@ import '../macos_colors.dart';
 import '../models/media_models.dart';
 import '../../../core/library/library_source.dart';
 
-class MacosLibraryView extends StatelessWidget {
+class MacosLibraryView extends StatefulWidget {
   const MacosLibraryView({
     super.key,
     required this.tracks,
@@ -35,9 +35,33 @@ class MacosLibraryView extends StatelessWidget {
   final int? selectedIndex;
   final void Function(int index) onSelectTrack;
 
+  @override
+  State<MacosLibraryView> createState() => _MacosLibraryViewState();
+}
+
+class _MacosLibraryViewState extends State<MacosLibraryView> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {});
+  }
+
   Map<LibrarySourceType, int> _sourceCounts() {
     final counts = <LibrarySourceType, int>{};
-    for (final track in tracks) {
+    for (final track in widget.tracks) {
       counts.update(track.sourceType, (value) => value + 1, ifAbsent: () => 1);
     }
     return counts;
@@ -46,6 +70,15 @@ class MacosLibraryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sourceCounts = _sourceCounts();
+    final query = _searchController.text.toLowerCase();
+    final tracks = widget.tracks.where((track) {
+      if (query.isEmpty) return true;
+      final metadata =
+          widget.metadataByPath[track.path] ?? _fallbackMetadata(track);
+      return metadata.title.toLowerCase().contains(query) ||
+          metadata.artist.toLowerCase().contains(query) ||
+          metadata.album.toLowerCase().contains(query);
+    }).toList();
     final isEmpty = tracks.isEmpty;
 
     return Container(
@@ -82,8 +115,40 @@ class MacosLibraryView extends StatelessWidget {
                   ],
                 ),
                 const Spacer(),
+                // Search Bar
+                Container(
+                  width: 200,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A2A),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: MacosColors.innerDivider),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.search, size: 16, color: MacosColors.iconGrey),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          cursorColor: MacosColors.accentBlue,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Filter',
+                            hintStyle: TextStyle(color: MacosColors.mutedGrey),
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
                 FilledButton.icon(
-                  onPressed: importState.isActive ? null : onAddLibrarySource,
+                  onPressed: widget.importState.isActive ? null : widget.onAddLibrarySource,
                   icon: const Icon(Icons.library_add),
                   label: const Text('Add Sources'),
                 ),
@@ -104,28 +169,28 @@ class MacosLibraryView extends StatelessWidget {
                       itemBuilder: (context, index) {
                         final track = tracks[index];
                         final metadata =
-                            metadataByPath[track.path] ??
+                            widget.metadataByPath[track.path] ??
                             _fallbackMetadata(track);
                         return TrackRowView(
                           track: track,
                           metadata: metadata,
-                          onShowMetadata: onShowMetadata,
-                          onDelete: onDeleteTrack,
-                          onAddToPlaylist: onAddToPlaylist,
-                          playlists: playlists,
-                          isSelected: selectedIndex == index,
-                          onTap: () => onSelectTrack(index),
+                          onShowMetadata: widget.onShowMetadata,
+                          onDelete: widget.onDeleteTrack,
+                          onAddToPlaylist: widget.onAddToPlaylist,
+                          playlists: widget.playlists,
+                          isSelected: widget.selectedIndex == index,
+                          onTap: () => widget.onSelectTrack(index),
                         );
                       },
                     ),
             ),
-            if (importState.isActive)
-              _ImportStatusBar(state: importState, onCancel: onCancelImport)
-            else if (importState.hasStatus)
+            if (widget.importState.isActive)
+              _ImportStatusBar(state: widget.importState, onCancel: widget.onCancelImport)
+            else if (widget.importState.hasStatus)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
-                  importState.message,
+                  widget.importState.message,
                   style: const TextStyle(color: Colors.white54, fontSize: 13),
                 ),
               ),

@@ -67,7 +67,7 @@ class MacosSidebar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _NavButton(
-                    label: 'AI Daily',
+                    label: 'Music AI',
                     icon: Icons.auto_awesome,
                     isSelected: selectedSection == NavSection.aiDaily,
                     onTap: () => onSelectSection(NavSection.aiDaily),

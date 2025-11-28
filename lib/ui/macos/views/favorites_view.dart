@@ -64,39 +64,38 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                 ),
               ),
               const Spacer(),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // Search Bar
-          Container(
-            width: 300,
-            height: 36,
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A2A2A),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: MacosColors.innerDivider),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              children: [
-                const Icon(Icons.search, size: 16, color: MacosColors.iconGrey),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                    cursorColor: MacosColors.accentBlue,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'Filter',
-                      hintStyle: TextStyle(color: MacosColors.mutedGrey),
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
+              // Search Bar
+              Container(
+                width: 200,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A2A),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: MacosColors.innerDivider),
                 ),
-              ],
-            ),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, size: 16, color: MacosColors.iconGrey),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        cursorColor: MacosColors.accentBlue,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Filter',
+                          hintStyle: TextStyle(color: MacosColors.mutedGrey),
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           // Header

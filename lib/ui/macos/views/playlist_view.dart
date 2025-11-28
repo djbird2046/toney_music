@@ -48,9 +48,36 @@ class MacosPlaylistView extends StatefulWidget {
 class _MacosPlaylistViewState extends State<MacosPlaylistView> {
   bool _isDropping = false;
   int? _hoveredIndex;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
+    final query = _searchController.text.toLowerCase();
+    final entries = widget.entries.where((entry) {
+      if (query.isEmpty) return true;
+      final metadata = entry.metadata;
+      return metadata.title.toLowerCase().contains(query) ||
+          metadata.artist.toLowerCase().contains(query) ||
+          metadata.album.toLowerCase().contains(query);
+    }).toList();
+
     return Container(
       color: MacosColors.contentBackground,
       padding: const EdgeInsets.all(32),
@@ -59,12 +86,15 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
         children: [
           Row(
             children: [
-              Text(
-                widget.playlistName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w500,
+              Expanded(
+                child: Text(
+                  widget.playlistName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 12),
@@ -86,6 +116,39 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                 ),
               ),
               const Spacer(),
+              // Search Bar
+              Container(
+                width: 200,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A2A),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: MacosColors.innerDivider),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, size: 16, color: MacosColors.iconGrey),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        cursorColor: MacosColors.accentBlue,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Filter',
+                          hintStyle: TextStyle(color: MacosColors.mutedGrey),
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+
               Tooltip(
                 message: 'Move selection up',
                 child: IconButton(
@@ -101,10 +164,17 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                 ),
               ),
               const SizedBox(width: 8),
-              FilledButton.tonalIcon(
+              TextButton.icon(
                 onPressed: widget.onAddTracks,
                 icon: const Icon(Icons.add),
                 label: const Text('Add'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: MacosColors.navSelectedBackground,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
               FilledButton.icon(
@@ -115,6 +185,13 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                 },
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('Play All'),
+                style: FilledButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: MacosColors.accentBlue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
             ],
           ),
@@ -147,11 +224,11 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                       : Colors.transparent,
                 ),
                 child: ListView.separated(
-                  itemCount: widget.entries.length,
+                  itemCount: entries.length,
                   separatorBuilder: (context, _) =>
                       const Divider(color: MacosColors.innerDivider, height: 1),
                   itemBuilder: (context, index) {
-                    final entry = widget.entries[index];
+                    final entry = entries[index];
                     final isSelected = widget.selectedIndices.contains(index);
                     return MouseRegion(
                       cursor: SystemMouseCursors.click,
@@ -188,6 +265,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
     );
   }
 }
+
 
 class _PlaylistRow extends StatelessWidget {
   const _PlaylistRow({
