@@ -60,7 +60,7 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 28,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const Spacer(),
@@ -164,19 +164,19 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                           children: [
                             Expanded(
                               flex: 4, 
-                              child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+                              child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w400)),
                             ),
                             Expanded(
                               flex: 3, 
-                              child: Text(artist, style: const TextStyle(color: Colors.white70)),
+                              child: Text(artist, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w300)),
                             ),
                              Expanded(
                               flex: 3, 
-                              child: Text(album, style: const TextStyle(color: Colors.white70)),
+                              child: Text(album, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w300)),
                             ),
                              SizedBox(
                               width: 60, 
-                              child: Text(duration, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                              child: Text(duration, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w300)),
                             ),
                           ],
                         ),

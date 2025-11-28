@@ -435,6 +435,8 @@ class _PlaybackControlsGroupState extends State<_PlaybackControlsGroup> {
               icon: widget.isFavorite ? Icons.favorite : Icons.favorite_border,
               iconColor: widget.isFavorite ? Colors.redAccent : null,
               onPressed: widget.onToggleFavorite,
+              size: 32,
+              iconSize: 16,
             ),
             const SizedBox(width: 12),
             _MiniPlayerButton(
@@ -457,6 +459,8 @@ class _PlaybackControlsGroupState extends State<_PlaybackControlsGroup> {
                     (widget.playbackMode.index + 1) % PlayMode.values.length];
                 widget.onPlaybackModeChanged(nextMode);
               },
+              size: 32,
+              iconSize: 16,
             ),
           ],
         ),
@@ -482,30 +486,37 @@ class _MiniPlayerButton extends StatelessWidget {
     required this.onPressed,
     this.isPrimary = false,
     this.iconColor,
+    this.size,
+    this.iconSize,
   });
 
   final IconData icon;
   final VoidCallback? onPressed;
   final bool isPrimary;
   final Color? iconColor;
+  final double? size;
+  final double? iconSize;
 
   @override
   Widget build(BuildContext context) {
+    final buttonSize = size ?? (isPrimary ? 44 : 36);
+    final iSize = iconSize ?? 20;
+
     return Material(
       color: isPrimary
           ? MacosColors.accentBlue
           : MacosColors.navSelectedBackground,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(buttonSize / 2),
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(buttonSize / 2),
         child: SizedBox(
-          width: isPrimary ? 44 : 36,
-          height: isPrimary ? 44 : 36,
+          width: buttonSize,
+          height: buttonSize,
           child: Icon(
             icon,
             color: iconColor ?? (isPrimary ? Colors.white : MacosColors.iconGrey),
-            size: 20,
+            size: iSize,
           ),
         ),
       ),
@@ -533,7 +544,7 @@ class _TrackStats extends StatelessWidget {
     final labelStyle = TextStyle(
       color: MacosColors.secondaryGrey,
       fontSize: 11,
-      fontWeight: FontWeight.w400,
+      fontWeight: FontWeight.w300,
     );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -631,7 +642,7 @@ class _NowPlayingQueuePanel extends StatelessWidget {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
               const Spacer(),
@@ -781,7 +792,7 @@ class _QueueRowState extends State<_QueueRow> {
     final titleStyle = TextStyle(
       color: widget.isCurrent ? MacosColors.accentBlue : Colors.white,
       fontSize: 14,
-      fontWeight: widget.isCurrent ? FontWeight.w600 : FontWeight.w400,
+      fontWeight: widget.isCurrent ? FontWeight.w400 : FontWeight.w300,
     );
     const subtitleStyle = TextStyle(
       color: MacosColors.secondaryGrey,
@@ -982,7 +993,7 @@ class _NowPlayingInfo extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
               const SizedBox(height: 4),

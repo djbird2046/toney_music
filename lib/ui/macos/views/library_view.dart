@@ -66,7 +66,7 @@ class MacosLibraryView extends StatelessWidget {
                       style: TextStyle(
                         color: MacosColors.heading,
                         fontSize: 32,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -279,7 +279,7 @@ class _TrackRowViewState extends State<TrackRowView> {
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w400,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -366,7 +366,7 @@ class _SourceSummary extends StatelessWidget {
                 entry.key.label,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   fontSize: 15,
                 ),
               ),

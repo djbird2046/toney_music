@@ -155,7 +155,7 @@ class _NavButton extends StatelessWidget {
                         ? MacosColors.accentBlue
                         : MacosColors.secondaryGrey,
                     fontSize: 15,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
                     letterSpacing: 0.4,
                   ),
                 ),
@@ -225,7 +225,7 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                       style: TextStyle(
                         color: MacosColors.sectionLabel,
                         fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                         letterSpacing: 0.6,
                       ),
                     ),
@@ -335,7 +335,7 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                                     : MacosColors.tertiaryGrey,
                                 fontSize: 13,
                                 fontWeight: isSelected
-                                    ? FontWeight.w500
+                                    ? FontWeight.w400
                                     : FontWeight.w300,
                               ),
                             ),

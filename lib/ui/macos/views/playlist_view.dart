@@ -64,7 +64,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(width: 12),
@@ -333,7 +333,7 @@ class _PlaylistRow extends StatelessWidget {
                       color: isMissing
                           ? Colors.white.withValues(alpha: 0.25)
                           : Colors.white,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -345,6 +345,7 @@ class _PlaylistRow extends StatelessWidget {
                           ? Colors.white.withValues(alpha: 0.25)
                           : Colors.grey.shade500,
                       fontSize: 13,
+                      fontWeight: FontWeight.w300,
                     ),
                   ),
                 ],
@@ -359,6 +360,7 @@ class _PlaylistRow extends StatelessWidget {
                   color: isMissing
                       ? Colors.white.withValues(alpha: 0.25)
                       : Colors.white70,
+                  fontWeight: FontWeight.w300,
                 ),
               ),
             ),
@@ -371,6 +373,7 @@ class _PlaylistRow extends StatelessWidget {
                       ? Colors.white.withValues(alpha: 0.25)
                       : Colors.white70,
                   fontSize: 13,
+                  fontWeight: FontWeight.w300,
                 ),
               ),
             ),
