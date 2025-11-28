@@ -46,6 +46,7 @@ class MacosSidebar extends StatelessWidget {
                 children: [
                   _NavButton(
                     label: 'AI Daily',
+                    icon: Icons.auto_awesome,
                     isSelected: selectedSection == NavSection.aiDaily,
                     onTap: () => onSelectSection(NavSection.aiDaily),
                   ),
@@ -65,16 +66,19 @@ class MacosSidebar extends StatelessWidget {
                   const SizedBox(height: 8),
                   _NavButton(
                     label: 'Favorites',
+                    icon: Icons.favorite_border,
                     isSelected: selectedSection == NavSection.favorites,
                     onTap: () => onSelectSection(NavSection.favorites),
                   ),
                   _NavButton(
                     label: 'Library',
+                    icon: Icons.library_music_outlined,
                     isSelected: selectedSection == NavSection.library,
                     onTap: () => onSelectSection(NavSection.library),
                   ),
                   _NavButton(
                     label: 'Settings',
+                    icon: Icons.settings_outlined,
                     isSelected: selectedSection == NavSection.settings,
                     onTap: () => onSelectSection(NavSection.settings),
                   ),
@@ -91,11 +95,13 @@ class MacosSidebar extends StatelessWidget {
 class _NavButton extends StatelessWidget {
   const _NavButton({
     required this.label,
+    this.icon,
     required this.isSelected,
     required this.onTap,
   });
 
   final String label;
+  final IconData? icon;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -130,16 +136,30 @@ class _NavButton extends StatelessWidget {
                     ]
                   : null,
             ),
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isSelected
-                    ? MacosColors.accentBlue
-                    : MacosColors.secondaryGrey,
-                fontSize: 15,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                letterSpacing: 0.4,
-              ),
+            child: Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(
+                    icon,
+                    size: 20,
+                    color: isSelected
+                        ? MacosColors.accentBlue
+                        : MacosColors.secondaryGrey,
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected
+                        ? MacosColors.accentBlue
+                        : MacosColors.secondaryGrey,
+                    fontSize: 15,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

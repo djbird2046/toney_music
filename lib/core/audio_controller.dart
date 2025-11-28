@@ -8,6 +8,7 @@ import 'model/engine_track_models.dart';
 import 'model/playback_mode.dart';
 import 'model/playback_track.dart';
 import 'model/playback_view_model.dart';
+import 'storage/playback_state_storage.dart';
 
 /// Shared coordinator that wraps the MethodChannel API exposed by the native
 /// AudioEnginePlugin. UI layers should depend on this instead of touching
@@ -19,6 +20,7 @@ class AudioController {
   }
 
   final MethodChannel _channel;
+  final PlaybackStateStorage _storage = PlaybackStateStorage();
   List<PlaybackTrack> _queue = const [];
   int? _currentIndex;
   Timer? _positionTimer;
@@ -30,6 +32,60 @@ class AudioController {
   final ValueNotifier<PlaybackViewModel> state = ValueNotifier(
     PlaybackViewModel.initial(),
   );
+
+  Future<void> init() async {
+    await _storage.init();
+    final snapshot = _storage.load();
+
+    if (snapshot.queue.isNotEmpty) {
+      _queue = List.unmodifiable(snapshot.queue);
+      _currentIndex = snapshot.currentIndex;
+      _playbackMode = snapshot.mode;
+
+      // Restore UI state
+      state.value = state.value.copyWith(
+        queue: _queue,
+        currentIndex: _currentIndex,
+        playbackMode: _playbackMode,
+        position: Duration(milliseconds: snapshot.positionMs),
+      );
+
+      // If we have a valid current track, load it into the engine
+      if (_currentIndex != null &&
+          _currentIndex! >= 0 &&
+          _currentIndex! < _queue.length) {
+        final track = _queue[_currentIndex!];
+        
+        // Optimistically set duration if available in the track model
+        if (track.duration != null) {
+          state.value = state.value.copyWith(duration: track.duration);
+        }
+
+        try {
+          // Load the file but do not start playback
+          await load(track.path);
+          // Restore position
+          if (state.value.hasFile && snapshot.positionMs > 0) {
+            try {
+              await _channel.invokeMethod('seek', {'positionMs': snapshot.positionMs});
+              state.value = state.value.copyWith(
+                position: Duration(milliseconds: snapshot.positionMs),
+              );
+            } catch (e) {
+              debugPrint('Error seeking during init: $e');
+              // Silently ignore seek failures during init
+            }
+          }
+        } on PlatformException catch (e) {
+          debugPrint('PlatformException restoring playback state: $e');
+          // We fail gracefully: queue and index are restored in state,
+          // but 'hasFile' remains false. User can try to play again.
+        } catch (e) {
+          debugPrint('Generic error restoring playback state: $e');
+        }
+      }
+    }
+  }
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
     switch (call.method) {
@@ -84,6 +140,7 @@ class AudioController {
   void setPlaybackMode(PlayMode mode) {
     _playbackMode = mode;
     state.value = state.value.copyWith(playbackMode: mode);
+    _saveState();
   }
 
   Future<void> load(String path) async {
@@ -106,6 +163,7 @@ class AudioController {
     await _run('pause', () => _channel.invokeMethod('pause'));
     _setPlaying(false);
     _stopPositionTicker();
+    _saveState();
   }
 
   Future<void> stop() async {
@@ -118,6 +176,7 @@ class AudioController {
       engineMetadata: null,
     );
     _stopPositionTicker();
+    _saveState();
   }
 
   Future<void> seek(int positionMs) async {
@@ -129,6 +188,7 @@ class AudioController {
       position: Duration(milliseconds: positionMs),
     );
     _lastTick = DateTime.now();
+    _saveState();
   }
 
   Future<void> setBitPerfectMode(bool enabled) async {
@@ -177,6 +237,7 @@ class AudioController {
       queue: _queue,
       currentIndex: _currentIndex,
     );
+    _saveState();
   }
 
   Future<void> playAt(int index, {String? overridePath}) async {
@@ -193,6 +254,7 @@ class AudioController {
       position: Duration.zero,
     );
     await play();
+    _saveState();
   }
 
   Future<void> playNext() async {
@@ -225,16 +287,20 @@ class AudioController {
   }
 
   Future<void> togglePlayPause() async {
-    if (state.value.isPlaying) {
-      await pause();
-      return;
+    try {
+      if (state.value.isPlaying) {
+        await pause();
+        return;
+      }
+      if (!state.value.hasFile) {
+        if (_queue.isEmpty) return;
+        await playAt(_currentIndex ?? 0);
+        return;
+      }
+      await play();
+    } catch (e) {
+      debugPrint('Error toggling play/pause: $e');
     }
-    if (!state.value.hasFile) {
-      if (_queue.isEmpty) return;
-      await playAt(_currentIndex ?? 0);
-      return;
-    }
-    await play();
   }
 
   void dispose() {
@@ -330,5 +396,14 @@ class AudioController {
     } catch (error) {
       debugPrint('Failed to refresh engine metadata: $error');
     }
+  }
+
+  Future<void> _saveState() async {
+    await _storage.save(
+      queue: _queue,
+      index: _currentIndex,
+      positionMs: state.value.position.inMilliseconds,
+      mode: _playbackMode,
+    );
   }
 }

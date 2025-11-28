@@ -20,6 +20,7 @@ class _ToneyAppState extends State<ToneyApp> {
   void initState() {
     super.initState();
     _controller = AudioController();
+    _controller.init();
   }
 
   @override
