@@ -38,16 +38,40 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
   bool _isQueueVisible = false;
   final ValueNotifier<int> _queueSelection = ValueNotifier<int>(0);
   OverlayEntry? _queueOverlayEntry;
+  StreamSubscription<double>? _volumeSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadVolume();
+    _volumeSubscription = widget.controller.volumeStream.listen((newVolume) {
+      if (!mounted) return;
+      setState(() {
+        _volume = newVolume;
+        _isMuted = newVolume <= 0.001;
+        if (!_isMuted) {
+          _preMuteVolume = newVolume;
+        }
+      });
+    });
   }
 
   @override
   void didUpdateWidget(covariant MacosMiniPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      _volumeSubscription?.cancel();
+      _volumeSubscription = widget.controller.volumeStream.listen((newVolume) {
+        if (!mounted) return;
+        setState(() {
+          _volume = newVolume;
+          _isMuted = newVolume <= 0.001;
+          if (!_isMuted) {
+            _preMuteVolume = newVolume;
+          }
+        });
+      });
+    }
     if (oldWidget.controller != widget.controller ||
         oldWidget.bitPerfectEnabled != widget.bitPerfectEnabled) {
       _loadVolume();
@@ -330,6 +354,7 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
 
   @override
   void dispose() {
+    _volumeSubscription?.cancel();
     _queueOverlayEntry?.remove();
     _queueSelection.dispose();
     super.dispose();

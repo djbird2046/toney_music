@@ -60,5 +60,17 @@ void main() {
       expect(controller.state.value.currentIndex, 0);
       expect(controller.state.value.queue.length, 1);
     });
+
+    test('setVolume emits to stream and invokes channel', () async {
+      expectLater(controller.volumeStream, emitsInOrder([0.5, 0.8]));
+
+      await controller.setVolume(0.5);
+      expect(recordedCalls.last.method, 'setVolume');
+      expect(recordedCalls.last.arguments, {'value': 0.5});
+
+      await controller.setVolume(0.8);
+      expect(recordedCalls.last.method, 'setVolume');
+      expect(recordedCalls.last.arguments, {'value': 0.8});
+    });
   });
 }

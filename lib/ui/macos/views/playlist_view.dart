@@ -108,7 +108,11 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
               ),
               const SizedBox(width: 8),
               FilledButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  if (widget.entries.isNotEmpty) {
+                    widget.onPlayTrack(0);
+                  }
+                },
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('Play All'),
               ),

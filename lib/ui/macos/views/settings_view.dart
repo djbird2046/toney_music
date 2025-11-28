@@ -66,7 +66,7 @@ class _SettingsHeader extends StatelessWidget {
         style: const TextStyle(
           color: Colors.white,
           fontSize: 16,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
@@ -98,10 +98,10 @@ class _ToggleRow extends StatelessWidget {
         title,
         style: const TextStyle(
           color: Colors.white,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w400,
         ),
       ),
-      subtitle: Text(subtitle, style: TextStyle(color: Colors.grey.shade500)),
+      subtitle: Text(subtitle, style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w300)),
       secondary: isBusy
           ? const SizedBox(
               height: 20,

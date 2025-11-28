@@ -32,6 +32,10 @@ class AudioController {
   final ValueNotifier<PlaybackViewModel> state = ValueNotifier(
     PlaybackViewModel.initial(),
   );
+  final StreamController<double> _volumeSubject =
+      StreamController<double>.broadcast();
+
+  Stream<double> get volumeStream => _volumeSubject.stream;
 
   Future<void> init() async {
     await _storage.init();
@@ -199,10 +203,9 @@ class AudioController {
   }
 
   Future<double> getVolume() async {
-    final cached = _cachedVolume;
-    if (cached != null) return cached;
+    // Always fetch from native to ensure sync.
     final value = await _channel.invokeMethod<double>('getVolume');
-    final resolved = (value ?? 1.0).clamp(0.0, 1.0).toDouble();
+    final resolved = value ?? 1.0;
     _cachedVolume = resolved;
     return resolved;
   }
@@ -210,6 +213,7 @@ class AudioController {
   Future<void> setVolume(double volume) async {
     final clamped = volume.clamp(0.0, 1.0).toDouble();
     _cachedVolume = clamped;
+    _volumeSubject.add(clamped);
     await _channel.invokeMethod('setVolume', {'value': clamped});
   }
 
@@ -306,6 +310,7 @@ class AudioController {
   void dispose() {
     state.dispose();
     _stopPositionTicker();
+    _volumeSubject.close();
   }
 
   void _markLoaded() {

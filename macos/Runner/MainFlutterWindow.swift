@@ -1,10 +1,11 @@
 import Cocoa
 import FlutterMacOS
 
-class MainFlutterWindow: NSWindow {
+class MainFlutterWindow: NSWindow, NSWindowDelegate {
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     self.contentViewController = flutterViewController
+    self.delegate = self
 
     let desiredSize = NSSize(width: 1000, height: 750)
     if let screen = NSScreen.main {
@@ -33,6 +34,24 @@ class MainFlutterWindow: NSWindow {
     let registrar = flutterViewController.registrar(forPlugin: "AudioEnginePlugin")
     AudioEnginePlugin.register(with: registrar)
 
+    let windowChannel = FlutterMethodChannel(
+      name: "window_control",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    windowChannel.setMethodCallHandler { [weak self] (call, result) in
+      if call.method == "minimize" {
+        self?.miniaturize(nil)
+        result(nil)
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
     super.awakeFromNib()
+  }
+
+  func windowShouldClose(_ sender: NSWindow) -> Bool {
+    sender.miniaturize(nil)
+    return false
   }
 }

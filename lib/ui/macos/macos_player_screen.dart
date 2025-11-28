@@ -10,6 +10,7 @@ import '../../core/audio_controller.dart';
 import '../../core/favorites_controller.dart';
 import '../../core/library/library_source.dart';
 import '../../core/media/audio_formats.dart';
+import '../../core/model/playback_mode.dart';
 import '../../core/model/song_metadata.dart';
 import '../../core/media/song_metadata_util.dart';
 import '../../core/model/playback_track.dart';
@@ -1261,16 +1262,156 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return KeyboardListener(
-      focusNode: _keyboardFocusNode,
-      autofocus: true,
-      onKeyEvent: (event) {
-        final metaPressed = HardwareKeyboard.instance.isMetaPressed;
-        if (metaPressed != _isMetaPressed) {
-          setState(() => _isMetaPressed = metaPressed);
-        }
-      },
-      child: Scaffold(
+    return PlatformMenuBar(
+      menus: [
+        PlatformMenu(
+          label: 'Toney',
+          menus: [
+            if (PlatformProvidedMenuItem.hasMenu(
+              PlatformProvidedMenuItemType.about,
+            ))
+              const PlatformProvidedMenuItem(
+                type: PlatformProvidedMenuItemType.about,
+              ),
+            PlatformMenuItemGroup(
+              members: [
+                PlatformMenuItem(
+                  label: 'Settings',
+                  shortcut: const SingleActivator(
+                    LogicalKeyboardKey.comma,
+                    meta: true,
+                  ),
+                  onSelected: () => _selectNav(NavSection.settings),
+                ),
+              ],
+            ),
+            if (PlatformProvidedMenuItem.hasMenu(
+              PlatformProvidedMenuItemType.quit,
+            ))
+              const PlatformProvidedMenuItem(
+                type: PlatformProvidedMenuItemType.quit,
+              ),
+          ],
+        ),
+        PlatformMenu(
+          label: 'Control',
+          menus: [
+            PlatformMenuItem(
+              label: 'Play/Pause',
+              shortcut: const SingleActivator(LogicalKeyboardKey.space),
+              onSelected: () => widget.controller.togglePlayPause(),
+            ),
+            PlatformMenuItem(
+              label: 'Next',
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.arrowRight,
+                meta: true,
+              ),
+              onSelected: () => widget.controller.playNext(),
+            ),
+            PlatformMenuItem(
+              label: 'Previous',
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.arrowLeft,
+                meta: true,
+              ),
+              onSelected: () => widget.controller.playPrevious(),
+            ),
+            PlatformMenuItem(
+              label: 'Increase Volume',
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.arrowUp,
+                meta: true,
+              ),
+              onSelected: () async {
+                final vol = await widget.controller.getVolume();
+                widget.controller.setVolume(vol + 0.05);
+              },
+            ),
+            PlatformMenuItem(
+              label: 'Decrease Volume',
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.arrowDown,
+                meta: true,
+              ),
+              onSelected: () async {
+                final vol = await widget.controller.getVolume();
+                widget.controller.setVolume(vol - 0.05);
+              },
+            ),
+            PlatformMenu(
+              label: 'Mode',
+              menus: [
+                PlatformMenuItem(
+                  label: 'Sequence',
+                  onSelected: () => widget.controller.setPlaybackMode(
+                    PlayMode.sequence,
+                  ),
+                ),
+                PlatformMenuItem(
+                  label: 'Loop',
+                  onSelected: () => widget.controller.setPlaybackMode(
+                    PlayMode.loop,
+                  ),
+                ),
+                PlatformMenuItem(
+                  label: 'Single',
+                  onSelected: () => widget.controller.setPlaybackMode(
+                    PlayMode.single,
+                  ),
+                ),
+                PlatformMenuItem(
+                  label: 'Shuffle',
+                  onSelected: () => widget.controller.setPlaybackMode(
+                    PlayMode.shuffle,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        PlatformMenu(
+          label: 'Window',
+          menus: [
+            if (PlatformProvidedMenuItem.hasMenu(
+              PlatformProvidedMenuItemType.minimizeWindow,
+            ))
+              const PlatformProvidedMenuItem(
+                type: PlatformProvidedMenuItemType.minimizeWindow,
+              ),
+            PlatformMenuItem(
+              label: 'Close',
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.keyW,
+                meta: true,
+              ),
+              onSelected: () => const MethodChannel('window_control').invokeMethod('minimize'),
+            ),
+            if (PlatformProvidedMenuItem.hasMenu(
+              PlatformProvidedMenuItemType.zoomWindow,
+            ))
+              const PlatformProvidedMenuItem(
+                type: PlatformProvidedMenuItemType.zoomWindow,
+              ),
+            if (PlatformProvidedMenuItem.hasMenu(
+              PlatformProvidedMenuItemType.toggleFullScreen,
+            ))
+              const PlatformProvidedMenuItem(
+                type: PlatformProvidedMenuItemType.toggleFullScreen,
+              ),
+          ],
+        ),
+      ],
+      child: KeyboardListener(
+        focusNode: _keyboardFocusNode,
+        autofocus: true,
+        onKeyEvent: (event) {
+          final metaPressed = HardwareKeyboard.instance.isMetaPressed;
+          if (metaPressed != _isMetaPressed) {
+            setState(() => _isMetaPressed = metaPressed);
+          }
+        },
+        child: Scaffold(
         backgroundColor: MacosColors.background,
         body: Column(
           children: [
@@ -1303,6 +1444,6 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 }
