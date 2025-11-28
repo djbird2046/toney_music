@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../macos_colors.dart';
 import '../models/media_models.dart';
 
-class MacosAiDailyView extends StatelessWidget {
-  const MacosAiDailyView({super.key, required this.categories});
+class MacosMusicAiView extends StatelessWidget {
+  const MacosMusicAiView({super.key, required this.categories});
 
   final List<AiCategory> categories;
 
@@ -17,7 +17,7 @@ class MacosAiDailyView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'AI Daily Mix',
+            'Music AI',
             style: TextStyle(
               color: Colors.white,
               fontSize: 30,

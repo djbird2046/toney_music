@@ -21,7 +21,7 @@ import 'macos_colors.dart';
 import 'models/media_models.dart';
 import 'models/nav_section.dart';
 import 'sidebar/macos_sidebar.dart';
-import 'views/ai_daily_view.dart';
+import 'views/music_ai_view.dart';
 import 'views/library_view.dart';
 import 'views/source_selector_dialog.dart';
 import 'views/playlist_view.dart';
@@ -39,7 +39,7 @@ class MacosPlayerScreen extends StatefulWidget {
 }
 
 class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
-  NavSection selectedSection = NavSection.aiDaily;
+  NavSection selectedSection = NavSection.musicAi;
   final List<String> playlists = ['Default'];
   int selectedPlaylist = 0;
   bool isRenamingPlaylist = false;
@@ -1100,8 +1100,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
 
   Widget _buildContent() {
     switch (selectedSection) {
-      case NavSection.aiDaily:
-        return MacosAiDailyView(categories: aiCategories);
+      case NavSection.musicAi:
+        return MacosMusicAiView(categories: aiCategories);
       case NavSection.playlists:
         return MacosPlaylistView(
           playlistName: playlists[selectedPlaylist],

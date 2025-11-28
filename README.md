@@ -18,12 +18,12 @@ Traditional players stop at playback. Toney Music leans heavily on AI Agents to 
 
 ## Current Status
 
-- **UI framework**: AI Daily Mix hub, playlists, library, settings, and a persistent playback bar.
+- **UI framework**: Music AI hub, playlists, library, settings, and a persistent playback bar.
 - **Implemented features**: playlist browsing, local library management, and a playback bar complete with the current queue.
 
 ## Roadmap / TODO
 
 - **Library expansion**: integrate NetDisk, Samba, WebDAV, and NFS with path prefetching and download caching.
-- **AI Daily Mix**: wire up LiteAgentSDK plus OpenTool callbacks to bridge agents and in-app controls.
+- **Music AI**: wire up LiteAgentSDK plus OpenTool callbacks to bridge agents and in-app controls.
 - **Settings**: add localization plus light, dark, and system themes.
 - **Platforms**: ship optimized builds for Windows, iOS, Android, and even HarmonyOS.
