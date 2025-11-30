@@ -2,7 +2,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
-
 import '../../../core/agent/liteagent_util.dart';
 import '../../../core/library/library_source.dart';
 import '../../../core/model/song_metadata.dart';
@@ -14,7 +13,7 @@ import 'package:liteagent_sdk_dart/liteagent_sdk_dart.dart';
 
 const _uuid = Uuid();
 
-enum _AiContentState { forYou, chat, config }
+enum _AiContentState { forYou, chat, config, loading }
 
 class MacosMusicAiView extends StatefulWidget {
   const MacosMusicAiView(
@@ -28,8 +27,51 @@ class MacosMusicAiView extends StatefulWidget {
 }
 
 class _MacosMusicAiViewState extends State<MacosMusicAiView> {
-  _AiContentState _contentState = _AiContentState.forYou;
-  bool _isTestingConnection = false;
+  _AiContentState _contentState = _AiContentState.loading;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConfigAndSetState();
+  }
+
+  Future<void> _checkConfigAndSetState() async {
+    setState(() {
+      _contentState = _AiContentState.loading;
+    });
+
+    try {
+      await widget.configStorage.init();
+      final config = widget.configStorage.load();
+
+      if (config.isNotEmpty) {
+        final liteAgent =
+            LiteAgentSDK(baseUrl: config.baseUrl, apiKey: config.apiKey);
+        final util = LiteAgentUtil(
+          agentId: 'test',
+          liteAgent: liteAgent,
+          onFullText: (messageId, fullText) {},
+          onTextChunk: (messageId, chunk) {},
+          onExtension: (messageId, extension) {},
+          onMessageStart: (messageId) {},
+          onDoneCallback: () {},
+          onErrorCallback: (e) {},
+        );
+        await util.testConnect();
+        setState(() {
+          _contentState = _AiContentState.forYou;
+        });
+      } else {
+        setState(() {
+          _contentState = _AiContentState.config;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _contentState = _AiContentState.config;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,14 +108,12 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
                 setState(() => _contentState = _AiContentState.forYou),
           )
         else
-          _isTestingConnection
-              ? const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-              : FilledButton.icon(
-            onPressed: _handleAiButtonClick,
+          FilledButton.icon(
+            onPressed: () {
+              setState(() {
+                _contentState = _AiContentState.chat;
+              });
+            },
             icon: const Icon(Icons.auto_awesome, size: 16),
             label: const Text('AI Chat'),
             style: FilledButton.styleFrom(
@@ -96,6 +136,8 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
         return 'Tell Me';
       case _AiContentState.config:
         return 'Configure AI';
+      case _AiContentState.loading:
+        return 'Connecting...';
     }
   }
 
@@ -108,51 +150,11 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
       case _AiContentState.config:
         return LiteAgentConfigView(
           onConfigSaved: () {
-            setState(() => _contentState = _AiContentState.chat);
+            setState(() => _contentState = _AiContentState.forYou);
           },
         );
-    }
-  }
-
-  Future<void> _handleAiButtonClick() async {
-    setState(() {
-      _isTestingConnection = true;
-    });
-
-    try {
-      await widget.configStorage.init();
-      final config = widget.configStorage.load();
-
-      if (config.isNotEmpty) {
-        final liteAgent =
-        LiteAgentSDK(baseUrl: config.baseUrl, apiKey: config.apiKey);
-        final util = LiteAgentUtil(
-          agentId: 'test',
-          liteAgent: liteAgent,
-          onFullText: (messageId, fullText) {},
-          onTextChunk: (messageId, chunk) {},
-          onExtension: (messageId, extension) {},
-          onMessageStart: (messageId) {},
-          onDoneCallback: () {},
-          onErrorCallback: (e) {},
-        );
-        await util.testConnect();
-        setState(() {
-          _contentState = _AiContentState.chat;
-        });
-      } else {
-        setState(() {
-          _contentState = _AiContentState.config;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _contentState = _AiContentState.config;
-      });
-    } finally {
-      setState(() {
-        _isTestingConnection = false;
-      });
+      case _AiContentState.loading:
+        return const Center(child: CircularProgressIndicator());
     }
   }
 }
@@ -431,8 +433,8 @@ class _ChatMessageBubble extends StatelessWidget {
         children: [
           if (!isUser) ...[
             const CircleAvatar(
-              child: Icon(Icons.auto_awesome),
               backgroundColor: MacosColors.accentBlue,
+              child: Icon(Icons.auto_awesome),
             ),
             const SizedBox(width: 12),
           ],
@@ -460,6 +462,7 @@ class _ChatMessageBubble extends StatelessWidget {
                       h4: const TextStyle(color: Colors.white),
                       h5: const TextStyle(color: Colors.white),
                       h6: const TextStyle(color: Colors.white),
+                      tableBody: const TextStyle(color: Colors.white),
                     ),
                     builders: {
                       'hr': _HrBuilder(),
@@ -476,8 +479,8 @@ class _ChatMessageBubble extends StatelessWidget {
           if (isUser) ...[
             const SizedBox(width: 12),
             const CircleAvatar(
-              child: Icon(Icons.person),
               backgroundColor: Colors.grey,
+              child: Icon(Icons.person),
             ),
           ],
         ],
@@ -522,13 +525,6 @@ class _ExtensionViewState extends State<_ExtensionView> {
         border: Border.all(color: MacosColors.innerDivider),
       ),
       child: ExpansionTile(
-        title: const Text(
-          'Extended Information',
-          style: TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-              fontWeight: FontWeight.w500),
-        ),
         onExpansionChanged: (isExpanded) {
           setState(() {
             _isExpanded = isExpanded;
@@ -537,6 +533,13 @@ class _ExtensionViewState extends State<_ExtensionView> {
         initiallyExpanded: _isExpanded,
         collapsedIconColor: Colors.grey,
         iconColor: Colors.white,
+        title: const Text(
+          'Extended Information',
+          style: TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.w500),
+        ),
         children: [
           Padding(
             padding: const EdgeInsets.all(12.0),
@@ -704,7 +707,7 @@ class _PlaylistRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isMissing
-                          ? Colors.white.withOpacity(0.25)
+                          ? Colors.white.withAlpha(64)
                           : Colors.white,
                       fontWeight: FontWeight.w400,
                     ),
@@ -715,7 +718,7 @@ class _PlaylistRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isMissing
-                          ? Colors.white.withOpacity(0.25)
+                          ? Colors.white.withAlpha(64)
                           : Colors.grey.shade500,
                       fontSize: 13,
                       fontWeight: FontWeight.w300,
@@ -731,7 +734,7 @@ class _PlaylistRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: isMissing
-                      ? Colors.white.withOpacity(0.25)
+                      ? Colors.white.withAlpha(64)
                       : Colors.white70,
                   fontWeight: FontWeight.w300,
                 ),
@@ -743,7 +746,7 @@ class _PlaylistRow extends StatelessWidget {
                 metadata.extras['Duration'] ?? '--:--',
                 style: TextStyle(
                   color: isMissing
-                      ? Colors.white.withOpacity(0.25)
+                      ? Colors.white.withAlpha(64)
                       : Colors.white70,
                   fontSize: 13,
                   fontWeight: FontWeight.w300,
@@ -767,10 +770,10 @@ class _PlaylistRow extends StatelessWidget {
 
   Color? _backgroundColor() {
     if (isPlaying) {
-      return MacosColors.navSelectedBackground.withOpacity(0.4);
+      return MacosColors.navSelectedBackground.withAlpha(102);
     }
     if (isSelected) {
-      return MacosColors.navSelectedBackground.withOpacity(0.3);
+      return MacosColors.navSelectedBackground.withAlpha(77);
     }
     if (isHovered) {
       return MacosColors.accentHover;
@@ -824,7 +827,7 @@ class _ArtworkTile extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withAlpha(153),
                 ),
                 child: Center(
                   child: SizedBox(
@@ -833,7 +836,7 @@ class _ArtworkTile extends StatelessWidget {
                     child: CircularProgressIndicator(
                       value: downloadProgress,
                       strokeWidth: 3,
-                      backgroundColor: Colors.white.withOpacity(0.2),
+                      backgroundColor: Colors.white.withAlpha(51),
                       valueColor: const AlwaysStoppedAnimation<Color>(
                         MacosColors.accentBlue,
                       ),

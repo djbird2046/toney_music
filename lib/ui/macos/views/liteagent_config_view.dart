@@ -111,8 +111,8 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: Colors.blue.withOpacity(0.5),
-                      disabledForegroundColor: Colors.white.withOpacity(0.5),
+                      disabledBackgroundColor: Colors.blue.withAlpha(128),
+                      disabledForegroundColor: Colors.white.withAlpha(128),
                     ),
                     child: const Text('Confirm'),
                   ),

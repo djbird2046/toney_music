@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:toney_music/toney_core.dart';
-import '../../../../core/model/playback_mode.dart';
 import '../../../core/favorites_controller.dart';
 
 import '../macos_colors.dart';
@@ -431,19 +430,6 @@ class _PlaybackControlsGroupState extends State<_PlaybackControlsGroup> {
         return Icons.repeat_one;
       case PlayMode.shuffle:
         return Icons.shuffle;
-    }
-  }
-
-  String _playModeLabel(PlayMode mode) {
-    switch (mode) {
-      case PlayMode.sequence:
-        return 'Finish List (Default)';
-      case PlayMode.loop:
-        return 'Loop List';
-      case PlayMode.single:
-        return 'Loop Track';
-      case PlayMode.shuffle:
-        return 'Shuffle';
     }
   }
 

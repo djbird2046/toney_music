@@ -25,7 +25,6 @@ class AudioController {
   int? _currentIndex;
   Timer? _positionTimer;
   DateTime? _lastTick;
-  double? _cachedVolume;
   PlayMode _playbackMode = PlayMode.sequence;
   final Random _random = Random();
 
@@ -129,7 +128,6 @@ class AudioController {
         }
         break;
       case PlayMode.sequence:
-      default:
         // Default behavior: play next, stop at end
         final nextIndex = _currentIndex! + 1;
         if (nextIndex < _queue.length) {
@@ -197,22 +195,16 @@ class AudioController {
 
   Future<void> setBitPerfectMode(bool enabled) async {
     await _channel.invokeMethod('setBitPerfectMode', {'enabled': enabled});
-    if (enabled) {
-      _cachedVolume = 1.0;
-    }
   }
 
   Future<double> getVolume() async {
     // Always fetch from native to ensure sync.
     final value = await _channel.invokeMethod<double>('getVolume');
-    final resolved = value ?? 1.0;
-    _cachedVolume = resolved;
-    return resolved;
+    return value ?? 1.0;
   }
 
   Future<void> setVolume(double volume) async {
     final clamped = volume.clamp(0.0, 1.0).toDouble();
-    _cachedVolume = clamped;
     _volumeSubject.add(clamped);
     await _channel.invokeMethod('setVolume', {'value': clamped});
   }

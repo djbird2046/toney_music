@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'model/playback_track.dart';
-import 'model/song_metadata.dart';
 import 'media/song_metadata_util.dart';
 import 'storage/favorites_storage.dart';
 import 'storage/playlist_storage.dart';
