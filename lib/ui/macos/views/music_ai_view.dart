@@ -1,3 +1,4 @@
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
@@ -449,9 +450,20 @@ class _ChatMessageBubble extends StatelessWidget {
                         : const Color(0xFF333333), // 将AI气泡颜色改为更明显的深灰色
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Text(
-                    message.content.trim(), // 添加 .trim() 方法
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                  child: MarkdownBody(
+                    data: message.content.trim(),
+                    styleSheet: MarkdownStyleSheet(
+                      p: const TextStyle(color: Colors.white, fontSize: 15),
+                      h1: const TextStyle(color: Colors.white),
+                      h2: const TextStyle(color: Colors.white),
+                      h3: const TextStyle(color: Colors.white),
+                      h4: const TextStyle(color: Colors.white),
+                      h5: const TextStyle(color: Colors.white),
+                      h6: const TextStyle(color: Colors.white),
+                    ),
+                    builders: {
+                      'hr': _HrBuilder(),
+                    },
                   ),
                 ),
                 // if (message.extension != null) ...[
@@ -469,6 +481,20 @@ class _ChatMessageBubble extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _HrBuilder extends MarkdownElementBuilder {
+  @override
+  Widget visitElementAfter(element, preferredStyle) {
+    return const SizedBox(
+      height: 16,
+      child: Divider(
+        color: Colors.white70,
+        height: 0.5,
+        thickness: 0.5,
       ),
     );
   }
