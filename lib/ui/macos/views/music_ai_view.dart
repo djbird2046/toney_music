@@ -1,7 +1,11 @@
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:uuid/uuid.dart';
+import 'package:toney_music/core/agent/app_tool.dart';
+import 'package:toney_music/core/agent/app_util.dart';
+import 'package:toney_music/core/audio_controller.dart';
+import 'package:toney_music/core/model/chat_message.dart';
+import 'package:toney_music/core/storage/chat_history_storage.dart';
 import '../../../core/agent/liteagent_util.dart';
 import '../../../core/library/library_source.dart';
 import '../../../core/model/song_metadata.dart';
@@ -11,16 +15,19 @@ import '../models/media_models.dart';
 import 'liteagent_config_view.dart';
 import 'package:liteagent_sdk_dart/liteagent_sdk_dart.dart';
 
-const _uuid = Uuid();
-
 enum _AiContentState { forYou, chat, config, loading }
 
 class MacosMusicAiView extends StatefulWidget {
-  const MacosMusicAiView(
-      {super.key, required this.categories, required this.configStorage});
+  const MacosMusicAiView({
+    super.key,
+    required this.categories,
+    required this.configStorage,
+    required this.audioController,
+  });
 
   final List<AiCategory> categories;
   final LiteAgentConfigStorage configStorage;
+  final AudioController audioController;
 
   @override
   State<MacosMusicAiView> createState() => _MacosMusicAiViewState();
@@ -45,8 +52,10 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
       final config = widget.configStorage.load();
 
       if (config.isNotEmpty) {
-        final liteAgent =
-            LiteAgentSDK(baseUrl: config.baseUrl, apiKey: config.apiKey);
+        final liteAgent = LiteAgentSDK(
+          baseUrl: config.baseUrl,
+          apiKey: config.apiKey,
+        );
         final util = LiteAgentUtil(
           agentId: 'test',
           liteAgent: liteAgent,
@@ -123,7 +132,7 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-          )
+          ),
       ],
     );
   }
@@ -146,7 +155,7 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
       case _AiContentState.forYou:
         return _ForYouContent(entries: _demoPlaylistEntries);
       case _AiContentState.chat:
-        return const _ChatView();
+        return _ChatView(audioController: widget.audioController);
       case _AiContentState.config:
         return LiteAgentConfigView(
           onConfigSaved: () {
@@ -180,18 +189,16 @@ class _ForYouContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Expanded(
-          child: _ForYouPlaylist(
-            entries: entries,
-          ),
-        ),
+        Expanded(child: _ForYouPlaylist(entries: entries)),
       ],
     );
   }
 }
 
 class _ChatView extends StatefulWidget {
-  const _ChatView();
+  const _ChatView({required this.audioController});
+
+  final AudioController audioController;
 
   @override
   State<_ChatView> createState() => _ChatViewState();
@@ -200,97 +207,137 @@ class _ChatView extends StatefulWidget {
 class _ChatViewState extends State<_ChatView> {
   late final LiteAgentUtil _liteAgentUtil;
   final _configStorage = LiteAgentConfigStorage();
+  final _chatHistoryStorage = ChatHistoryStorage();
   final _messages = <ChatMessage>[];
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   bool _isResponding = false;
+  String? _respondingMessageId;
+  bool _isSessionInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _initializeAgent();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    await _chatHistoryStorage.init();
+    setState(() {
+      _messages.addAll(_chatHistoryStorage.loadHistory());
+      _messages.add(
+        ChatMessage(
+          text: 'New Session',
+          sender: Sender.system,
+          timestamp: DateTime.now(),
+        ),
+      );
+    });
+    await _scrollToBottomAfterLayout();
   }
 
   Future<void> _initializeAgent() async {
     await _configStorage.init();
     final config = _configStorage.load();
-    final liteAgent =
-    LiteAgentSDK(baseUrl: config.baseUrl, apiKey: config.apiKey);
+    final liteAgent = LiteAgentSDK(
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+    );
+    final appUtil = AppUtil(audioController: widget.audioController);
+    final tool = AppTool(appUtil: appUtil);
     _liteAgentUtil = LiteAgentUtil(
       agentId: 'toney_chat',
       liteAgent: liteAgent,
+      tool: tool,
       onMessageStart: (messageId) {
         setState(() {
-          _messages.add(ChatMessage(
-            id: messageId,
+          _respondingMessageId = messageId;
+          final message = ChatMessage(
+            text: '',
             sender: Sender.ai,
-            content: '',
-          ));
+            timestamp: DateTime.now(),
+          );
+          _messages.add(message);
+          _chatHistoryStorage.addMessage(message);
         });
       },
       onFullText: (messageId, fullText) {
-        setState(() {
-          final index =
-          _messages.indexWhere((msg) => msg.id == messageId);
-          if (index != -1) {
-            _messages[index].content = fullText;
-          }
-        });
-        _scrollToBottom();
+        if (_respondingMessageId == messageId) {
+          setState(() {
+            final index = _messages.lastIndexWhere(
+              (msg) => msg.sender == Sender.ai,
+            );
+            if (index != -1) {
+              final oldMessage = _messages[index];
+              final newMessage = ChatMessage(
+                text: fullText,
+                sender: oldMessage.sender,
+                timestamp: oldMessage.timestamp,
+              );
+              _messages[index] = newMessage;
+              _chatHistoryStorage.updateMessage(newMessage);
+            }
+          });
+          _scrollToBottomAfterLayout();
+        }
       },
       onTextChunk: (messageId, chunk) {
-        setState(() {
-          final index =
-          _messages.indexWhere((msg) => msg.id == messageId);
-          if (index != -1) {
-            _messages[index].content += chunk;
-          }
-        });
-        _scrollToBottom();
-      },
-      onExtension: (messageId, extension) {
-        setState(() {
-          final index =
-          _messages.indexWhere((msg) => msg.id == messageId);
-          if (index != -1) {
-            if (_messages[index].extension == null) {
-              _messages[index].extension = extension;
-            } else {
-              _messages[index].extension =
-              '${_messages[index].extension}\n\n$extension';
+        if (_respondingMessageId == messageId) {
+          setState(() {
+            final index = _messages.lastIndexWhere(
+              (msg) => msg.sender == Sender.ai,
+            );
+            if (index != -1) {
+              final oldMessage = _messages[index];
+              final newMessage = ChatMessage(
+                text: oldMessage.text + chunk,
+                sender: oldMessage.sender,
+                timestamp: oldMessage.timestamp,
+              );
+              _messages[index] = newMessage;
+              _chatHistoryStorage.updateMessage(newMessage);
             }
-          }
-        });
+          });
+          _scrollToBottomAfterLayout();
+        }
       },
+      onExtension: (messageId, extension) {},
       onDoneCallback: () {
         setState(() {
           _isResponding = false;
+          _respondingMessageId = null;
         });
       },
       onErrorCallback: (e) {
         setState(() {
-          _messages.add(ChatMessage(
-            id: _uuid.v4(),
+          final message = ChatMessage(
+            text: 'An error occurred: $e',
             sender: Sender.ai,
-            content: 'An error occurred: $e',
-          ));
+            timestamp: DateTime.now(),
+          );
+          _messages.add(message);
+          _chatHistoryStorage.addMessage(message);
           _isResponding = false;
+          _respondingMessageId = null;
         });
-        _scrollToBottom();
+        _scrollToBottomAfterLayout();
       },
     );
     await _liteAgentUtil.initSession();
-  }
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
+    setState(() {
+      _isSessionInitialized = true;
     });
+  }
+
+  Future<void> _scrollToBottomAfterLayout() async {
+    if (!mounted) return;
+    await Future.delayed(Duration.zero);
+    await WidgetsBinding.instance.endOfFrame;
+
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    position.jumpTo(position.maxScrollExtent);
   }
 
   @override
@@ -326,8 +373,10 @@ class _ChatViewState extends State<_ChatView> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.add_photo_alternate_outlined,
-                color: Colors.grey),
+            icon: const Icon(
+              Icons.add_photo_alternate_outlined,
+              color: Colors.grey,
+            ),
             onPressed: () {
               // TODO: Implement image picking
             },
@@ -336,14 +385,16 @@ class _ChatViewState extends State<_ChatView> {
           Expanded(
             child: TextField(
               controller: _textController,
+              enabled: _isSessionInitialized,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'Type your message...',
+                hintText: _isSessionInitialized
+                    ? 'Type your message...'
+                    : 'Initializing session...',
                 hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide:
-                  const BorderSide(color: MacosColors.innerDivider),
+                  borderSide: const BorderSide(color: MacosColors.innerDivider),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -351,22 +402,26 @@ class _ChatViewState extends State<_ChatView> {
                 ),
                 filled: true,
                 fillColor: MacosColors.sidebar,
-                contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
-              onSubmitted: (_) => _sendMessage(),
+              onSubmitted: (_) => _isSessionInitialized ? _sendMessage() : null,
             ),
           ),
           const SizedBox(width: 12),
           IconButton(
             icon: _isResponding
                 ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.send, color: MacosColors.accentBlue),
-            onPressed: _isResponding ? null : _sendMessage,
+            onPressed: _isResponding || !_isSessionInitialized
+                ? null
+                : _sendMessage,
           ),
         ],
       ),
@@ -379,41 +434,25 @@ class _ChatViewState extends State<_ChatView> {
     if (text.isEmpty) return;
 
     final userTask = UserTask(
-      content: [
-        Content(type: ContentType.text, message: text),
-      ],
+      content: [Content(type: ContentType.text, message: text)],
       isChunk: true,
     );
 
     setState(() {
-      _messages.add(ChatMessage(
-        id: _uuid.v4(),
+      final message = ChatMessage(
+        text: text,
         sender: Sender.user,
-        content: text,
-      ));
+        timestamp: DateTime.now(),
+      );
+      _messages.add(message);
+      _chatHistoryStorage.addMessage(message);
       _isResponding = true;
     });
     _textController.clear();
-    _scrollToBottom();
+    _scrollToBottomAfterLayout();
 
     _liteAgentUtil.chat(userTask);
   }
-}
-
-enum Sender { user, ai }
-
-class ChatMessage {
-  final String id;
-  final Sender sender;
-  String content;
-  String? extension;
-
-  ChatMessage({
-    required this.id,
-    required this.sender,
-    required this.content,
-    this.extension,
-  });
 }
 
 class _ChatMessageBubble extends StatelessWidget {
@@ -423,13 +462,40 @@ class _ChatMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (message.sender == Sender.system) {
+      return _buildSystemMessage();
+    }
+    return _buildChatMessage();
+  }
+
+  Widget _buildSystemMessage() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          const Expanded(child: Divider(color: Colors.grey)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text(
+              message.text,
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ),
+          const Expanded(child: Divider(color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatMessage() {
     final isUser = message.sender == Sender.user;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment:
-        isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: [
           if (!isUser) ...[
             const CircleAvatar(
@@ -440,20 +506,23 @@ class _ChatMessageBubble extends StatelessWidget {
           ],
           Flexible(
             child: Column(
-              crossAxisAlignment:
-              isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isUser
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isUser
                         ? MacosColors.accentBlue
-                        : const Color(0xFF333333), // 将AI气泡颜色改为更明显的深灰色
+                        : const Color(0xFF333333),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: MarkdownBody(
-                    data: message.content.trim(),
+                    data: message.text.trim(),
                     styleSheet: MarkdownStyleSheet(
                       p: const TextStyle(color: Colors.white, fontSize: 15),
                       h1: const TextStyle(color: Colors.white),
@@ -463,16 +532,19 @@ class _ChatMessageBubble extends StatelessWidget {
                       h5: const TextStyle(color: Colors.white),
                       h6: const TextStyle(color: Colors.white),
                       tableBody: const TextStyle(color: Colors.white),
+                      listBullet: const TextStyle(color: Colors.white),
+                      code: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'monospace',
+                      ),
+                      codeblockDecoration: const BoxDecoration(
+                        color: Color(0xFF2B2B2B),
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                      ),
                     ),
-                    builders: {
-                      'hr': _HrBuilder(),
-                    },
+                    builders: {'hr': _HrBuilder()},
                   ),
                 ),
-                // if (message.extension != null) ...[
-                //   const SizedBox(height: 4),
-                //   _ExtensionView(extension: message.extension!),
-                // ]
               ],
             ),
           ),
@@ -494,11 +566,7 @@ class _HrBuilder extends MarkdownElementBuilder {
   Widget visitElementAfter(element, preferredStyle) {
     return const SizedBox(
       height: 16,
-      child: Divider(
-        color: Colors.white70,
-        height: 0.5,
-        thickness: 0.5,
-      ),
+      child: Divider(color: Colors.white70, height: 0.5, thickness: 0.5),
     );
   }
 }
@@ -536,9 +604,10 @@ class _ExtensionViewState extends State<_ExtensionView> {
         title: const Text(
           'Extended Information',
           style: TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-              fontWeight: FontWeight.w500),
+            color: Colors.white70,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         children: [
           Padding(
@@ -607,7 +676,7 @@ class _ForYouPlaylist extends StatelessWidget {
           child: ListView.separated(
             itemCount: entries.length,
             separatorBuilder: (context, _) =>
-            const Divider(color: MacosColors.innerDivider, height: 1),
+                const Divider(color: MacosColors.innerDivider, height: 1),
             itemBuilder: (context, index) {
               final entry = entries[index];
               return _PlaylistRow(
@@ -674,8 +743,8 @@ class _PlaylistRow extends StatelessWidget {
           color: _backgroundColor(),
           border: isPlaying
               ? const Border(
-            left: BorderSide(color: MacosColors.accentBlue, width: 3),
-          )
+                  left: BorderSide(color: MacosColors.accentBlue, width: 3),
+                )
               : null,
         ),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
@@ -812,14 +881,13 @@ class _ArtworkTile extends StatelessWidget {
               color: const Color(0xFF1B1B1B),
               image: bytes != null
                   ? DecorationImage(
-                image: MemoryImage(bytes!),
-                fit: BoxFit.cover,
-              )
+                      image: MemoryImage(bytes!),
+                      fit: BoxFit.cover,
+                    )
                   : null,
             ),
             child: bytes == null
-                ? const Icon(Icons.music_note,
-                color: Colors.white30, size: 20)
+                ? const Icon(Icons.music_note, color: Colors.white30, size: 20)
                 : null,
           ),
           if (isDownloading)

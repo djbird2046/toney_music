@@ -12,7 +12,6 @@ class LiteAgentUtil {
   String agentId;
   LiteAgentSDK liteAgent;
   Tool? tool;
-  late AppAgentHandler agentMessageHandler;
   late Session session;
   final Function(String messageId, String fullText) onFullText;
   final Function(String messageId, String chunk) onTextChunk;
@@ -38,13 +37,11 @@ class LiteAgentUtil {
   }
 
   Future<void> initSession() async {
-    if (tool != null) {
-      OpenTool? openTool = await tool!.load();
-      if (openTool != null) {
-        await liteAgent.registerOpenTool(openTool);
-      }
-    }
-    agentMessageHandler = AppAgentHandler(
+    session = await liteAgent.initSession();
+  }
+
+  Future<void> chat(UserTask userTask) async {
+    final handler = AppAgentHandler(
       tool: tool,
       onFullText: onFullText,
       onTextChunk: onTextChunk,
@@ -52,13 +49,9 @@ class LiteAgentUtil {
       onMessageStart: onMessageStart,
       onDoneCallback: onDoneCallback,
       onErrorCallback: onErrorCallback,
-    );
-    session = await liteAgent.initSession();
-  }
+    )..reset();
 
-  Future<void> chat(UserTask userTask) async {
-    agentMessageHandler.reset();
-    await liteAgent.chat(session, userTask, agentMessageHandler);
+    await liteAgent.chat(session, userTask, handler);
   }
 }
 
@@ -96,7 +89,10 @@ class AppAgentHandler extends AgentMessageHandler {
   }
 
   @override
-  Future<void> onChunk(String sessionId, AgentMessageChunk agentMessageChunk) async {
+  Future<void> onChunk(
+    String sessionId,
+    AgentMessageChunk agentMessageChunk,
+  ) async {
     if (_messageCompleted) return;
     _ensureMessageId();
     switch (agentMessageChunk.type) {
@@ -146,20 +142,28 @@ class AppAgentHandler extends AgentMessageHandler {
         onDone();
         break;
       case AgentMessageType.IMAGE_URL:
-
         break;
       case AgentMessageType.TOOL_CALLS:
         List<dynamic> toolCallJsonList = agentMessage.content as List<dynamic>;
-        List<FunctionCall> toolCalls = toolCallJsonList.map((json)=>FunctionCall.fromJson(json)).toList();
+        List<FunctionCall> toolCalls = toolCallJsonList
+            .map((json) => FunctionCall.fromJson(json))
+            .toList();
         onExtension(_currentMessageId!, _prettyPrintJson(toolCalls));
         break;
       case AgentMessageType.TOOL_RETURN:
+        if(agentMessage.content["result"] != null && agentMessage.content["result"] is String) {
+          String resultString = agentMessage.content["result"] as String;
+          Map<String, dynamic> resultJson = jsonDecode(resultString);
+          agentMessage.content["result"] = resultJson;
+        }
         ToolReturn toolReturn = ToolReturn.fromJson(agentMessage.content);
         onExtension(_currentMessageId!, _prettyPrintJson(toolReturn));
         break;
       case AgentMessageType.CONTENT_LIST:
         List<dynamic> contentJsonList = agentMessage.content as List<dynamic>;
-        List<Content> contentList = contentJsonList.map((json)=>Content.fromJson(json)).toList();
+        List<Content> contentList = contentJsonList
+            .map((json) => Content.fromJson(json))
+            .toList();
         onExtension(_currentMessageId!, _prettyPrintJson(contentList));
         break;
       case AgentMessageType.REFLECTION:
@@ -190,4 +194,3 @@ class AppAgentHandler extends AgentMessageHandler {
     }
   }
 }
-

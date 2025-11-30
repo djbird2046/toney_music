@@ -538,7 +538,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     for (final reference in references) {
       final path = reference.path;
       SongMetadata metadata;
-      
+
       bool needsRefresh = false;
       if (reference.metadata != null) {
         metadata = reference.metadata!;
@@ -1105,7 +1105,11 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   Widget _buildContent() {
     switch (selectedSection) {
       case NavSection.musicAI:
-        return MacosMusicAiView(categories: aiCategories, configStorage: _liteAgentConfigStorage);
+        return MacosMusicAiView(
+          categories: aiCategories,
+          configStorage: _liteAgentConfigStorage,
+          audioController: widget.controller,
+        );
       case NavSection.playlists:
         return MacosPlaylistView(
           playlistName: playlists[selectedPlaylist],
@@ -1348,27 +1352,23 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
               menus: [
                 PlatformMenuItem(
                   label: 'Sequence',
-                  onSelected: () => widget.controller.setPlaybackMode(
-                    PlayMode.sequence,
-                  ),
+                  onSelected: () =>
+                      widget.controller.setPlaybackMode(PlayMode.sequence),
                 ),
                 PlatformMenuItem(
                   label: 'Loop',
-                  onSelected: () => widget.controller.setPlaybackMode(
-                    PlayMode.loop,
-                  ),
+                  onSelected: () =>
+                      widget.controller.setPlaybackMode(PlayMode.loop),
                 ),
                 PlatformMenuItem(
                   label: 'Single',
-                  onSelected: () => widget.controller.setPlaybackMode(
-                    PlayMode.single,
-                  ),
+                  onSelected: () =>
+                      widget.controller.setPlaybackMode(PlayMode.single),
                 ),
                 PlatformMenuItem(
                   label: 'Shuffle',
-                  onSelected: () => widget.controller.setPlaybackMode(
-                    PlayMode.shuffle,
-                  ),
+                  onSelected: () =>
+                      widget.controller.setPlaybackMode(PlayMode.shuffle),
                 ),
               ],
             ),
@@ -1389,7 +1389,9 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
                 LogicalKeyboardKey.keyW,
                 meta: true,
               ),
-              onSelected: () => const MethodChannel('window_control').invokeMethod('minimize'),
+              onSelected: () => const MethodChannel(
+                'window_control',
+              ).invokeMethod('minimize'),
             ),
             if (PlatformProvidedMenuItem.hasMenu(
               PlatformProvidedMenuItemType.zoomWindow,
@@ -1416,38 +1418,39 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           }
         },
         child: Scaffold(
-        backgroundColor: MacosColors.background,
-        body: Column(
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  MacosSidebar(
-                    selectedSection: selectedSection,
-                    onSelectSection: _selectNav,
-                    playlists: playlists,
-                    selectedPlaylist: selectedPlaylist,
-                    onPlaylistTap: _handlePlaylistTap,
-                    isRenamingPlaylist: isRenamingPlaylist,
-                    renameController: _playlistNameController,
-                    onPlaylistRenameSubmit: _submitPlaylistRename,
-                    onAddPlaylist: _addPlaylist,
-                    onPlaylistContextMenu: _showPlaylistContextMenu,
-                  ),
-                  const VerticalDivider(width: 1, color: MacosColors.divider),
-                  Expanded(child: _buildContent()),
-                ],
+          backgroundColor: MacosColors.background,
+          body: Column(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    MacosSidebar(
+                      selectedSection: selectedSection,
+                      onSelectSection: _selectNav,
+                      playlists: playlists,
+                      selectedPlaylist: selectedPlaylist,
+                      onPlaylistTap: _handlePlaylistTap,
+                      isRenamingPlaylist: isRenamingPlaylist,
+                      renameController: _playlistNameController,
+                      onPlaylistRenameSubmit: _submitPlaylistRename,
+                      onAddPlaylist: _addPlaylist,
+                      onPlaylistContextMenu: _showPlaylistContextMenu,
+                    ),
+                    const VerticalDivider(width: 1, color: MacosColors.divider),
+                    Expanded(child: _buildContent()),
+                  ],
+                ),
               ),
-            ),
-            const Divider(height: 1, color: MacosColors.divider),
-            MacosMiniPlayer(
-              controller: widget.controller,
-              favoritesController: _favoritesController,
-              bitPerfectEnabled: _bitPerfectEnabled,
-            ),
-          ],
+              const Divider(height: 1, color: MacosColors.divider),
+              MacosMiniPlayer(
+                controller: widget.controller,
+                favoritesController: _favoritesController,
+                bitPerfectEnabled: _bitPerfectEnabled,
+              ),
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 }
