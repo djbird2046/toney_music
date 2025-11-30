@@ -1,46 +1,23 @@
-import 'dart:io';
-
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
 import 'core/remote/services/config_manager.dart';
 import 'core/remote/services/cache_manager.dart';
+import 'core/storage/liteagent_config_storage.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   
-  try {
-    await ConfigManager().init();
-    await CacheManager().init();
-    runApp(const ToneyApp());
-  } catch (e) {
-    runApp(ErrorApp(error: e));
-  }
-}
+  // Initialize remote configuration manager
+  await ConfigManager().init();
+  
+  // Initialize cache manager
+  await CacheManager().init();
 
-class ErrorApp extends StatelessWidget {
-  const ErrorApp({super.key, required this.error});
-
-  final Object error;
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: AlertDialog(
-          title: const Text('Initialization Failed'),
-          content: Text(
-              'Failed to initialize the application: $error. Please try again later.'),
-          actions: [
-            TextButton(
-              onPressed: () => exit(0),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Initialize LiteAgent config storage
+  await LiteAgentConfigStorage().init();
+  
+  runApp(const ToneyApp());
 }

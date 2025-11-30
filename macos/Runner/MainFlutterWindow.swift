@@ -7,7 +7,7 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     self.contentViewController = flutterViewController
     self.delegate = self
 
-    let desiredSize = NSSize(width: 1000, height: 750)
+    let desiredSize = NSSize(width: 1200, height: 800)
     if let screen = NSScreen.main {
       let origin = NSPoint(
         x: screen.frame.midX - desiredSize.width / 2,

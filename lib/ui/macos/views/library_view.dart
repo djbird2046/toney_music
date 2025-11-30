@@ -84,7 +84,7 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
     return Container(
       color: MacosColors.contentBackground,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        padding: const EdgeInsets.all(28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -98,7 +98,7 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                       'Library',
                       style: TextStyle(
                         color: MacosColors.heading,
-                        fontSize: 32,
+                        fontSize: 28,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

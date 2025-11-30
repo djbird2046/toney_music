@@ -49,7 +49,7 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
   Widget build(BuildContext context) {
     return Container(
       color: MacosColors.contentBackground,
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -60,7 +60,7 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 28,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const Spacer(),

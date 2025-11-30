@@ -698,10 +698,10 @@ packages:
     dependency: transitive
     description:
       name: retrofit
-      sha256: "84063c18a00d55af41d6b8401edf8473e8c215bd7068ef7ec5e34c60657ffdbe"
+      sha256: c6cc9ad3374e6d07008343140a67afffaaa34cdf6bf08d4847d91417a99dcf45
       url: "https://pub.dev"
     source: hosted
-    version: "4.9.1"
+    version: "4.4.2"
   shelf:
     dependency: transitive
     description:
@@ -844,7 +844,7 @@ packages:
     source: hosted
     version: "0.10.0+1"
   uuid:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: uuid
       sha256: a11b666489b1954e01d992f3d601b1804a33937b5a8fe677bd26b8a9f96f96e8

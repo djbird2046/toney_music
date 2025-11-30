@@ -17,6 +17,7 @@ import '../../core/model/playback_track.dart';
 import '../../core/playback/playback_helper.dart';
 import '../../core/storage/playlist_storage.dart';
 import '../../core/storage/library_storage.dart';
+import '../../core/storage/liteagent_config_storage.dart';
 import 'macos_colors.dart';
 import 'models/media_models.dart';
 import 'models/nav_section.dart';
@@ -39,7 +40,7 @@ class MacosPlayerScreen extends StatefulWidget {
 }
 
 class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
-  NavSection selectedSection = NavSection.musicAi;
+  NavSection selectedSection = NavSection.musicAI;
   final List<String> playlists = ['Default'];
   int selectedPlaylist = 0;
   bool isRenamingPlaylist = false;
@@ -60,6 +61,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   late final FocusNode _keyboardFocusNode;
   bool _isMetaPressed = false;
   final PlaylistStorage _playlistStorage = PlaylistStorage();
+  final LiteAgentConfigStorage _liteAgentConfigStorage =
+      LiteAgentConfigStorage();
   int? _nowPlayingIndex;
   int? _selectedLibraryIndex;
   int? _downloadingIndex;
@@ -119,6 +122,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     unawaited(_initializeLibrary());
     _initializePlaylists();
     unawaited(_favoritesController.init());
+    unawaited(_liteAgentConfigStorage.init());
     widget.controller.state.addListener(_onPlaybackStateChanged);
   }
 
@@ -1100,8 +1104,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
 
   Widget _buildContent() {
     switch (selectedSection) {
-      case NavSection.musicAi:
-        return MacosMusicAiView(categories: aiCategories);
+      case NavSection.musicAI:
+        return MacosMusicAiView(categories: aiCategories, configStorage: _liteAgentConfigStorage);
       case NavSection.playlists:
         return MacosPlaylistView(
           playlistName: playlists[selectedPlaylist],

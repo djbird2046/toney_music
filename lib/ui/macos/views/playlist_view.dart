@@ -80,7 +80,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
 
     return Container(
       color: MacosColors.contentBackground,
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -92,7 +92,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 28,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

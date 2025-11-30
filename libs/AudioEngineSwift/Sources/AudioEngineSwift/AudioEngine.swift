@@ -364,7 +364,7 @@ final class AudioEngine {
 
     func seek(toMs position: Int) throws {
         let wasPlaying = controlQueue.sync { playbackState == .playing }
-        
+
         // Temporarily pause audio output during seek to prevent glitches
         if wasPlaying {
             try controlQueue.sync {
@@ -373,23 +373,40 @@ final class AudioEngine {
                 }
             }
         }
-        
-        // Perform seek and reset buffer
+
         try controlQueue.sync {
-            guard let decoder else {
-                throw AudioEngineError.decoderUnavailable("Cannot seek without an active decoder")
+            guard self.decoder != nil, let url = self.currentFileURL else {
+                throw AudioEngineError.decoderUnavailable("Cannot seek without an active file")
             }
-            decoder.seek(toMs: position)
+
+            // Stop the old decoder loop and close it to release all FFmpeg resources
+            stopDecoderLocked()
+
+            // Re-open the decoder to get a fresh state
+            guard let newDecoder = FFmpegDecoder(url: url) else {
+                let message = FFmpegDecoder.lastErrorMessage
+                logger.error("Failed to re-create decoder for seek: \(url.lastPathComponent, privacy: .public)")
+                throw AudioEngineError.decoderUnavailable(message)
+            }
+            self.decoder = newDecoder
+            
+            // Reset the PCM buffer before starting the new decoder
             pcmPlayer.reset()
+
+            // Seek on the new decoder *before* starting the read loop
+            newDecoder.seek(toMs: position)
+
+            // Start the decoder loop to begin filling the buffer from the new position
+            startDecoderLoopLocked()
         }
-        
+
         // Wait for some data to be buffered before resuming
         if wasPlaying {
             // Use smaller threshold for seek to reduce perceived latency
             let seekBufferThreshold = min(Self.prebufferThreshold / 2, 256 * 1024)
             let startTime = Date()
             let timeout: TimeInterval = 1.0
-            
+
             while pcmPlayer.bufferedBytes < seekBufferThreshold {
                 if Date().timeIntervalSince(startTime) >= timeout {
                     logger.warning("Seek prebuffer timeout")
@@ -397,13 +414,13 @@ final class AudioEngine {
                 }
                 Thread.sleep(forTimeInterval: 0.005)
             }
-            
+
             // Resume playback
             try controlQueue.sync {
                 guard let unit = audioUnit else { return }
                 try checkStatus(AudioOutputUnitStart(unit), operation: "AudioOutputUnitStart (seek resume)")
             }
-            
+
             logger.info("Seek complete, resumed with \(self.pcmPlayer.bufferedBytes) bytes buffered")
         }
     }

@@ -68,9 +68,9 @@ class MacosSidebar extends StatelessWidget {
                 children: [
                   _NavButton(
                     label: 'Music AI',
-                    icon: Icons.music_note,
-                    isSelected: selectedSection == NavSection.musicAi,
-                    onTap: () => onSelectSection(NavSection.musicAi),
+                    icon: Icons.auto_awesome,
+                    isSelected: selectedSection == NavSection.musicAI,
+                    onTap: () => onSelectSection(NavSection.musicAI),
                   ),
                   const SizedBox(height: 8),
                   _CollapsiblePlaylists(
@@ -246,7 +246,7 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                       'Playlists',
                       style: TextStyle(
                         color: MacosColors.sectionLabel,
-                        fontSize: 13,
+                        fontSize: 15,
                         fontWeight: FontWeight.w500,
                         letterSpacing: 0.6,
                       ),
