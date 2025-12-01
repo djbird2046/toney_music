@@ -1,5 +1,6 @@
 import '../audio_controller.dart';
 import '../media/song_metadata_util.dart';
+import '../mood/mood_engine.dart';
 import '../storage/favorites_storage.dart';
 import '../storage/for_you_playlist_storage.dart';
 import '../storage/library_storage.dart';
@@ -17,6 +18,7 @@ class AppUtil {
     FavoritesStorage? favoritesStorage,
     LibraryStorage? libraryStorage,
     ForYouPlaylistStorage? forYouPlaylistStorage,
+    MoodEngineClient? moodEngine,
   }) : _playbackAgent = PlaybackAgent(controller: audioController),
        _playlistAgent = PlaylistAgent(
          playlistStorage: playlistStorage ?? PlaylistStorage(),
@@ -29,11 +31,13 @@ class AppUtil {
          metadataUtil:
              metadataUtil ??
              SongMetadataUtil(metadataFetcher: audioController.extractMetadata),
-       );
+       ),
+       _moodEngine = moodEngine ?? MoodEngineClient();
 
   final PlaybackAgent _playbackAgent;
   final PlaylistAgent _playlistAgent;
   final LibraryAgent _libraryAgent;
+  final MoodEngineClient _moodEngine;
 
   Future<PlaybackInfoDto> getPlayback() async {
     return _playbackAgent.getPlaybackInfo();
@@ -95,5 +99,10 @@ class AppUtil {
 
   Future<ResultStringDto> addSongToCurrentAndPlay(SongSummaryDto song) async {
     return _playbackAgent.addSongAndPlay(song);
+  }
+
+  Future<MoodSignalsDto> getMoodSignals() async {
+    final signals = await _moodEngine.collectSignals();
+    return MoodSignalsDto.fromMoodSignals(signals);
   }
 }

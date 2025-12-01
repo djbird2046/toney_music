@@ -183,6 +183,17 @@ class _AppToolSchemaBuilder {
           schema: resultStringSchema(),
         ),
       ),
+      FunctionModel(
+        name: 'getMoodSignals',
+        description:
+            'Collect host context such as battery, theme, and network hints',
+        parameters: const [],
+        return_: Return(
+          name: 'signals',
+          description: 'Snapshot of contextual signals for the agent',
+          schema: moodSignalsSchema(),
+        ),
+      ),
     ];
 
     return OpenTool(
@@ -462,6 +473,67 @@ class _AppToolSchemaBuilder {
       type: SchemaType.OBJECT,
       properties: {'song': songSummarySchema},
       required: const ['song'],
+    );
+  }
+
+  static Schema moodSignalsSchema() {
+    return Schema(
+      type: SchemaType.OBJECT,
+      description: 'Contextual device signals collected natively',
+      properties: {
+        'hour': Schema(
+          type: SchemaType.INTEGER,
+          description: 'Local hour in 24h format',
+        ),
+        'weekday': Schema(
+          type: SchemaType.INTEGER,
+          description: 'Weekday number as provided by the OS calendar',
+        ),
+        'isHoliday': Schema(
+          type: SchemaType.BOOLEAN,
+          description: 'Whether the current day is considered a holiday',
+        ),
+        'appearance': Schema(
+          type: SchemaType.STRING,
+          description: 'Either light or dark per system preference',
+        ),
+        'batteryLevel': Schema(
+          type: SchemaType.NUMBER,
+          description: 'Battery level between 0 and 1',
+        ),
+        'isCharging': Schema(
+          type: SchemaType.BOOLEAN,
+          description: 'True when the device is charging',
+        ),
+        'isNetworkConnected': Schema(
+          type: SchemaType.BOOLEAN,
+          description: 'True when any network path is available',
+        ),
+        'networkType': Schema(
+          type: SchemaType.STRING,
+          description: 'wifi/cellular/ethernet/offline/unknown',
+        ),
+        'networkQuality': Schema(
+          type: SchemaType.STRING,
+          description: 'good/average/poor/unknown',
+        ),
+        'headphonesConnected': Schema(
+          type: SchemaType.BOOLEAN,
+          description: 'True when wired/bluetooth headphones are connected',
+        ),
+      },
+      required: const [
+        'hour',
+        'weekday',
+        'isHoliday',
+        'appearance',
+        'batteryLevel',
+        'isCharging',
+        'isNetworkConnected',
+        'networkType',
+        'networkQuality',
+        'headphonesConnected',
+      ],
     );
   }
 

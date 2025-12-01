@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import '../mood/mood_engine.dart';
+
 part 'dto.g.dart';
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
@@ -208,6 +210,53 @@ class SongMetadataInfoDto {
       _$SongMetadataInfoDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$SongMetadataInfoDtoToJson(this);
+}
+
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
+class MoodSignalsDto {
+  final int hour;
+  final int weekday;
+  final bool isHoliday;
+  final String appearance;
+  final double batteryLevel;
+  final bool isCharging;
+  final bool isNetworkConnected;
+  final String networkType;
+  final String networkQuality;
+  final bool headphonesConnected;
+
+  const MoodSignalsDto({
+    required this.hour,
+    required this.weekday,
+    required this.isHoliday,
+    required this.appearance,
+    required this.batteryLevel,
+    required this.isCharging,
+    required this.isNetworkConnected,
+    required this.networkType,
+    required this.networkQuality,
+    required this.headphonesConnected,
+  });
+
+  factory MoodSignalsDto.fromMoodSignals(MoodSignals signals) {
+    return MoodSignalsDto(
+      hour: signals.hour,
+      weekday: signals.weekday,
+      isHoliday: signals.isHoliday,
+      appearance: signals.appearance.name,
+      batteryLevel: signals.batteryLevel,
+      isCharging: signals.isCharging,
+      isNetworkConnected: signals.isNetworkConnected,
+      networkType: signals.networkType.name,
+      networkQuality: signals.networkQuality.name,
+      headphonesConnected: signals.headphonesConnected,
+    );
+  }
+
+  factory MoodSignalsDto.fromJson(Map<String, dynamic> json) =>
+      _$MoodSignalsDtoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MoodSignalsDtoToJson(this);
 }
 
 int _durationToJson(Duration value) => value.inMilliseconds;

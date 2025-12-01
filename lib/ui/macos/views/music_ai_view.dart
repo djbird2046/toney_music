@@ -372,16 +372,6 @@ class _ChatViewState extends State<_ChatView> {
       padding: const EdgeInsets.all(12.0),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(
-              Icons.add_photo_alternate_outlined,
-              color: Colors.grey,
-            ),
-            onPressed: () {
-              // TODO: Implement image picking
-            },
-          ),
-          const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: _textController,
@@ -476,9 +466,11 @@ class _ChatMessageBubble extends StatelessWidget {
           const Expanded(child: Divider(color: Colors.grey)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Text(
-              message.text,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            child: SelectionArea(
+              child: Text(
+                message.text,
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
             ),
           ),
           const Expanded(child: Divider(color: Colors.grey)),
@@ -510,39 +502,42 @@ class _ChatMessageBubble extends StatelessWidget {
                   ? CrossAxisAlignment.end
                   : CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isUser
-                        ? MacosColors.accentBlue
-                        : const Color(0xFF333333),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: MarkdownBody(
-                    data: message.text.trim(),
-                    styleSheet: MarkdownStyleSheet(
-                      p: const TextStyle(color: Colors.white, fontSize: 15),
-                      h1: const TextStyle(color: Colors.white),
-                      h2: const TextStyle(color: Colors.white),
-                      h3: const TextStyle(color: Colors.white),
-                      h4: const TextStyle(color: Colors.white),
-                      h5: const TextStyle(color: Colors.white),
-                      h6: const TextStyle(color: Colors.white),
-                      tableBody: const TextStyle(color: Colors.white),
-                      listBullet: const TextStyle(color: Colors.white),
-                      code: const TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'monospace',
-                      ),
-                      codeblockDecoration: const BoxDecoration(
-                        color: Color(0xFF2B2B2B),
-                        borderRadius: BorderRadius.all(Radius.circular(8)),
-                      ),
+                SelectionArea(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
                     ),
-                    builders: {'hr': _HrBuilder()},
+                    decoration: BoxDecoration(
+                      color: isUser
+                          ? MacosColors.accentBlue
+                          : const Color(0xFF333333),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: MarkdownBody(
+                      selectable: true,
+                      data: message.text.trim(),
+                      styleSheet: MarkdownStyleSheet(
+                        p: const TextStyle(color: Colors.white, fontSize: 15),
+                        h1: const TextStyle(color: Colors.white),
+                        h2: const TextStyle(color: Colors.white),
+                        h3: const TextStyle(color: Colors.white),
+                        h4: const TextStyle(color: Colors.white),
+                        h5: const TextStyle(color: Colors.white),
+                        h6: const TextStyle(color: Colors.white),
+                        tableBody: const TextStyle(color: Colors.white),
+                        listBullet: const TextStyle(color: Colors.white),
+                        code: const TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'monospace',
+                        ),
+                        codeblockDecoration: const BoxDecoration(
+                          color: Color(0xFF2B2B2B),
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                        ),
+                      ),
+                      builders: {'hr': _HrBuilder()},
+                    ),
                   ),
                 ),
               ],
@@ -612,12 +607,14 @@ class _ExtensionViewState extends State<_ExtensionView> {
         children: [
           Padding(
             padding: const EdgeInsets.all(12.0),
-            child: Text(
-              widget.extension,
-              style: const TextStyle(
-                color: Colors.white,
-                fontFamily: 'monospace',
-                fontSize: 12,
+            child: SelectionArea(
+              child: Text(
+                widget.extension,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                ),
               ),
             ),
           ),

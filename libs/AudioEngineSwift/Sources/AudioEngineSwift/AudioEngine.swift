@@ -198,10 +198,13 @@ final class AudioEngine {
     private var bitPerfectModeEnabled = false
     private let bitPerfectAtomic = ManagedAtomic<Int>(0)
     private let volumePermille = ManagedAtomic<Int>(1000)
+    private var defaultDeviceListener: AudioObjectPropertyListenerBlock?
 
     var onPlaybackEnded: (() -> Void)?
 
-    private init() {}
+    private init() {
+        startMonitoringDefaultDeviceChanges()
+    }
 
     deinit {
         controlQueue.sync {
@@ -209,6 +212,7 @@ final class AudioEngine {
             stopDecoderLocked()
             tearDownAudioUnitLocked()
         }
+        stopMonitoringDefaultDeviceChanges()
     }
 
     func initialize() {}
@@ -825,6 +829,81 @@ final class AudioEngine {
             logger.error("Failed to release hog mode: \(error.localizedDescription, privacy: .public)")
         }
         hoggedDevice = kAudioObjectUnknown
+    }
+
+    private func startMonitoringDefaultDeviceChanges() {
+        guard defaultDeviceListener == nil else { return }
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            self?.handleDefaultDeviceChanged()
+        }
+        let status = AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject),
+                                                         &address,
+                                                         controlQueue,
+                                                         block)
+        if status == noErr {
+            defaultDeviceListener = block
+        } else {
+            logger.error("Failed to register device change listener: \(status)")
+        }
+    }
+
+    private func stopMonitoringDefaultDeviceChanges() {
+        guard let block = defaultDeviceListener else { return }
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let status = AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject),
+                                                            &address,
+                                                            controlQueue,
+                                                            block)
+        if status != noErr {
+            logger.error("Failed to remove device change listener: \(status)")
+        }
+        defaultDeviceListener = nil
+    }
+
+    private func handleDefaultDeviceChanged() {
+        controlQueue.async { [weak self] in
+            self?.handleDefaultDeviceChangedLocked()
+        }
+    }
+
+    private func handleDefaultDeviceChangedLocked() {
+        logger.info("Default output device changed. Reconfiguring audio engine...")
+        let wasPlaying = playbackState == .playing
+        let wasPaused = playbackState == .paused
+
+        deviceID = kAudioObjectUnknown
+        if let unit = audioUnit {
+            let status = AudioOutputUnitStop(unit)
+            if status != noErr {
+                logger.error("Failed to stop unit during device change: \(status)")
+            }
+        }
+        releaseHogModeIfNeededLocked()
+        tearDownAudioUnitLocked()
+
+        guard decoder != nil else { return }
+
+        do {
+            try syncDeviceConfigurationLocked()
+            if wasPlaying {
+                try startAudioOutputLocked()
+                playbackState = .playing
+            } else if wasPaused {
+                playbackState = .paused
+            }
+        } catch {
+            playbackState = .stopped
+            logger.error("Failed to reconfigure after device change: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private static let renderProc: AURenderCallback = {

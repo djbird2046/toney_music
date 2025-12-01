@@ -33,6 +33,10 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     RegisterGeneratedPlugins(registry: flutterViewController)
     let registrar = flutterViewController.registrar(forPlugin: "AudioEnginePlugin")
     AudioEnginePlugin.register(with: registrar)
+    if #available(macOS 10.15, *) {
+      let moodRegistrar = flutterViewController.registrar(forPlugin: "MoodEnginePlugin")
+      MoodEnginePlugin.register(with: moodRegistrar)
+    }
 
     let windowChannel = FlutterMethodChannel(
       name: "window_control",

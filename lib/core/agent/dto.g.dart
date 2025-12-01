@@ -254,3 +254,31 @@ Map<String, dynamic> _$SongMetadataInfoDtoToJson(SongMetadataInfoDto instance) {
   writeNotNull('extras', instance.extras);
   return val;
 }
+
+MoodSignalsDto _$MoodSignalsDtoFromJson(Map<String, dynamic> json) =>
+    MoodSignalsDto(
+      hour: (json['hour'] as num).toInt(),
+      weekday: (json['weekday'] as num).toInt(),
+      isHoliday: json['isHoliday'] as bool,
+      appearance: json['appearance'] as String,
+      batteryLevel: (json['batteryLevel'] as num).toDouble(),
+      isCharging: json['isCharging'] as bool,
+      isNetworkConnected: json['isNetworkConnected'] as bool,
+      networkType: json['networkType'] as String,
+      networkQuality: json['networkQuality'] as String,
+      headphonesConnected: json['headphonesConnected'] as bool,
+    );
+
+Map<String, dynamic> _$MoodSignalsDtoToJson(MoodSignalsDto instance) =>
+    <String, dynamic>{
+      'hour': instance.hour,
+      'weekday': instance.weekday,
+      'isHoliday': instance.isHoliday,
+      'appearance': instance.appearance,
+      'batteryLevel': instance.batteryLevel,
+      'isCharging': instance.isCharging,
+      'isNetworkConnected': instance.isNetworkConnected,
+      'networkType': instance.networkType,
+      'networkQuality': instance.networkQuality,
+      'headphonesConnected': instance.headphonesConnected,
+    };

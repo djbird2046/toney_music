@@ -15,9 +15,9 @@ class AppTool extends Tool {
 
   @override
   Future<Map<String, dynamic>> call(
-    String name,
-    Map<String, dynamic>? arguments,
-  ) async {
+      String name,
+      Map<String, dynamic>? arguments,
+      ) async {
     try {
       switch (name) {
         case 'getPlayback':
@@ -102,6 +102,10 @@ class AppTool extends Tool {
           final payload = _parseArguments(arguments, AddSongArguments.fromJson);
           final response = await _appUtil.addSongToCurrentAndPlay(payload.song);
           return response.toJson();
+        case 'getMoodSignals':
+          _parseArguments(arguments, EmptyArguments.fromJson);
+          final signals = await _appUtil.getMoodSignals();
+          return signals.toJson();
         default:
           return FunctionNotSupportedException(functionName: name).toJson();
       }
@@ -114,10 +118,10 @@ class AppTool extends Tool {
 
   @override
   Future<void> streamCall(
-    String name,
-    Map<String, dynamic>? arguments,
-    void Function(String event, Map<String, dynamic> data) onEvent,
-  ) async {}
+      String name,
+      Map<String, dynamic>? arguments,
+      void Function(String event, Map<String, dynamic> data) onEvent,
+      ) async {}
 
   @override
   Future<OpenTool?> load() async => AppTool.specification();
@@ -125,9 +129,9 @@ class AppTool extends Tool {
   static OpenTool specification() => buildAppToolSpecification();
 
   T _parseArguments<T>(
-    Map<String, dynamic>? arguments,
-    T Function(Map<String, dynamic> json) factory,
-  ) {
+      Map<String, dynamic>? arguments,
+      T Function(Map<String, dynamic> json) factory,
+      ) {
     final map = _argumentsOrEmpty(arguments);
     try {
       return factory(map);

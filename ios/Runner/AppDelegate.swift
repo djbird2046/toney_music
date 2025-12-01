@@ -13,6 +13,11 @@ import UIKit
       AudioEnginePlugin.register(with: registrar)
     }
 
+    if #available(iOS 13.0, *),
+       let moodRegistrar = self.registrar(forPlugin: "MoodEnginePlugin") {
+      MoodEnginePlugin.register(with: moodRegistrar)
+    }
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

@@ -954,6 +954,73 @@
           ]
         }
       }
+    },
+    {
+      "name": "getMoodSignals",
+      "description": "Collect host context such as battery, theme, and network hints",
+      "parameters": [],
+      "return": {
+        "name": "signals",
+        "description": "Snapshot of contextual signals for the agent",
+        "schema": {
+          "type": "object",
+          "description": "Contextual device signals collected natively",
+          "properties": {
+            "hour": {
+              "type": "integer",
+              "description": "Local hour in 24h format"
+            },
+            "weekday": {
+              "type": "integer",
+              "description": "Weekday number from the OS calendar"
+            },
+            "isHoliday": {
+              "type": "boolean",
+              "description": "Whether the current day is considered a holiday"
+            },
+            "appearance": {
+              "type": "string",
+              "description": "Either light or dark per system preference"
+            },
+            "batteryLevel": {
+              "type": "number",
+              "description": "Battery level between 0 and 1"
+            },
+            "isCharging": {
+              "type": "boolean",
+              "description": "True when the device is charging"
+            },
+            "isNetworkConnected": {
+              "type": "boolean",
+              "description": "True when any network path is available"
+            },
+            "networkType": {
+              "type": "string",
+              "description": "wifi/cellular/ethernet/offline/unknown"
+            },
+            "networkQuality": {
+              "type": "string",
+              "description": "good/average/poor/unknown"
+            },
+            "headphonesConnected": {
+              "type": "boolean",
+              "description": "True when wired or bluetooth headphones are connected"
+            }
+          },
+          "required": [
+            "hour",
+            "weekday",
+            "isHoliday",
+            "appearance",
+            "batteryLevel",
+            "isCharging",
+            "isNetworkConnected",
+            "networkType",
+            "networkQuality",
+            "headphonesConnected"
+          ]
+        }
+      }
     }
   ]
 }
