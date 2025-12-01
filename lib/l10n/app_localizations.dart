@@ -140,6 +140,42 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get settingsLanguageLabel;
 
+  /// No description provided for @settingsAppearanceHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsAppearanceHeader;
+
+  /// No description provided for @settingsThemeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsThemeLabel;
+
+  /// No description provided for @settingsThemeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose light or dark appearance'**
+  String get settingsThemeDescription;
+
+  /// No description provided for @settingsThemeSystemOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow system'**
+  String get settingsThemeSystemOption;
+
+  /// No description provided for @settingsThemeLightOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get settingsThemeLightOption;
+
+  /// No description provided for @settingsThemeDarkOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get settingsThemeDarkOption;
+
   /// No description provided for @settingsPlaybackHeader.
   ///
   /// In en, this message translates to:

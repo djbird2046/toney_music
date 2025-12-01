@@ -32,6 +32,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLanguageLabel => '语言';
 
   @override
+  String get settingsAppearanceHeader => '外观';
+
+  @override
+  String get settingsThemeLabel => '主题';
+
+  @override
+  String get settingsThemeDescription => '选择 Toney 的明暗模式';
+
+  @override
+  String get settingsThemeSystemOption => '跟随系统';
+
+  @override
+  String get settingsThemeLightOption => '浅色';
+
+  @override
+  String get settingsThemeDarkOption => '深色';
+
+  @override
   String get settingsPlaybackHeader => '播放';
 
   @override

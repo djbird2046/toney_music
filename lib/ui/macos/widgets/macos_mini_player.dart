@@ -31,6 +31,8 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
   static const _defaultSampleRate = '--';
   static const _defaultChannel = '--';
 
+  MacosColors get _colors => context.macosColors;
+
   bool _isMuted = false;
   double _volume = 0.7;
   double _preMuteVolume = 0.7;
@@ -106,22 +108,28 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
                 ], _defaultSampleRate);
             final channelLabel =
                 engineFormat?.channelsLabel ??
-                _statValue(
-                    metadata, ['Channels', 'Channel Mode'], _defaultChannel);
+                _statValue(metadata, [
+                  'Channels',
+                  'Channel Mode',
+                ], _defaultChannel);
             final effectiveDuration =
                 playback.engineMetadata?.duration ?? playback.duration;
             final positionSeconds = playback.position.inMilliseconds / 1000.0;
             final durationSeconds = effectiveDuration.inMilliseconds / 1000.0;
-            final double sliderMax =
-                durationSeconds > 0 ? durationSeconds : 1.0;
+            final double sliderMax = durationSeconds > 0
+                ? durationSeconds
+                : 1.0;
 
-            final isFavorite = playback.currentTrack != null &&
-                widget.favoritesController
-                    .isFavorite(playback.currentTrack!.path);
+            final isFavorite =
+                playback.currentTrack != null &&
+                widget.favoritesController.isFavorite(
+                  playback.currentTrack!.path,
+                );
 
+            final colors = _colors;
             return Container(
               constraints: const BoxConstraints(minHeight: 120),
-              color: MacosColors.miniPlayerBackground,
+              color: colors.miniPlayerBackground,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -145,8 +153,9 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
                               unawaited(widget.controller.playPrevious()),
                           onToggleFavorite: () {
                             if (playback.currentTrack != null) {
-                              widget.favoritesController
-                                  .toggleFavorite(playback.currentTrack!);
+                              widget.favoritesController.toggleFavorite(
+                                playback.currentTrack!,
+                              );
                             }
                           },
                           isFavorite: isFavorite,
@@ -167,8 +176,9 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
                           onChanged: widget.bitPerfectEnabled
                               ? null
                               : _handleVolumeChange,
-                          onToggleMute:
-                              widget.bitPerfectEnabled ? null : _toggleMute,
+                          onToggleMute: widget.bitPerfectEnabled
+                              ? null
+                              : _toggleMute,
                           isMuted: _isMuted || _volume == 0,
                           onToggleQueue: _handleQueueToggle,
                           isQueueVisible: _isQueueVisible,
@@ -183,8 +193,8 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
                     children: [
                       Text(
                         _formatTimestamp(positionSeconds),
-                        style: const TextStyle(
-                          color: MacosColors.secondaryGrey,
+                        style: TextStyle(
+                          color: colors.secondaryGrey,
                           fontSize: 12,
                         ),
                       ),
@@ -196,14 +206,14 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
                             thumbShape: const RoundSliderThumbShape(
                               enabledThumbRadius: 5,
                             ),
-                            inactiveTrackColor: MacosColors.innerDivider,
-                            activeTrackColor: MacosColors.accentBlue,
+                            inactiveTrackColor: colors.innerDivider,
+                            activeTrackColor: colors.accentBlue,
                           ),
                           child: Slider(
                             value: durationSeconds > 0
                                 ? positionSeconds
-                                    .clamp(0.0, durationSeconds)
-                                    .toDouble()
+                                      .clamp(0.0, durationSeconds)
+                                      .toDouble()
                                 : 0.0,
                             max: sliderMax,
                             onChanged: durationSeconds > 0
@@ -221,8 +231,8 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
                       const SizedBox(width: 12),
                       Text(
                         _formatTimestamp(durationSeconds),
-                        style: const TextStyle(
-                          color: MacosColors.secondaryGrey,
+                        style: TextStyle(
+                          color: colors.secondaryGrey,
                           fontSize: 12,
                         ),
                       ),
@@ -334,20 +344,23 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
         : error.toString();
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: MacosColors.menuBackground,
-        title: const Text('Volume adjustment failed'),
-        content: Text(
-          description,
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+      builder: (dialogContext) {
+        final colors = dialogContext.macosColors;
+        return AlertDialog(
+          backgroundColor: colors.menuBackground,
+          title: Text(
+            'Volume adjustment failed',
+            style: TextStyle(color: colors.heading),
           ),
-        ],
-      ),
+          content: Text(description, style: TextStyle(color: colors.mutedGrey)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -451,7 +464,9 @@ class _PlaybackControlsGroupState extends State<_PlaybackControlsGroup> {
             ),
             const SizedBox(width: 12),
             _MiniPlayerButton(
-                icon: Icons.skip_previous, onPressed: widget.onPrevious),
+              icon: Icons.skip_previous,
+              onPressed: widget.onPrevious,
+            ),
             const SizedBox(width: 12),
             _MiniPlayerButton(
               icon: widget.isPlaying ? Icons.pause : Icons.play_arrow,
@@ -459,15 +474,15 @@ class _PlaybackControlsGroupState extends State<_PlaybackControlsGroup> {
               onPressed: widget.onTogglePlay,
             ),
             const SizedBox(width: 12),
-            _MiniPlayerButton(
-                icon: Icons.skip_next, onPressed: widget.onNext),
+            _MiniPlayerButton(icon: Icons.skip_next, onPressed: widget.onNext),
             const SizedBox(width: 12),
             // Play Mode Button
             _MiniPlayerButton(
               icon: _playModeIcon,
               onPressed: () {
-                final nextMode = PlayMode.values[
-                    (widget.playbackMode.index + 1) % PlayMode.values.length];
+                final nextMode =
+                    PlayMode.values[(widget.playbackMode.index + 1) %
+                        PlayMode.values.length];
                 widget.onPlaybackModeChanged(nextMode);
               },
               size: 32,
@@ -512,11 +527,10 @@ class _MiniPlayerButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final buttonSize = size ?? (isPrimary ? 44 : 36);
     final iSize = iconSize ?? 20;
+    final colors = context.macosColors;
 
     return Material(
-      color: isPrimary
-          ? MacosColors.accentBlue
-          : MacosColors.navSelectedBackground,
+      color: isPrimary ? colors.accentBlue : colors.navSelectedBackground,
       borderRadius: BorderRadius.circular(buttonSize / 2),
       child: InkWell(
         onTap: onPressed,
@@ -526,7 +540,7 @@ class _MiniPlayerButton extends StatelessWidget {
           height: buttonSize,
           child: Icon(
             icon,
-            color: iconColor ?? (isPrimary ? Colors.white : MacosColors.iconGrey),
+            color: iconColor ?? (isPrimary ? Colors.white : colors.iconGrey),
             size: iSize,
           ),
         ),
@@ -552,8 +566,9 @@ class _TrackStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     final labelStyle = TextStyle(
-      color: MacosColors.secondaryGrey,
+      color: colors.secondaryGrey,
       fontSize: 11,
       fontWeight: FontWeight.w300,
     );
@@ -590,10 +605,11 @@ class _MiniIconToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return Material(
       color: isActive
-          ? MacosColors.navSelectedBackground
-          : MacosColors.navSelectedBackground.withValues(alpha: 0.2),
+          ? colors.navSelectedBackground
+          : colors.navSelectedBackground.withValues(alpha: 0.2),
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onPressed,
@@ -604,7 +620,7 @@ class _MiniIconToggleButton extends StatelessWidget {
           child: Icon(
             icon,
             size: 18,
-            color: isActive ? MacosColors.accentBlue : Colors.white70,
+            color: isActive ? colors.accentBlue : colors.secondaryGrey,
           ),
         ),
       ),
@@ -629,12 +645,13 @@ class _NowPlayingQueuePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: MacosColors.sidebar,
+        color: colors.sidebar,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: MacosColors.innerDivider),
+        border: Border.all(color: colors.innerDivider),
         boxShadow: const [
           BoxShadow(
             color: Color(0xAA000000),
@@ -648,10 +665,10 @@ class _NowPlayingQueuePanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 'Now Playing',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: colors.heading,
                   fontSize: 16,
                   fontWeight: FontWeight.w400,
                 ),
@@ -659,7 +676,7 @@ class _NowPlayingQueuePanel extends StatelessWidget {
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.close, size: 16),
-                color: MacosColors.mutedGrey,
+                color: colors.mutedGrey,
                 padding: EdgeInsets.zero,
                 onPressed: onClose,
               ),
@@ -668,18 +685,16 @@ class _NowPlayingQueuePanel extends StatelessWidget {
           const SizedBox(height: 12),
           Expanded(
             child: tracks.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'Queue is empty',
-                      style: TextStyle(color: Colors.white60),
+                      style: TextStyle(color: colors.secondaryGrey),
                     ),
                   )
                 : ListView.separated(
                     itemCount: tracks.length,
-                    separatorBuilder: (context, _) => const Divider(
-                      height: 1,
-                      color: MacosColors.innerDivider,
-                    ),
+                    separatorBuilder: (context, _) =>
+                        Divider(height: 1, color: colors.innerDivider),
                     itemBuilder: (context, index) {
                       final track = tracks[index];
                       final isCurrent = index == currentIndex;
@@ -787,28 +802,26 @@ class _QueueRowState extends State<_QueueRow> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     final backgroundColor = widget.isCurrent
-        ? MacosColors.navSelectedBackground
+        ? colors.navSelectedBackground
         : widget.isSelected
-        ? MacosColors.navSelectedBackground.withValues(alpha: 0.4)
+        ? colors.navSelectedBackground.withValues(alpha: 0.4)
         : _isHovered
-        ? MacosColors.accentHover
+        ? colors.accentHover
         : Colors.transparent;
     final border = widget.isSelected && !widget.isCurrent
-        ? Border.all(color: MacosColors.accentBlue.withValues(alpha: 0.35))
+        ? Border.all(color: colors.accentBlue.withValues(alpha: 0.35))
         : null;
     final metadata = widget.track.metadata;
     final durationLabel =
         metadata.extras['Duration'] ?? metadata.extras['duration'] ?? '--:--';
     final titleStyle = TextStyle(
-      color: widget.isCurrent ? MacosColors.accentBlue : Colors.white,
+      color: widget.isCurrent ? colors.accentBlue : colors.heading,
       fontSize: 14,
       fontWeight: widget.isCurrent ? FontWeight.w400 : FontWeight.w300,
     );
-    const subtitleStyle = TextStyle(
-      color: MacosColors.secondaryGrey,
-      fontSize: 12,
-    );
+    final subtitleStyle = TextStyle(color: colors.secondaryGrey, fontSize: 12);
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -866,6 +879,7 @@ class _QueueArtwork extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     final artwork = Container(
       width: 44,
       height: 44,
@@ -873,16 +887,16 @@ class _QueueArtwork extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isCurrent
-              ? MacosColors.accentBlue.withValues(alpha: 0.8)
-              : MacosColors.innerDivider,
+              ? colors.accentBlue.withValues(alpha: 0.8)
+              : colors.innerDivider,
         ),
-        color: const Color(0xFF1B1B1B),
+        color: colors.contentBackground,
         image: bytes != null
             ? DecorationImage(image: MemoryImage(bytes!), fit: BoxFit.cover)
             : null,
       ),
       child: bytes == null
-          ? const Icon(Icons.music_note, color: Colors.white30, size: 18)
+          ? Icon(Icons.music_note, color: colors.secondaryGrey, size: 18)
           : null,
     );
     if (!isCurrent) {
@@ -891,10 +905,10 @@ class _QueueArtwork extends StatelessWidget {
     return Stack(
       children: [
         artwork,
-        const Positioned(
+        Positioned(
           right: 4,
           bottom: 4,
-          child: Icon(Icons.graphic_eq, size: 14, color: Colors.white),
+          child: Icon(Icons.graphic_eq, size: 14, color: colors.accentBlue),
         ),
       ],
     );
@@ -922,6 +936,7 @@ class _VolumeControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -937,7 +952,7 @@ class _VolumeControl extends StatelessWidget {
           onPressed: onToggleMute,
           icon: Icon(
             isMuted ? Icons.volume_off : Icons.volume_up,
-            color: isDisabled ? Colors.white24 : Colors.white70,
+            color: isDisabled ? colors.innerDivider : colors.heading,
             size: 20,
           ),
         ),
@@ -947,8 +962,8 @@ class _VolumeControl extends StatelessWidget {
             data: SliderTheme.of(context).copyWith(
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
               trackHeight: 3,
-              inactiveTrackColor: MacosColors.divider,
-              activeTrackColor: MacosColors.accentBlue,
+              inactiveTrackColor: colors.divider,
+              activeTrackColor: colors.accentBlue,
             ),
             child: Slider(
               value: volume,
@@ -970,6 +985,7 @@ class _NowPlayingInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     final title = metadata?.title ?? 'Nothing playing yet';
     final artist = metadata?.artist ?? 'Select a track to start playback';
     final artwork = metadata?.artwork;
@@ -980,8 +996,8 @@ class _NowPlayingInfo extends StatelessWidget {
           height: 48,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: MacosColors.innerDivider),
-            color: const Color(0xFF1B1B1B),
+            border: Border.all(color: colors.innerDivider),
+            color: colors.contentBackground,
             image: artwork != null
                 ? DecorationImage(
                     image: MemoryImage(artwork),
@@ -990,7 +1006,7 @@ class _NowPlayingInfo extends StatelessWidget {
                 : null,
           ),
           child: artwork == null
-              ? const Icon(Icons.music_note, color: Colors.white38)
+              ? Icon(Icons.music_note, color: colors.secondaryGrey)
               : null,
         ),
         const SizedBox(width: 12),
@@ -1002,8 +1018,8 @@ class _NowPlayingInfo extends StatelessWidget {
               Text(
                 title,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: colors.heading,
                   fontWeight: FontWeight.w400,
                 ),
               ),
@@ -1011,10 +1027,7 @@ class _NowPlayingInfo extends StatelessWidget {
               Text(
                 artist,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: MacosColors.secondaryGrey,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: colors.secondaryGrey, fontSize: 12),
               ),
             ],
           ),

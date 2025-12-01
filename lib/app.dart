@@ -7,6 +7,7 @@ import 'package:toney_music/l10n/app_localizations.dart';
 import 'core/audio_controller.dart';
 import 'core/localization/app_language.dart';
 import 'core/localization/locale_controller.dart';
+import 'core/theme/theme_controller.dart';
 import 'ui/ios/ios_app.dart';
 import 'ui/macos/macos_app.dart';
 import 'ui/shared/typography.dart';
@@ -21,6 +22,7 @@ class ToneyApp extends StatefulWidget {
 class _ToneyAppState extends State<ToneyApp> {
   late final AudioController _controller;
   late final LocaleController _localeController;
+  late final ThemeController _themeController;
 
   @override
   void initState() {
@@ -29,10 +31,13 @@ class _ToneyAppState extends State<ToneyApp> {
     _controller.init();
     _localeController = LocaleController();
     unawaited(_localeController.init());
+    _themeController = ThemeController();
+    unawaited(_themeController.init());
   }
 
   @override
   void dispose() {
+    _themeController.dispose();
     _localeController.dispose();
     _controller.dispose();
     super.dispose();
@@ -68,6 +73,7 @@ class _ToneyAppState extends State<ToneyApp> {
               locale: locale,
               localeResolver: localeResolver,
               localeController: _localeController,
+              themeController: _themeController,
             );
           default:
             return MaterialApp(

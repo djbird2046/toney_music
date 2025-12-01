@@ -29,7 +29,8 @@ class _RemoteFileBrowserDialog extends StatefulWidget {
   const _RemoteFileBrowserDialog({required this.config});
 
   @override
-  State<_RemoteFileBrowserDialog> createState() => _RemoteFileBrowserDialogState();
+  State<_RemoteFileBrowserDialog> createState() =>
+      _RemoteFileBrowserDialogState();
 }
 
 class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
@@ -63,17 +64,17 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
     try {
       _client = RemoteFileClientFactory.create(widget.config);
       final connected = await _client!.connect();
-      
+
       if (!connected) {
         throw Exception('Connection failed');
       }
-      
+
       // Set initial path
       _currentPath = widget.config.remotePath ?? '/';
       _updateBreadcrumbs();
-      
+
       await _loadFiles();
-      
+
       setState(() => _isConnecting = false);
     } catch (e) {
       setState(() {
@@ -91,7 +92,7 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
 
     try {
       final files = await _fetchFiles(_currentPath);
-      
+
       setState(() {
         _files = files;
         _isLoading = false;
@@ -138,7 +139,9 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
       case ProtocolType.sftp:
         final sftpClient = _client as SFTPClient;
         final sftpFiles = await sftpClient.listDirectory(path);
-        items.addAll(sftpFiles.map((f) => RemoteFileItem.fromSftpName(f, path)));
+        items.addAll(
+          sftpFiles.map((f) => RemoteFileItem.fromSftpName(f, path)),
+        );
         break;
     }
 
@@ -153,7 +156,10 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
     if (_currentPath.isEmpty || _currentPath == '/') {
       _pathBreadcrumbs = ['/'];
     } else {
-      _pathBreadcrumbs = _currentPath.split('/').where((s) => s.isNotEmpty).toList();
+      _pathBreadcrumbs = _currentPath
+          .split('/')
+          .where((s) => s.isNotEmpty)
+          .toList();
       _pathBreadcrumbs.insert(0, '/');
     }
   }
@@ -171,7 +177,7 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
 
   Future<void> _navigateUp() async {
     if (_currentPath.isEmpty || _currentPath == '/') return;
-    
+
     final parent = path_helper.dirname(_currentPath);
     await _navigateToPath(parent == '.' ? '/' : parent);
   }
@@ -188,11 +194,12 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return AlertDialog(
-      backgroundColor: MacosColors.menuBackground,
+      backgroundColor: colors.menuBackground,
       title: Text(
         'Browse ${widget.config.name}',
-        style: const TextStyle(color: Colors.white, fontSize: 18),
+        style: TextStyle(color: colors.heading, fontSize: 18),
       ),
       content: SizedBox(
         width: 700,
@@ -201,16 +208,16 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_isConnecting)
-              const Expanded(
+              Expanded(
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
                       Text(
                         'Connecting...',
-                        style: TextStyle(color: Colors.white70),
+                        style: TextStyle(color: colors.mutedGrey),
                       ),
                     ],
                   ),
@@ -222,7 +229,11 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 48,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         _errorMessage!,
@@ -242,30 +253,30 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
             else ...[
               _buildBreadcrumbs(),
               const SizedBox(height: 12),
-              const Divider(color: Colors.white12, height: 1),
+              Divider(color: colors.innerDivider, height: 1),
               const SizedBox(height: 12),
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _files.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'This directory is empty or has no audio files',
-                              style: TextStyle(color: Colors.white54),
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: _files.length,
-                            itemBuilder: (context, index) {
-                              final item = _files[index];
-                              return _buildFileItem(item);
-                            },
-                          ),
+                    ? Center(
+                        child: Text(
+                          'This directory is empty or has no audio files',
+                          style: TextStyle(color: colors.secondaryGrey),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _files.length,
+                        itemBuilder: (context, index) {
+                          final item = _files[index];
+                          return _buildFileItem(item);
+                        },
+                      ),
               ),
               const SizedBox(height: 12),
               Text(
                 '${_selectedPaths.length} item(s) selected',
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                style: TextStyle(color: colors.mutedGrey, fontSize: 13),
               ),
             ],
           ],
@@ -287,12 +298,17 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
   }
 
   Widget _buildBreadcrumbs() {
+    final colors = context.macosColors;
     return Row(
       children: [
         if (_currentPath != '/' && _currentPath.isNotEmpty)
           IconButton(
             onPressed: _navigateUp,
-            icon: const Icon(Icons.arrow_upward, color: Colors.white70, size: 20),
+            icon: Icon(
+              Icons.arrow_upward,
+              color: colors.secondaryGrey,
+              size: 20,
+            ),
             tooltip: 'Go up',
           ),
         Expanded(
@@ -303,13 +319,17 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
                 final index = entry.key;
                 final segment = entry.value;
                 final isLast = index == _pathBreadcrumbs.length - 1;
-                
+
                 return Row(
                   children: [
                     if (index > 0)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Icon(Icons.chevron_right, color: Colors.white38, size: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(
+                          Icons.chevron_right,
+                          color: colors.secondaryGrey,
+                          size: 16,
+                        ),
                       ),
                     TextButton(
                       onPressed: isLast
@@ -318,18 +338,22 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
                               if (index == 0) {
                                 _navigateToPath('/');
                               } else {
-                                final newPath = '/${_pathBreadcrumbs.sublist(1, index + 1).join('/')}';
+                                final newPath =
+                                    '/${_pathBreadcrumbs.sublist(1, index + 1).join('/')}';
                                 _navigateToPath(newPath);
                               }
                             },
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         minimumSize: Size.zero,
                       ),
                       child: Text(
                         segment,
                         style: TextStyle(
-                          color: isLast ? Colors.white : Colors.white70,
+                          color: isLast ? colors.heading : colors.mutedGrey,
                           fontSize: 13,
                         ),
                       ),
@@ -346,24 +370,25 @@ class _RemoteFileBrowserDialogState extends State<_RemoteFileBrowserDialog> {
 
   Widget _buildFileItem(RemoteFileItem item) {
     final isSelected = _selectedPaths.contains(item.path);
-    
+    final colors = context.macosColors;
+
     return ListTile(
       dense: true,
       leading: item.isDirectory
-          ? const Icon(Icons.folder, color: MacosColors.accentBlue)
-          : const Icon(Icons.audio_file, color: Colors.white70),
+          ? Icon(Icons.folder, color: colors.accentBlue)
+          : Icon(Icons.audio_file, color: colors.mutedGrey),
       title: Text(
         item.name,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+        style: TextStyle(color: colors.heading, fontSize: 13),
       ),
       subtitle: item.isDirectory
           ? null
           : Text(
               item.sizeString,
-              style: const TextStyle(color: Colors.white54, fontSize: 11),
+              style: TextStyle(color: colors.secondaryGrey, fontSize: 11),
             ),
       trailing: item.isDirectory
-          ? const Icon(Icons.chevron_right, color: Colors.white38)
+          ? Icon(Icons.chevron_right, color: colors.secondaryGrey)
           : Checkbox(
               value: isSelected,
               onChanged: (_) => _toggleSelection(item),

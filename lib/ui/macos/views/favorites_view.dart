@@ -49,8 +49,9 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Container(
-      color: MacosColors.contentBackground,
+      color: colors.contentBackground,
       padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,8 +60,8 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
             children: [
               Text(
                 l10n.favoritesTitle,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: colors.heading,
                   fontSize: 28,
                   fontWeight: FontWeight.w600,
                 ),
@@ -71,33 +72,24 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                 width: 200,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2A),
+                  color: colors.sidebar,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: MacosColors.innerDivider),
+                  border: Border.all(color: colors.innerDivider),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.search,
-                      size: 16,
-                      color: MacosColors.iconGrey,
-                    ),
+                    Icon(Icons.search, size: 16, color: colors.iconGrey),
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
                         controller: _searchController,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                        ),
-                        cursorColor: MacosColors.accentBlue,
+                        style: TextStyle(color: colors.heading, fontSize: 13),
+                        cursorColor: colors.accentBlue,
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           hintText: l10n.libraryFilterHint,
-                          hintStyle: const TextStyle(
-                            color: MacosColors.mutedGrey,
-                          ),
+                          hintStyle: TextStyle(color: colors.mutedGrey),
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
                         ),
@@ -118,34 +110,34 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                   flex: 4,
                   child: Text(
                     l10n.metadataFieldTitle,
-                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                    style: TextStyle(color: colors.secondaryGrey, fontSize: 13),
                   ),
                 ),
                 Expanded(
                   flex: 3,
                   child: Text(
                     l10n.metadataFieldArtist,
-                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                    style: TextStyle(color: colors.secondaryGrey, fontSize: 13),
                   ),
                 ),
                 Expanded(
                   flex: 3,
                   child: Text(
                     l10n.metadataFieldAlbum,
-                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                    style: TextStyle(color: colors.secondaryGrey, fontSize: 13),
                   ),
                 ),
                 SizedBox(
                   width: 60,
                   child: Text(
                     l10n.metadataFieldDuration,
-                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                    style: TextStyle(color: colors.secondaryGrey, fontSize: 13),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1, color: MacosColors.innerDivider),
+          Divider(height: 1, color: colors.innerDivider),
           // List
           Expanded(
             child: ListenableBuilder(
@@ -166,7 +158,7 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                   return Center(
                     child: Text(
                       l10n.favoritesEmptyState,
-                      style: const TextStyle(color: Colors.white54),
+                      style: TextStyle(color: colors.secondaryGrey),
                     ),
                   );
                 }
@@ -174,7 +166,7 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                 return ListView.separated(
                   itemCount: favorites.length,
                   separatorBuilder: (context, _) =>
-                      const Divider(height: 1, color: MacosColors.innerDivider),
+                      Divider(height: 1, color: colors.innerDivider),
                   itemBuilder: (context, index) {
                     final item = favorites[index];
                     final metadata = item.metadata;
@@ -198,7 +190,7 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                             .toList();
                         unawaited(_playFavorite(index, queue));
                       },
-                      hoverColor: MacosColors.accentHover,
+                      hoverColor: colors.accentHover,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: 12,
@@ -210,8 +202,8 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                               flex: 4,
                               child: Text(
                                 title,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: colors.heading,
                                   fontWeight: FontWeight.w400,
                                 ),
                               ),
@@ -220,8 +212,8 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                               flex: 3,
                               child: Text(
                                 artist,
-                                style: const TextStyle(
-                                  color: Colors.white70,
+                                style: TextStyle(
+                                  color: colors.secondaryGrey,
                                   fontWeight: FontWeight.w300,
                                 ),
                               ),
@@ -230,8 +222,8 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                               flex: 3,
                               child: Text(
                                 album,
-                                style: const TextStyle(
-                                  color: Colors.white70,
+                                style: TextStyle(
+                                  color: colors.secondaryGrey,
                                   fontWeight: FontWeight.w300,
                                 ),
                               ),
@@ -240,8 +232,8 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                               width: 60,
                               child: Text(
                                 duration,
-                                style: const TextStyle(
-                                  color: Colors.white70,
+                                style: TextStyle(
+                                  color: colors.secondaryGrey,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w300,
                                 ),

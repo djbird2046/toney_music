@@ -50,7 +50,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
 
   Future<void> _loadRemoteConfigs() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final configs = await ConfigManager().getAllConfigs();
       setState(() {
@@ -67,11 +67,12 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return AlertDialog(
-      backgroundColor: MacosColors.menuBackground,
-      title: const Text(
+      backgroundColor: colors.menuBackground,
+      title: Text(
         'Select Music Source',
-        style: TextStyle(color: Colors.white, fontSize: 18),
+        style: TextStyle(color: colors.heading, fontSize: 18),
       ),
       content: SizedBox(
         width: 600,
@@ -82,27 +83,29 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Click a card to select source, or add a new remote mount',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                      style: TextStyle(color: colors.mutedGrey, fontSize: 13),
                     ),
                     const SizedBox(height: 20),
                     _buildLocalCard(),
                     const SizedBox(height: 16),
                     if (_remoteConfigs.isNotEmpty) ...[
-                      const Text(
+                      Text(
                         'Remote Mounts',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: colors.heading,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      ..._remoteConfigs.map((config) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _buildRemoteCard(config),
-                          )),
+                      ..._remoteConfigs.map(
+                        (config) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildRemoteCard(config),
+                        ),
+                      ),
                     ],
                     _buildAddRemoteButton(),
                   ],
@@ -119,13 +122,12 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
   }
 
   Widget _buildLocalCard() {
+    final colors = context.macosColors;
     return Card(
-      color: MacosColors.accentBlue.withValues(alpha: 0.12),
+      color: colors.accentBlue.withValues(alpha: 0.12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: MacosColors.accentBlue.withValues(alpha: 0.4),
-        ),
+        side: BorderSide(color: colors.accentBlue.withValues(alpha: 0.4)),
       ),
       child: InkWell(
         onTap: _isPicking ? null : _pickLocal,
@@ -138,20 +140,20 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: MacosColors.accentBlue.withValues(alpha: 0.2),
+                  color: colors.accentBlue.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.folder, color: MacosColors.accentBlue, size: 28),
+                child: Icon(Icons.folder, color: colors.accentBlue, size: 28),
               ),
               const SizedBox(width: 16),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Local',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: colors.heading,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -159,12 +161,12 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                     SizedBox(height: 4),
                     Text(
                       'Local disks or external drives',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                      style: TextStyle(color: colors.mutedGrey, fontSize: 12),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.white54),
+              Icon(Icons.chevron_right, color: colors.secondaryGrey),
             ],
           ),
         ),
@@ -173,8 +175,9 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
   }
 
   Widget _buildRemoteCard(ConnectionConfig config) {
+    final colors = context.macosColors;
     final color = _getProtocolColor(config.type.name);
-    
+
     return Card(
       color: color.withValues(alpha: 0.12),
       shape: RoundedRectangleBorder(
@@ -204,8 +207,8 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                   children: [
                     Text(
                       config.name,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: colors.heading,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -213,15 +216,15 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                     const SizedBox(height: 4),
                     Text(
                       '${config.type.displayName} · ${config.description}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      style: TextStyle(color: colors.mutedGrey, fontSize: 12),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Colors.white54),
-                color: MacosColors.menuBackground,
+                icon: Icon(Icons.more_vert, color: colors.mutedGrey),
+                color: colors.menuBackground,
                 onSelected: (value) {
                   if (value == 'edit') {
                     _editRemote(config);
@@ -230,13 +233,19 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                   }
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'edit',
-                    child: Text('Edit', style: TextStyle(color: Colors.white)),
+                    child: Text(
+                      'Edit',
+                      style: TextStyle(color: colors.heading),
+                    ),
                   ),
                   const PopupMenuItem(
                     value: 'delete',
-                    child: Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                    child: Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
                   ),
                 ],
               ),
@@ -248,25 +257,28 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
   }
 
   Widget _buildAddRemoteButton() {
+    final colors = context.macosColors;
     return Card(
-      color: Colors.white.withValues(alpha: 0.05),
+      color: colors.navSelectedBackground.withValues(alpha: 0.15),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+        side: BorderSide(
+          color: colors.navSelectedBackground.withValues(alpha: 0.3),
+        ),
       ),
       child: InkWell(
         onTap: _addRemote,
         borderRadius: BorderRadius.circular(12),
-        child: const Padding(
-          padding: EdgeInsets.all(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add_circle_outline, color: Colors.white70),
-              SizedBox(width: 8),
+              Icon(Icons.add_circle_outline, color: colors.accentBlue),
+              const SizedBox(width: 8),
               Text(
                 'Add Remote Mount',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+                style: TextStyle(color: colors.heading, fontSize: 14),
               ),
             ],
           ),
@@ -307,19 +319,16 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
 
   Future<void> _pickLocal() async {
     setState(() => _isPicking = true);
-    
+
     try {
       final result = await showDialog<List<String>>(
         context: context,
         builder: (context) => _LocalFilePickerDialog(),
       );
-      
+
       if (result != null && result.isNotEmpty && mounted) {
         Navigator.of(context).pop(
-          LibrarySourceRequest(
-            type: LibrarySourceType.local,
-            paths: result,
-          ),
+          LibrarySourceRequest(type: LibrarySourceType.local, paths: result),
         );
       }
     } finally {
@@ -331,10 +340,10 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
 
   Future<void> _selectRemote(ConnectionConfig config) async {
     setState(() => _isPicking = true);
-    
+
     try {
       final paths = await showRemoteFileBrowserDialog(context, config);
-      
+
       if (paths != null && paths.isNotEmpty && mounted) {
         Navigator.of(context).pop(
           LibrarySourceRequest(
@@ -359,7 +368,10 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
   }
 
   Future<void> _editRemote(ConnectionConfig config) async {
-    final updated = await showRemoteConfigDialog(context, existingConfig: config);
+    final updated = await showRemoteConfigDialog(
+      context,
+      existingConfig: config,
+    );
     if (updated != null) {
       await _loadRemoteConfigs();
     }
@@ -368,25 +380,31 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
   Future<void> _deleteRemote(ConnectionConfig config) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: MacosColors.menuBackground,
-        title: const Text('Confirm Delete', style: TextStyle(color: Colors.white)),
-        content: Text(
-          'Are you sure you want to delete remote mount "${config.name}"?',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+      builder: (context) {
+        final colors = context.macosColors;
+        return AlertDialog(
+          backgroundColor: colors.menuBackground,
+          title: Text(
+            'Confirm Delete',
+            style: TextStyle(color: colors.heading),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-            child: const Text('Delete'),
+          content: Text(
+            'Are you sure you want to delete remote mount "${config.name}"?',
+            style: TextStyle(color: colors.mutedGrey),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirmed == true) {
@@ -404,17 +422,20 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: MacosColors.menuBackground,
-        title: const Text('Error', style: TextStyle(color: Colors.white)),
-        content: Text(message, style: const TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final colors = context.macosColors;
+        return AlertDialog(
+          backgroundColor: colors.menuBackground,
+          title: Text('Error', style: TextStyle(color: colors.heading)),
+          content: Text(message, style: TextStyle(color: colors.mutedGrey)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -431,11 +452,12 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return AlertDialog(
-      backgroundColor: MacosColors.menuBackground,
-      title: const Text(
+      backgroundColor: colors.menuBackground,
+      title: Text(
         'Select Local Files or Folders',
-        style: TextStyle(color: Colors.white, fontSize: 18),
+        style: TextStyle(color: colors.heading, fontSize: 18),
       ),
       content: SizedBox(
         width: 400,
@@ -466,24 +488,28 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
               Container(
                 constraints: const BoxConstraints(maxHeight: 200),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white12),
+                  border: Border.all(color: colors.innerDivider),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: _selectedPaths.length,
                   separatorBuilder: (context, _) =>
-                      const Divider(color: Colors.white12, height: 1),
+                      Divider(color: colors.innerDivider, height: 1),
                   itemBuilder: (context, index) {
                     final path = _selectedPaths[index];
                     return ListTile(
                       dense: true,
                       title: Text(
                         path,
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        style: TextStyle(color: colors.heading, fontSize: 12),
                       ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white54, size: 18),
+                        icon: Icon(
+                          Icons.close,
+                          color: colors.mutedGrey,
+                          size: 18,
+                        ),
                         onPressed: () {
                           setState(() => _selectedPaths.removeAt(index));
                         },

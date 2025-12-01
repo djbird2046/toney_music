@@ -86,8 +86,9 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Container(
-      color: MacosColors.contentBackground,
+      color: colors.contentBackground,
       padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,12 +103,13 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
 
   Widget _buildHeader() {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Row(
       children: [
         Text(
           _getHeaderTitle(l10n),
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: colors.heading,
             fontSize: 28,
             fontWeight: FontWeight.w600,
           ),
@@ -115,7 +117,7 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
         const Spacer(),
         if (_contentState != _AiContentState.forYou)
           IconButton(
-            icon: const Icon(Icons.close, color: Colors.grey),
+            icon: Icon(Icons.close, color: colors.mutedGrey),
             onPressed: () =>
                 setState(() => _contentState = _AiContentState.forYou),
           )
@@ -126,11 +128,11 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
                 _contentState = _AiContentState.chat;
               });
             },
-            icon: const Icon(Icons.auto_awesome, size: 16),
+            icon: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
             label: Text(l10n.musicAiChatButton),
             style: FilledButton.styleFrom(
               foregroundColor: Colors.white,
-              backgroundColor: MacosColors.accentBlue,
+              backgroundColor: colors.accentBlue,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -177,6 +179,7 @@ class _ForYouContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -186,7 +189,7 @@ class _ForYouContent extends StatelessWidget {
           label: Text(l10n.playlistPlayAll),
           style: FilledButton.styleFrom(
             foregroundColor: Colors.white,
-            backgroundColor: MacosColors.accentBlue,
+            backgroundColor: colors.accentBlue,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -341,6 +344,7 @@ class _ChatViewState extends State<_ChatView> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return Column(
       children: [
         Expanded(
@@ -355,7 +359,7 @@ class _ChatViewState extends State<_ChatView> {
             },
           ),
         ),
-        const Divider(color: MacosColors.innerDivider, height: 1),
+        Divider(color: colors.innerDivider, height: 1),
         _buildInputArea(),
       ],
     );
@@ -363,6 +367,7 @@ class _ChatViewState extends State<_ChatView> {
 
   Widget _buildInputArea() {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Padding(
       padding: const EdgeInsets.all(12.0),
       child: Row(
@@ -379,14 +384,14 @@ class _ChatViewState extends State<_ChatView> {
                 hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: MacosColors.innerDivider),
+                  borderSide: BorderSide(color: colors.innerDivider),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: MacosColors.accentBlue),
+                  borderSide: BorderSide(color: colors.accentBlue),
                 ),
                 filled: true,
-                fillColor: MacosColors.sidebar,
+                fillColor: colors.sidebar,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 8,
@@ -403,7 +408,7 @@ class _ChatViewState extends State<_ChatView> {
                     height: 24,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.send, color: MacosColors.accentBlue),
+                : Icon(Icons.send, color: colors.accentBlue),
             onPressed: _isResponding || !_isSessionInitialized
                 ? null
                 : _sendMessage,
@@ -447,12 +452,12 @@ class _ChatMessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (message.sender == Sender.system) {
-      return _buildSystemMessage();
+      return _buildSystemMessage(context);
     }
-    return _buildChatMessage();
+    return _buildChatMessage(context);
   }
 
-  Widget _buildSystemMessage() {
+  Widget _buildSystemMessage(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
@@ -473,8 +478,9 @@ class _ChatMessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildChatMessage() {
+  Widget _buildChatMessage(BuildContext context) {
     final isUser = message.sender == Sender.user;
+    final colors = context.macosColors;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -484,9 +490,9 @@ class _ChatMessageBubble extends StatelessWidget {
             : MainAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            const CircleAvatar(
-              backgroundColor: MacosColors.accentBlue,
-              child: Icon(Icons.auto_awesome),
+            CircleAvatar(
+              backgroundColor: colors.accentBlue,
+              child: const Icon(Icons.auto_awesome, color: Colors.white),
             ),
             const SizedBox(width: 12),
           ],
@@ -503,31 +509,52 @@ class _ChatMessageBubble extends StatelessWidget {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: isUser
-                          ? MacosColors.accentBlue
-                          : const Color(0xFF333333),
+                      color: isUser ? colors.accentBlue : colors.menuBackground,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: MarkdownBody(
                       selectable: true,
                       data: message.text.trim(),
                       styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(color: Colors.white, fontSize: 15),
-                        h1: const TextStyle(color: Colors.white),
-                        h2: const TextStyle(color: Colors.white),
-                        h3: const TextStyle(color: Colors.white),
-                        h4: const TextStyle(color: Colors.white),
-                        h5: const TextStyle(color: Colors.white),
-                        h6: const TextStyle(color: Colors.white),
-                        tableBody: const TextStyle(color: Colors.white),
-                        listBullet: const TextStyle(color: Colors.white),
-                        code: const TextStyle(
-                          color: Colors.white,
+                        p: TextStyle(
+                          color: isUser ? Colors.white : colors.heading,
+                          fontSize: 15,
+                        ),
+                        h1: TextStyle(
+                          color: isUser ? Colors.white : colors.heading,
+                        ),
+                        h2: TextStyle(
+                          color: isUser ? Colors.white : colors.heading,
+                        ),
+                        h3: TextStyle(
+                          color: isUser ? Colors.white : colors.heading,
+                        ),
+                        h4: TextStyle(
+                          color: isUser ? Colors.white : colors.heading,
+                        ),
+                        h5: TextStyle(
+                          color: isUser ? Colors.white : colors.heading,
+                        ),
+                        h6: TextStyle(
+                          color: isUser ? Colors.white : colors.heading,
+                        ),
+                        tableBody: TextStyle(
+                          color: isUser ? Colors.white : colors.heading,
+                        ),
+                        listBullet: TextStyle(
+                          color: isUser ? Colors.white : colors.heading,
+                        ),
+                        code: TextStyle(
+                          color: isUser ? Colors.white : colors.heading,
                           fontFamily: 'monospace',
                         ),
-                        codeblockDecoration: const BoxDecoration(
-                          color: Color(0xFF2B2B2B),
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                        codeblockDecoration: BoxDecoration(
+                          color: isUser
+                              ? colors.accentBlue.withValues(alpha: 0.35)
+                              : colors.sidebar,
+                          borderRadius: const BorderRadius.all(
+                            Radius.circular(8),
+                          ),
                         ),
                       ),
                       builders: {'hr': _HrBuilder()},
@@ -539,9 +566,9 @@ class _ChatMessageBubble extends StatelessWidget {
           ),
           if (isUser) ...[
             const SizedBox(width: 12),
-            const CircleAvatar(
-              backgroundColor: Colors.grey,
-              child: Icon(Icons.person),
+            CircleAvatar(
+              backgroundColor: colors.navSelectedBackground,
+              child: const Icon(Icons.person, color: Colors.white),
             ),
           ],
         ],
@@ -575,12 +602,13 @@ class _ExtensionViewState extends State<_ExtensionView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Container(
       width: 400,
       decoration: BoxDecoration(
         color: const Color(0xFF2B2B2B),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: MacosColors.innerDivider),
+        border: Border.all(color: colors.innerDivider),
       ),
       child: ExpansionTile(
         onExpansionChanged: (isExpanded) {
@@ -661,6 +689,7 @@ class _ForYouPlaylist extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return Column(
       children: [
         _PlaylistHeader(),
@@ -668,7 +697,7 @@ class _ForYouPlaylist extends StatelessWidget {
           child: ListView.separated(
             itemCount: entries.length,
             separatorBuilder: (context, _) =>
-                const Divider(color: MacosColors.innerDivider, height: 1),
+                Divider(color: colors.innerDivider, height: 1),
             itemBuilder: (context, index) {
               final entry = entries[index];
               return _PlaylistRow(
@@ -725,6 +754,7 @@ class _PlaylistRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final metadata = entry.metadata;
+    final colors = context.macosColors;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onSelect,
@@ -732,11 +762,9 @@ class _PlaylistRow extends StatelessWidget {
       onSecondaryTapDown: (details) async {},
       child: Container(
         decoration: BoxDecoration(
-          color: _backgroundColor(),
+          color: _backgroundColor(context),
           border: isPlaying
-              ? const Border(
-                  left: BorderSide(color: MacosColors.accentBlue, width: 3),
-                )
+              ? Border(left: BorderSide(color: colors.accentBlue, width: 3))
               : null,
         ),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
@@ -747,7 +775,7 @@ class _PlaylistRow extends StatelessWidget {
               child: Text(
                 '${index + 1}'.padLeft(2, '0'),
                 style: TextStyle(
-                  color: Colors.grey.shade500,
+                  color: colors.mutedGrey,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -768,8 +796,8 @@ class _PlaylistRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isMissing
-                          ? Colors.white.withAlpha(64)
-                          : Colors.white,
+                          ? colors.heading.withValues(alpha: 0.35)
+                          : colors.heading,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -779,8 +807,8 @@ class _PlaylistRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isMissing
-                          ? Colors.white.withAlpha(64)
-                          : Colors.grey.shade500,
+                          ? colors.mutedGrey.withValues(alpha: 0.35)
+                          : colors.mutedGrey,
                       fontSize: 13,
                       fontWeight: FontWeight.w300,
                     ),
@@ -795,8 +823,8 @@ class _PlaylistRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: isMissing
-                      ? Colors.white.withAlpha(64)
-                      : Colors.white70,
+                      ? colors.mutedGrey.withValues(alpha: 0.35)
+                      : colors.mutedGrey,
                   fontWeight: FontWeight.w300,
                 ),
               ),
@@ -807,19 +835,19 @@ class _PlaylistRow extends StatelessWidget {
                 metadata.extras['Duration'] ?? '--:--',
                 style: TextStyle(
                   color: isMissing
-                      ? Colors.white.withAlpha(64)
-                      : Colors.white70,
+                      ? colors.mutedGrey.withValues(alpha: 0.35)
+                      : colors.mutedGrey,
                   fontSize: 13,
                   fontWeight: FontWeight.w300,
                 ),
               ),
             ),
             if (isPlaying)
-              const Padding(
-                padding: EdgeInsets.only(left: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
                 child: Icon(
                   Icons.equalizer,
-                  color: MacosColors.accentBlue,
+                  color: colors.accentBlue,
                   size: 18,
                 ),
               ),
@@ -829,15 +857,16 @@ class _PlaylistRow extends StatelessWidget {
     );
   }
 
-  Color? _backgroundColor() {
+  Color? _backgroundColor(BuildContext context) {
+    final colors = context.macosColors;
     if (isPlaying) {
-      return MacosColors.navSelectedBackground.withAlpha(102);
+      return colors.navSelectedBackground.withAlpha(102);
     }
     if (isSelected) {
-      return MacosColors.navSelectedBackground.withAlpha(77);
+      return colors.navSelectedBackground.withAlpha(77);
     }
     if (isHovered) {
-      return MacosColors.accentHover;
+      return colors.accentHover;
     }
     if (isMissing) {
       return null;
@@ -859,6 +888,7 @@ class _ArtworkTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return SizedBox(
       width: 44,
       height: 44,
@@ -869,8 +899,8 @@ class _ArtworkTile extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: MacosColors.innerDivider),
-              color: const Color(0xFF1B1B1B),
+              border: Border.all(color: colors.innerDivider),
+              color: colors.contentBackground,
               image: bytes != null
                   ? DecorationImage(
                       image: MemoryImage(bytes!),
@@ -879,7 +909,7 @@ class _ArtworkTile extends StatelessWidget {
                   : null,
             ),
             child: bytes == null
-                ? const Icon(Icons.music_note, color: Colors.white30, size: 20)
+                ? Icon(Icons.music_note, color: colors.mutedGrey, size: 20)
                 : null,
           ),
           if (isDownloading)
@@ -887,7 +917,7 @@ class _ArtworkTile extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.black.withAlpha(153),
+                  color: colors.background.withValues(alpha: 0.7),
                 ),
                 child: Center(
                   child: SizedBox(
@@ -897,8 +927,8 @@ class _ArtworkTile extends StatelessWidget {
                       value: downloadProgress,
                       strokeWidth: 3,
                       backgroundColor: Colors.white.withAlpha(51),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        MacosColors.accentBlue,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colors.accentBlue,
                       ),
                     ),
                   ),

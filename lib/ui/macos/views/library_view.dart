@@ -71,6 +71,7 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     final sourceCounts = _sourceCounts();
     final query = _searchController.text.toLowerCase();
     final tracks = widget.tracks.where((track) {
@@ -84,7 +85,7 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
     final isEmpty = tracks.isEmpty;
 
     return Container(
-      color: MacosColors.contentBackground,
+      color: colors.contentBackground,
       child: Padding(
         padding: const EdgeInsets.all(28),
         child: Column(
@@ -98,8 +99,8 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                   children: [
                     Text(
                       l10n.libraryTitle,
-                      style: const TextStyle(
-                        color: MacosColors.heading,
+                      style: TextStyle(
+                        color: colors.heading,
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
                       ),
@@ -109,10 +110,7 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                       isEmpty
                           ? l10n.libraryEmptySubtitle
                           : l10n.libraryTrackCount(tracks.length),
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: colors.mutedGrey, fontSize: 13),
                     ),
                   ],
                 ),
@@ -122,33 +120,24 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                   width: 200,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A2A),
+                    color: colors.sidebar,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: MacosColors.innerDivider),
+                    border: Border.all(color: colors.innerDivider),
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.search,
-                        size: 16,
-                        color: MacosColors.iconGrey,
-                      ),
+                      Icon(Icons.search, size: 16, color: colors.iconGrey),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: _searchController,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
-                          cursorColor: MacosColors.accentBlue,
+                          style: TextStyle(color: colors.heading, fontSize: 13),
+                          cursorColor: colors.accentBlue,
                           decoration: InputDecoration(
                             border: InputBorder.none,
                             hintText: l10n.libraryFilterHint,
-                            hintStyle: const TextStyle(
-                              color: MacosColors.mutedGrey,
-                            ),
+                            hintStyle: TextStyle(color: colors.mutedGrey),
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -175,10 +164,8 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                   ? const _EmptyLibraryState()
                   : ListView.separated(
                       itemCount: tracks.length,
-                      separatorBuilder: (context, _) => const Divider(
-                        color: MacosColors.innerDivider,
-                        height: 1,
-                      ),
+                      separatorBuilder: (context, _) =>
+                          Divider(color: colors.innerDivider, height: 1),
                       itemBuilder: (context, index) {
                         final track = tracks[index];
                         final metadata =
@@ -207,7 +194,7 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   widget.importState.message,
-                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  style: TextStyle(color: colors.mutedGrey, fontSize: 13),
                 ),
               ),
           ],
@@ -249,33 +236,34 @@ class _TrackRowViewState extends State<TrackRowView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     final menuTheme = Theme.of(context).copyWith(
       popupMenuTheme: PopupMenuThemeData(
-        color: MacosColors.menuBackground,
+        color: colors.menuBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: const TextStyle(color: Colors.white, fontSize: 13),
+        textStyle: TextStyle(color: colors.heading, fontSize: 13),
       ),
       dividerTheme: DividerThemeData(
         color: Colors.black.withValues(alpha: 0.5),
         thickness: 1,
         space: 6,
       ),
-      hoverColor: MacosColors.accentHover.withValues(alpha: 0.35),
-      highlightColor: MacosColors.accentBlue.withValues(alpha: 0.25),
+      hoverColor: colors.accentHover.withValues(alpha: 0.35),
+      highlightColor: colors.accentBlue.withValues(alpha: 0.25),
       splashColor: Colors.transparent,
     );
 
     final infoStyle = TextStyle(
-      color: Colors.grey.shade500,
+      color: colors.mutedGrey,
       fontSize: 12,
       fontWeight: FontWeight.w300,
       letterSpacing: 0.6,
     );
 
     final backgroundColor = widget.isSelected
-        ? MacosColors.navSelectedBackground.withValues(alpha: 0.85)
+        ? colors.navSelectedBackground.withValues(alpha: 0.85)
         : _isHovered
-        ? MacosColors.menuBackground.withValues(alpha: 0.8)
+        ? colors.menuBackground.withValues(alpha: 0.8)
         : Colors.transparent;
 
     return Theme(
@@ -293,7 +281,7 @@ class _TrackRowViewState extends State<TrackRowView> {
           final action = await showMenu<String>(
             context: context,
             position: position,
-            color: MacosColors.menuBackground,
+            color: colors.menuBackground,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -302,20 +290,20 @@ class _TrackRowViewState extends State<TrackRowView> {
                 value: 'playlist',
                 enabled: widget.playlists.isNotEmpty,
                 height: 30,
-                textStyle: const TextStyle(color: Colors.white),
+                textStyle: TextStyle(color: colors.heading),
                 child: Text(
                   l10n.libraryContextAddToPlaylist,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: colors.heading),
                 ),
               ),
               const PopupMenuDivider(height: 6),
               PopupMenuItem<String>(
                 value: 'detail',
                 height: 30,
-                textStyle: const TextStyle(color: Colors.white),
+                textStyle: TextStyle(color: colors.heading),
                 child: Text(
                   l10n.libraryContextDetails,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: colors.heading),
                 ),
               ),
               const PopupMenuDivider(height: 6),
@@ -358,8 +346,8 @@ class _TrackRowViewState extends State<TrackRowView> {
                   flex: 3,
                   child: Text(
                     widget.metadata.title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: colors.heading,
                       fontSize: 13,
                       fontWeight: FontWeight.w400,
                     ),
@@ -391,33 +379,36 @@ class _TrackRowViewState extends State<TrackRowView> {
     final l10n = AppLocalizations.of(context)!;
     return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: MacosColors.menuBackground,
-        title: Text(
-          l10n.libraryContextAddToPlaylist,
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: SizedBox(
-          width: 280,
-          height: maxHeight,
-          child: ListView.builder(
-            itemCount: widget.playlists.length,
-            itemBuilder: (context, index) {
-              final name = widget.playlists[index];
-              return ListTile(
-                title: Text(name, style: const TextStyle(color: Colors.white)),
-                onTap: () => Navigator.of(context).pop(name),
-              );
-            },
+      builder: (context) {
+        final colors = context.macosColors;
+        return AlertDialog(
+          backgroundColor: colors.menuBackground,
+          title: Text(
+            l10n.libraryContextAddToPlaylist,
+            style: TextStyle(color: colors.heading),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.commonCancel),
+          content: SizedBox(
+            width: 280,
+            height: maxHeight,
+            child: ListView.builder(
+              itemCount: widget.playlists.length,
+              itemBuilder: (context, index) {
+                final name = widget.playlists[index];
+                return ListTile(
+                  title: Text(name, style: TextStyle(color: colors.heading)),
+                  onTap: () => Navigator.of(context).pop(name),
+                );
+              },
+            ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.commonCancel),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -430,11 +421,12 @@ class _SourceSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Wrap(
       spacing: 12,
       runSpacing: 12,
       children: counts.entries.map((entry) {
-        final color = _sourceColor(entry.key);
+        final color = _sourceColor(colors, entry.key);
         return Container(
           width: 180,
           padding: const EdgeInsets.all(16),
@@ -448,8 +440,8 @@ class _SourceSummary extends StatelessWidget {
             children: [
               Text(
                 _sourceLabel(entry.key, l10n),
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: colors.heading,
                   fontWeight: FontWeight.w500,
                   fontSize: 15,
                 ),
@@ -457,7 +449,7 @@ class _SourceSummary extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 l10n.librarySourceSummaryCount(entry.value),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(color: colors.mutedGrey, fontSize: 12),
               ),
             ],
           ),
@@ -474,7 +466,8 @@ class _SourceBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _sourceColor(type);
+    final colors = context.macosColors;
+    final color = _sourceColor(colors, type);
     final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -485,7 +478,7 @@ class _SourceBadge extends StatelessWidget {
       ),
       child: Text(
         _sourceLabel(type, l10n),
-        style: const TextStyle(color: Colors.white, fontSize: 11),
+        style: TextStyle(color: colors.heading, fontSize: 11),
       ),
     );
   }
@@ -500,14 +493,15 @@ class _ImportStatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: MacosColors.miniPlayerBackground,
+        color: colors.miniPlayerBackground,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: MacosColors.innerDivider),
+        border: Border.all(color: colors.innerDivider),
       ),
       child: Row(
         children: [
@@ -517,15 +511,13 @@ class _ImportStatusBar extends StatelessWidget {
               children: [
                 Text(
                   state.message,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  style: TextStyle(color: colors.heading, fontSize: 13),
                 ),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: state.progress,
-                  backgroundColor: Colors.white12,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    MacosColors.accentBlue,
-                  ),
+                  backgroundColor: colors.innerDivider,
+                  valueColor: AlwaysStoppedAnimation<Color>(colors.accentBlue),
                 ),
               ],
             ),
@@ -550,23 +542,24 @@ class _EmptyLibraryState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Container(
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.library_music, size: 64, color: Colors.white24),
+          Icon(Icons.library_music, size: 64, color: colors.innerDivider),
           const SizedBox(height: 12),
           Text(
             l10n.libraryEmptyPrimary,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            style: TextStyle(color: colors.mutedGrey, fontSize: 14),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             l10n.libraryEmptySecondary,
-            style: const TextStyle(color: Colors.white54, fontSize: 13),
+            style: TextStyle(color: colors.secondaryGrey, fontSize: 13),
             textAlign: TextAlign.center,
           ),
         ],
@@ -575,13 +568,14 @@ class _EmptyLibraryState extends StatelessWidget {
   }
 }
 
-Color _sourceColor(LibrarySourceType type) => switch (type) {
-  LibrarySourceType.local => MacosColors.accentBlue,
-  LibrarySourceType.samba => Colors.orangeAccent.shade200,
-  LibrarySourceType.webdav => Colors.tealAccent.shade200,
-  LibrarySourceType.ftp => Colors.purpleAccent.shade200,
-  LibrarySourceType.sftp => Colors.indigoAccent.shade200,
-};
+Color _sourceColor(MacosColors colors, LibrarySourceType type) =>
+    switch (type) {
+      LibrarySourceType.local => colors.accentBlue,
+      LibrarySourceType.samba => Colors.orangeAccent.shade200,
+      LibrarySourceType.webdav => Colors.tealAccent.shade200,
+      LibrarySourceType.ftp => Colors.purpleAccent.shade200,
+      LibrarySourceType.sftp => Colors.indigoAccent.shade200,
+    };
 
 String _sourceLabel(LibrarySourceType type, AppLocalizations l10n) =>
     switch (type) {

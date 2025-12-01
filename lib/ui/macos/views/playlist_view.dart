@@ -71,6 +71,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     final query = _searchController.text.toLowerCase();
     final entries = widget.entries.where((entry) {
       if (query.isEmpty) return true;
@@ -81,7 +82,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
     }).toList();
 
     return Container(
-      color: MacosColors.contentBackground,
+      color: colors.contentBackground,
       padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,8 +92,8 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
               Expanded(
                 child: Text(
                   widget.playlistName,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: colors.heading,
                     fontSize: 28,
                     fontWeight: FontWeight.w600,
                   ),
@@ -106,15 +107,13 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: MacosColors.navSelectedBackground.withValues(
-                    alpha: 0.25,
-                  ),
+                  color: colors.navSelectedBackground.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: MacosColors.aiCardBorder),
+                  border: Border.all(color: colors.aiCardBorder),
                 ),
                 child: Text(
                   l10n.playlistTrackCount(widget.entries.length),
-                  style: const TextStyle(color: Colors.white70),
+                  style: TextStyle(color: colors.mutedGrey),
                 ),
               ),
               const Spacer(),
@@ -123,33 +122,24 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                 width: 200,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2A),
+                  color: colors.sidebar,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: MacosColors.innerDivider),
+                  border: Border.all(color: colors.innerDivider),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.search,
-                      size: 16,
-                      color: MacosColors.iconGrey,
-                    ),
+                    Icon(Icons.search, size: 16, color: colors.iconGrey),
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
                         controller: _searchController,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                        ),
-                        cursorColor: MacosColors.accentBlue,
+                        style: TextStyle(color: colors.heading, fontSize: 13),
+                        cursorColor: colors.accentBlue,
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           hintText: l10n.libraryFilterHint,
-                          hintStyle: const TextStyle(
-                            color: MacosColors.mutedGrey,
-                          ),
+                          hintStyle: TextStyle(color: colors.mutedGrey),
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
                         ),
@@ -164,14 +154,14 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                 message: l10n.playlistMoveSelectionUp,
                 child: IconButton(
                   onPressed: widget.onMoveSelectionUp,
-                  icon: const Icon(Icons.arrow_upward, color: Colors.white70),
+                  icon: Icon(Icons.arrow_upward, color: colors.mutedGrey),
                 ),
               ),
               Tooltip(
                 message: l10n.playlistMoveSelectionDown,
                 child: IconButton(
                   onPressed: widget.onMoveSelectionDown,
-                  icon: const Icon(Icons.arrow_downward, color: Colors.white70),
+                  icon: Icon(Icons.arrow_downward, color: colors.mutedGrey),
                 ),
               ),
               const SizedBox(width: 8),
@@ -180,8 +170,8 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                 icon: const Icon(Icons.add),
                 label: Text(l10n.playlistAddButton),
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: MacosColors.navSelectedBackground,
+                  foregroundColor: colors.heading,
+                  backgroundColor: colors.navSelectedBackground,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -198,7 +188,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                 label: Text(l10n.playlistPlayAll),
                 style: FilledButton.styleFrom(
                   foregroundColor: Colors.white,
-                  backgroundColor: MacosColors.accentBlue,
+                  backgroundColor: colors.accentBlue,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -227,17 +217,15 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: _isDropping
-                        ? MacosColors.accentBlue
-                        : MacosColors.innerDivider,
+                        ? colors.accentBlue
+                        : colors.innerDivider,
                   ),
-                  color: _isDropping
-                      ? MacosColors.accentHover
-                      : Colors.transparent,
+                  color: _isDropping ? colors.accentHover : Colors.transparent,
                 ),
                 child: ListView.separated(
                   itemCount: entries.length,
                   separatorBuilder: (context, _) =>
-                      const Divider(color: MacosColors.innerDivider, height: 1),
+                      Divider(color: colors.innerDivider, height: 1),
                   itemBuilder: (context, index) {
                     final entry = entries[index];
                     final isSelected = widget.selectedIndices.contains(index);
@@ -310,6 +298,7 @@ class _PlaylistRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final metadata = entry.metadata;
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onSelect,
@@ -323,7 +312,7 @@ class _PlaylistRow extends StatelessWidget {
             details.globalPosition.dx,
             details.globalPosition.dy,
           ),
-          color: MacosColors.menuBackground,
+          color: colors.menuBackground,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -333,7 +322,7 @@ class _PlaylistRow extends StatelessWidget {
               height: 30,
               child: Text(
                 l10n.playlistContextPlay,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: colors.heading),
               ),
             ),
             const PopupMenuDivider(height: 6),
@@ -342,7 +331,7 @@ class _PlaylistRow extends StatelessWidget {
               height: 30,
               child: Text(
                 l10n.libraryContextDetails,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: colors.heading),
               ),
             ),
             const PopupMenuDivider(height: 6),
@@ -366,14 +355,14 @@ class _PlaylistRow extends StatelessWidget {
           final confirm = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
-              backgroundColor: MacosColors.menuBackground,
+              backgroundColor: colors.menuBackground,
               title: Text(
                 l10n.playlistRemoveTrackTitle,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: colors.heading),
               ),
               content: Text(
                 l10n.playlistRemoveTrackMessage,
-                style: const TextStyle(color: Colors.white70),
+                style: TextStyle(color: colors.mutedGrey),
               ),
               actions: [
                 TextButton(
@@ -397,11 +386,9 @@ class _PlaylistRow extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: _backgroundColor(),
+          color: _backgroundColor(context),
           border: isPlaying
-              ? const Border(
-                  left: BorderSide(color: MacosColors.accentBlue, width: 3),
-                )
+              ? Border(left: BorderSide(color: colors.accentBlue, width: 3))
               : null,
         ),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
@@ -412,7 +399,7 @@ class _PlaylistRow extends StatelessWidget {
               child: Text(
                 '${index + 1}'.padLeft(2, '0'),
                 style: TextStyle(
-                  color: Colors.grey.shade500,
+                  color: colors.mutedGrey,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -433,8 +420,8 @@ class _PlaylistRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isMissing
-                          ? Colors.white.withValues(alpha: 0.25)
-                          : Colors.white,
+                          ? colors.heading.withValues(alpha: 0.25)
+                          : colors.heading,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -444,8 +431,8 @@ class _PlaylistRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isMissing
-                          ? Colors.white.withValues(alpha: 0.25)
-                          : Colors.grey.shade500,
+                          ? colors.mutedGrey.withValues(alpha: 0.25)
+                          : colors.mutedGrey,
                       fontSize: 13,
                       fontWeight: FontWeight.w300,
                     ),
@@ -460,8 +447,8 @@ class _PlaylistRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: isMissing
-                      ? Colors.white.withValues(alpha: 0.25)
-                      : Colors.white70,
+                      ? colors.mutedGrey.withValues(alpha: 0.25)
+                      : colors.mutedGrey,
                   fontWeight: FontWeight.w300,
                 ),
               ),
@@ -472,19 +459,19 @@ class _PlaylistRow extends StatelessWidget {
                 metadata.extras['Duration'] ?? '--:--',
                 style: TextStyle(
                   color: isMissing
-                      ? Colors.white.withValues(alpha: 0.25)
-                      : Colors.white70,
+                      ? colors.mutedGrey.withValues(alpha: 0.25)
+                      : colors.mutedGrey,
                   fontSize: 13,
                   fontWeight: FontWeight.w300,
                 ),
               ),
             ),
             if (isPlaying)
-              const Padding(
-                padding: EdgeInsets.only(left: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
                 child: Icon(
                   Icons.equalizer,
-                  color: MacosColors.accentBlue,
+                  color: colors.accentBlue,
                   size: 18,
                 ),
               ),
@@ -494,15 +481,16 @@ class _PlaylistRow extends StatelessWidget {
     );
   }
 
-  Color? _backgroundColor() {
+  Color? _backgroundColor(BuildContext context) {
+    final colors = context.macosColors;
     if (isPlaying) {
-      return MacosColors.navSelectedBackground.withValues(alpha: 0.4);
+      return colors.navSelectedBackground.withValues(alpha: 0.4);
     }
     if (isSelected) {
-      return MacosColors.navSelectedBackground.withValues(alpha: 0.3);
+      return colors.navSelectedBackground.withValues(alpha: 0.3);
     }
     if (isHovered) {
-      return MacosColors.accentHover;
+      return colors.accentHover;
     }
     if (isMissing) {
       return null;
@@ -524,6 +512,7 @@ class _ArtworkTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return SizedBox(
       width: 44,
       height: 44,
@@ -535,8 +524,8 @@ class _ArtworkTile extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: MacosColors.innerDivider),
-              color: const Color(0xFF1B1B1B),
+              border: Border.all(color: colors.innerDivider),
+              color: colors.background,
               image: bytes != null
                   ? DecorationImage(
                       image: MemoryImage(bytes!),
@@ -545,7 +534,7 @@ class _ArtworkTile extends StatelessWidget {
                   : null,
             ),
             child: bytes == null
-                ? const Icon(Icons.music_note, color: Colors.white30, size: 20)
+                ? Icon(Icons.music_note, color: colors.mutedGrey, size: 20)
                 : null,
           ),
           // 下载进度遮罩和圆环
@@ -564,8 +553,8 @@ class _ArtworkTile extends StatelessWidget {
                       value: downloadProgress,
                       strokeWidth: 3,
                       backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        MacosColors.accentBlue,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colors.accentBlue,
                       ),
                     ),
                   ),
@@ -584,6 +573,7 @@ class _PlaylistHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
@@ -592,7 +582,7 @@ class _PlaylistHeader extends StatelessWidget {
             width: 36,
             child: Text(
               l10n.playlistColumnNumber,
-              style: const TextStyle(color: Colors.white54),
+              style: TextStyle(color: colors.mutedGrey),
             ),
           ),
           const SizedBox(width: 12),
@@ -600,21 +590,21 @@ class _PlaylistHeader extends StatelessWidget {
             flex: 4,
             child: Text(
               l10n.metadataFieldTitle,
-              style: const TextStyle(color: Colors.white54),
+              style: TextStyle(color: colors.mutedGrey),
             ),
           ),
           Expanded(
             flex: 3,
             child: Text(
               l10n.metadataFieldAlbum,
-              style: const TextStyle(color: Colors.white54),
+              style: TextStyle(color: colors.mutedGrey),
             ),
           ),
           SizedBox(
             width: 60,
             child: Text(
               l10n.metadataFieldDuration,
-              style: const TextStyle(color: Colors.white54),
+              style: TextStyle(color: colors.mutedGrey),
             ),
           ),
         ],

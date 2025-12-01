@@ -21,6 +21,8 @@ import '../../core/playback/playback_helper.dart';
 import '../../core/storage/playlist_storage.dart';
 import '../../core/storage/library_storage.dart';
 import '../../core/storage/liteagent_config_storage.dart';
+import '../../core/theme/app_theme_mode.dart';
+import '../../core/theme/theme_controller.dart';
 import 'macos_colors.dart';
 import 'models/media_models.dart';
 import 'models/nav_section.dart';
@@ -38,10 +40,12 @@ class MacosPlayerScreen extends StatefulWidget {
     super.key,
     required this.controller,
     required this.localeController,
+    required this.themeController,
   });
 
   final AudioController controller;
   final LocaleController localeController;
+  final ThemeController themeController;
 
   @override
   State<MacosPlayerScreen> createState() => _MacosPlayerScreenState();
@@ -79,6 +83,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   bool _bitPerfectBusy = false;
   late final FavoritesController _favoritesController;
   late AppLanguage _languagePreference;
+  late AppThemePreference _themePreference;
 
   final tracks = [
     const TrackRow(
@@ -137,6 +142,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     widget.localeController.preference.addListener(
       _onLanguagePreferenceChanged,
     );
+    _themePreference = widget.themeController.currentPreference;
+    widget.themeController.preference.addListener(_onThemePreferenceChanged);
   }
 
   @override
@@ -145,6 +152,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     widget.localeController.preference.removeListener(
       _onLanguagePreferenceChanged,
     );
+    widget.themeController.preference.removeListener(_onThemePreferenceChanged);
     _favoritesController.dispose();
     _playlistNameController.dispose();
     _keyboardFocusNode.dispose();
@@ -472,30 +480,33 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     final l10n = AppLocalizations.of(context)!;
     final shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: MacosColors.menuBackground,
-        title: Text(
-          l10n.libraryRemoveTrackTitle(track.title),
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          l10n.libraryRemoveTrackMessage,
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.commonCancel),
+      builder: (dialogContext) {
+        final colors = dialogContext.macosColors;
+        return AlertDialog(
+          backgroundColor: colors.menuBackground,
+          title: Text(
+            l10n.libraryRemoveTrackTitle(track.title),
+            style: TextStyle(color: colors.heading),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              l10n.commonRemove,
-              style: const TextStyle(color: Colors.redAccent),
+          content: Text(
+            l10n.libraryRemoveTrackMessage,
+            style: TextStyle(color: colors.mutedGrey),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.commonCancel),
             ),
-          ),
-        ],
-      ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(
+                l10n.commonRemove,
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            ),
+          ],
+        );
+      },
     );
     if (shouldDelete == true) {
       await _deleteLibraryTrack(track);
@@ -644,7 +655,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         position.dx,
         position.dy,
       ),
-      color: MacosColors.menuBackground,
+      color: context.macosColors.menuBackground,
       items: [
         PopupMenuItem<String>(
           value: 'remove',
@@ -659,30 +670,33 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     if (result == 'remove') {
       final confirm = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: MacosColors.menuBackground,
-          title: Text(
-            l10n.playlistRemoveTitle,
-            style: const TextStyle(color: Colors.white),
-          ),
-          content: Text(
-            l10n.playlistRemoveMessage(playlists[index]),
-            style: const TextStyle(color: Colors.white70),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l10n.commonCancel),
+        builder: (dialogContext) {
+          final colors = dialogContext.macosColors;
+          return AlertDialog(
+            backgroundColor: colors.menuBackground,
+            title: Text(
+              l10n.playlistRemoveTitle,
+              style: TextStyle(color: colors.heading),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(
-                l10n.commonRemove,
-                style: const TextStyle(color: Colors.redAccent),
+            content: Text(
+              l10n.playlistRemoveMessage(playlists[index]),
+              style: TextStyle(color: colors.mutedGrey),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(l10n.commonCancel),
               ),
-            ),
-          ],
-        ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(
+                  l10n.commonRemove,
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
+              ),
+            ],
+          );
+        },
       );
       if (!mounted) return;
       if (confirm == true) {
@@ -1055,32 +1069,35 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     final l10n = AppLocalizations.of(context)!;
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: MacosColors.menuBackground,
-        title: Text(
-          l10n.playbackErrorTitle,
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: SelectableText(
-            message,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+      builder: (dialogContext) {
+        final colors = dialogContext.macosColors;
+        return AlertDialog(
+          backgroundColor: colors.menuBackground,
+          title: Text(
+            l10n.playbackErrorTitle,
+            style: TextStyle(color: colors.heading),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: message));
-            },
-            child: Text(l10n.playbackCopyError),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: SelectableText(
+              message,
+              style: TextStyle(color: colors.mutedGrey, fontSize: 13),
+            ),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.commonClose),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: message));
+              },
+              child: Text(l10n.playbackCopyError),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.commonClose),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1183,6 +1200,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           onToggleBitPerfect: _handleBitPerfectToggle,
           selectedLanguage: _languagePreference,
           onLanguageChanged: _handleLanguagePreferenceChanged,
+          selectedTheme: _themePreference,
+          onThemeChanged: _handleThemePreferenceChanged,
         );
     }
   }
@@ -1200,6 +1219,21 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       _languagePreference = language;
     });
     unawaited(widget.localeController.setPreference(language));
+  }
+
+  void _onThemePreferenceChanged() {
+    final preference = widget.themeController.currentPreference;
+    if (!mounted || preference == _themePreference) return;
+    setState(() {
+      _themePreference = preference;
+    });
+  }
+
+  void _handleThemePreferenceChanged(AppThemePreference preference) {
+    setState(() {
+      _themePreference = preference;
+    });
+    unawaited(widget.themeController.setPreference(preference));
   }
 
   Future<void> _handleBitPerfectToggle(bool value) async {
@@ -1236,22 +1270,28 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: MacosColors.menuBackground,
-        title: Text(l10n.settingsBitPerfectUnavailableTitle),
-        content: Text(
-          description.isNotEmpty
-              ? description
-              : l10n.settingsBitPerfectUnavailableMessage,
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.commonClose),
+      builder: (dialogContext) {
+        final colors = dialogContext.macosColors;
+        return AlertDialog(
+          backgroundColor: colors.menuBackground,
+          title: Text(
+            l10n.settingsBitPerfectUnavailableTitle,
+            style: TextStyle(color: colors.heading),
           ),
-        ],
-      ),
+          content: Text(
+            description.isNotEmpty
+                ? description
+                : l10n.settingsBitPerfectUnavailableMessage,
+            style: TextStyle(color: colors.mutedGrey),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.commonClose),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1272,52 +1312,55 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     ];
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: MacosColors.menuBackground,
-        title: Text(
-          l10n.metadataDialogTitle,
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: SizedBox(
-          width: 360,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: entries
-                .map(
-                  (entry) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _metadataLabel(entry.key, l10n),
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 12,
+      builder: (dialogContext) {
+        final colors = dialogContext.macosColors;
+        return AlertDialog(
+          backgroundColor: colors.menuBackground,
+          title: Text(
+            l10n.metadataDialogTitle,
+            style: TextStyle(color: colors.heading),
+          ),
+          content: SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: entries
+                  .map(
+                    (entry) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _metadataLabel(entry.key, l10n),
+                            style: TextStyle(
+                              color: colors.mutedGrey,
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
-                        Text(
-                          entry.value,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
+                          Text(
+                            entry.value,
+                            style: TextStyle(
+                              color: colors.heading,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                )
-                .toList(),
+                  )
+                  .toList(),
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.commonClose),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.commonClose),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1492,7 +1535,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           }
         },
         child: Scaffold(
-          backgroundColor: MacosColors.background,
+          backgroundColor: context.macosColors.background,
           body: Column(
             children: [
               Expanded(
@@ -1510,12 +1553,15 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
                       onAddPlaylist: _addPlaylist,
                       onPlaylistContextMenu: _showPlaylistContextMenu,
                     ),
-                    const VerticalDivider(width: 1, color: MacosColors.divider),
+                    VerticalDivider(
+                      width: 1,
+                      color: context.macosColors.divider,
+                    ),
                     Expanded(child: _buildContent()),
                   ],
                 ),
               ),
-              const Divider(height: 1, color: MacosColors.divider),
+              Divider(height: 1, color: context.macosColors.divider),
               MacosMiniPlayer(
                 controller: widget.controller,
                 favoritesController: _favoritesController,

@@ -29,7 +29,7 @@ class _RemoteConfigDialog extends StatefulWidget {
 
 class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
   final _formKey = GlobalKey<FormState>();
-  
+
   late ProtocolType _selectedProtocol;
   late TextEditingController _nameController;
   late TextEditingController _hostController;
@@ -37,7 +37,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
   late TextEditingController _usernameController;
   late TextEditingController _passwordController;
   late TextEditingController _remotePathController;
-  
+
   bool _isTesting = false;
   bool _isSaving = false;
   String? _testMessage;
@@ -46,7 +46,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
   @override
   void initState() {
     super.initState();
-    
+
     final config = widget.existingConfig;
     _selectedProtocol = config?.type ?? ProtocolType.samba;
     _nameController = TextEditingController(text: config?.name ?? '');
@@ -56,7 +56,9 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
     );
     _usernameController = TextEditingController(text: config?.username ?? '');
     _passwordController = TextEditingController(text: config?.password ?? '');
-    _remotePathController = TextEditingController(text: config?.remotePath ?? '');
+    _remotePathController = TextEditingController(
+      text: config?.remotePath ?? '',
+    );
   }
 
   @override
@@ -72,11 +74,14 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return AlertDialog(
-      backgroundColor: MacosColors.menuBackground,
+      backgroundColor: colors.menuBackground,
       title: Text(
-        widget.existingConfig == null ? 'Add Remote Mount' : 'Edit Remote Mount',
-        style: const TextStyle(color: Colors.white, fontSize: 18),
+        widget.existingConfig == null
+            ? 'Add Remote Mount'
+            : 'Edit Remote Mount',
+        style: TextStyle(color: colors.heading, fontSize: 18),
       ),
       content: SizedBox(
         width: 560,
@@ -123,7 +128,9 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                         controller: _portController,
                         label: 'Port',
                         keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter port';
@@ -174,8 +181,12 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                     child: Row(
                       children: [
                         Icon(
-                          _testSuccess == true ? Icons.check_circle : Icons.error,
-                          color: _testSuccess == true ? Colors.green : Colors.red,
+                          _testSuccess == true
+                              ? Icons.check_circle
+                              : Icons.error,
+                          color: _testSuccess == true
+                              ? Colors.green
+                              : Colors.red,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -183,7 +194,9 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                           child: Text(
                             _testMessage!,
                             style: TextStyle(
-                              color: _testSuccess == true ? Colors.green : Colors.red,
+                              color: _testSuccess == true
+                                  ? Colors.green
+                                  : Colors.red,
                               fontSize: 13,
                             ),
                           ),
@@ -199,7 +212,9 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _isTesting || _isSaving ? null : () => Navigator.of(context).pop(),
+          onPressed: _isTesting || _isSaving
+              ? null
+              : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         TextButton.icon(
@@ -222,19 +237,23 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
   }
 
   Widget _buildProtocolSelector() {
+    final colors = context.macosColors;
     return InputDecorator(
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Protocol Type',
-        labelStyle: TextStyle(color: Colors.white70),
+        labelStyle: TextStyle(color: colors.mutedGrey),
         enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white24),
+          borderSide: BorderSide(color: colors.innerDivider),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: colors.accentBlue),
         ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<ProtocolType>(
           value: _selectedProtocol,
-          dropdownColor: MacosColors.menuBackground,
-          iconEnabledColor: Colors.white,
+          dropdownColor: colors.menuBackground,
+          iconEnabledColor: colors.heading,
           onChanged: widget.existingConfig != null
               ? null // Protocol type cannot be changed in edit mode
               : (value) {
@@ -250,7 +269,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                   value: type,
                   child: Text(
                     '${type.displayName} · ${type.description}',
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: colors.heading),
                   ),
                 ),
               )
@@ -269,23 +288,24 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
     List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
+    final colors = context.macosColors;
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       validator: validator,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: colors.heading),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        labelStyle: const TextStyle(color: Colors.white70),
-        hintStyle: const TextStyle(color: Colors.white38),
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white24),
+        labelStyle: TextStyle(color: colors.mutedGrey),
+        hintStyle: TextStyle(color: colors.secondaryGrey),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: colors.innerDivider),
         ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: MacosColors.accentBlue),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: colors.accentBlue),
         ),
         errorBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: Colors.red),
@@ -309,9 +329,9 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
     try {
       final config = _buildConfig();
       final client = RemoteFileClientFactory.create(config);
-      
+
       final connected = await client.connect();
-      
+
       setState(() {
         _isTesting = false;
         if (connected) {
@@ -322,7 +342,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
           _testSuccess = false;
         }
       });
-      
+
       await client.disconnect();
     } catch (e) {
       setState(() {
@@ -341,30 +361,36 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
     try {
       final config = _buildConfig();
       await ConfigManager().saveConfig(config);
-      
+
       if (mounted) {
         Navigator.of(context).pop(config);
       }
     } catch (e) {
       setState(() => _isSaving = false);
-      
+
       if (mounted) {
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: MacosColors.menuBackground,
-            title: const Text('Save Failed', style: TextStyle(color: Colors.white)),
-            content: Text(
-              'Unable to save configuration: ${e.toString()}',
-              style: const TextStyle(color: Colors.white70),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
+          builder: (dialogContext) {
+            final colors = dialogContext.macosColors;
+            return AlertDialog(
+              backgroundColor: colors.menuBackground,
+              title: Text(
+                'Save Failed',
+                style: TextStyle(color: colors.heading),
               ),
-            ],
-          ),
+              content: Text(
+                'Unable to save configuration: ${e.toString()}',
+                style: TextStyle(color: colors.mutedGrey),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
         );
       }
     }
@@ -372,14 +398,22 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
 
   ConnectionConfig _buildConfig() {
     return ConnectionConfig(
-      id: widget.existingConfig?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id:
+          widget.existingConfig?.id ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
       type: _selectedProtocol,
       name: _nameController.text.trim(),
       host: _hostController.text.trim(),
       port: int.parse(_portController.text.trim()),
-      username: _usernameController.text.trim().isEmpty ? null : _usernameController.text.trim(),
-      password: _passwordController.text.isEmpty ? null : _passwordController.text,
-      remotePath: _remotePathController.text.trim().isEmpty ? null : _remotePathController.text.trim(),
+      username: _usernameController.text.trim().isEmpty
+          ? null
+          : _usernameController.text.trim(),
+      password: _passwordController.text.isEmpty
+          ? null
+          : _passwordController.text,
+      remotePath: _remotePathController.text.trim().isEmpty
+          ? null
+          : _remotePathController.text.trim(),
       createdAt: widget.existingConfig?.createdAt,
     );
   }

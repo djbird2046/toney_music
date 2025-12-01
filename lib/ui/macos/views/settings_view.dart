@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:toney_music/l10n/app_localizations.dart';
 
-import '../macos_colors.dart';
 import '../../../core/localization/app_language.dart';
+import '../../../core/theme/app_theme_mode.dart';
+import '../macos_colors.dart';
 
 class MacosSettingsView extends StatelessWidget {
   const MacosSettingsView({
@@ -12,6 +13,8 @@ class MacosSettingsView extends StatelessWidget {
     required this.onToggleBitPerfect,
     required this.selectedLanguage,
     required this.onLanguageChanged,
+    required this.selectedTheme,
+    required this.onThemeChanged,
   });
 
   final bool bitPerfectEnabled;
@@ -19,12 +22,15 @@ class MacosSettingsView extends StatelessWidget {
   final ValueChanged<bool> onToggleBitPerfect;
   final AppLanguage selectedLanguage;
   final ValueChanged<AppLanguage> onLanguageChanged;
+  final AppThemePreference selectedTheme;
+  final ValueChanged<AppThemePreference> onThemeChanged;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Container(
-      color: MacosColors.contentBackground,
+      color: colors.contentBackground,
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       child: ListView(
         children: [
@@ -40,7 +46,20 @@ class MacosSettingsView extends StatelessWidget {
               english: l10n.settingsLanguageEnglishOption,
             ),
           ),
-          const Divider(color: MacosColors.innerDivider),
+          Divider(color: colors.innerDivider),
+          _SettingsHeader(l10n.settingsAppearanceHeader),
+          _ThemeRow(
+            title: l10n.settingsThemeLabel,
+            description: l10n.settingsThemeDescription,
+            value: selectedTheme,
+            onChanged: onThemeChanged,
+            labels: _ThemeLabels(
+              system: l10n.settingsThemeSystemOption,
+              light: l10n.settingsThemeLightOption,
+              dark: l10n.settingsThemeDarkOption,
+            ),
+          ),
+          Divider(color: colors.innerDivider),
           _SettingsHeader(l10n.settingsPlaybackHeader),
           _ToggleRow(
             title: l10n.settingsBitPerfectTitle,
@@ -54,7 +73,7 @@ class MacosSettingsView extends StatelessWidget {
             subtitle: l10n.settingsAutoSampleRateSubtitle,
             value: true,
           ),
-          const Divider(color: MacosColors.innerDivider),
+          Divider(color: colors.innerDivider),
           _SettingsHeader(l10n.settingsLibraryHeader),
           _ToggleRow(
             title: l10n.settingsWatchMusicFolderTitle,
@@ -79,12 +98,13 @@ class _SettingsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 12),
       child: Text(
         label,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: colors.heading,
           fontSize: 16,
           fontWeight: FontWeight.w400,
         ),
@@ -110,29 +130,28 @@ class _ToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return SwitchListTile.adaptive(
       contentPadding: EdgeInsets.zero,
       value: value,
       onChanged: onChanged == null || isBusy ? null : onChanged,
       title: Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w400,
-        ),
+        style: TextStyle(color: colors.heading, fontWeight: FontWeight.w400),
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
-          color: Colors.grey.shade500,
-          fontWeight: FontWeight.w300,
-        ),
+        style: TextStyle(color: colors.mutedGrey, fontWeight: FontWeight.w300),
       ),
+      activeColor: colors.accentBlue,
       secondary: isBusy
-          ? const SizedBox(
+          ? SizedBox(
               height: 20,
               width: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(colors.accentBlue),
+              ),
             )
           : null,
     );
@@ -168,27 +187,22 @@ class _LanguageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w400,
-        ),
+        style: TextStyle(color: colors.heading, fontWeight: FontWeight.w400),
       ),
       subtitle: Text(
         description,
-        style: TextStyle(
-          color: Colors.grey.shade500,
-          fontWeight: FontWeight.w300,
-        ),
+        style: TextStyle(color: colors.mutedGrey, fontWeight: FontWeight.w300),
       ),
       trailing: DropdownButton<AppLanguage>(
         value: value,
-        dropdownColor: MacosColors.sidebar,
+        dropdownColor: colors.sidebar,
         borderRadius: BorderRadius.circular(8),
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: colors.heading),
         onChanged: (selection) {
           if (selection != null) {
             onChanged(selection);
@@ -206,6 +220,75 @@ class _LanguageRow extends StatelessWidget {
           DropdownMenuItem(
             value: AppLanguage.english,
             child: Text(labels.english),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ThemeLabels {
+  const _ThemeLabels({
+    required this.system,
+    required this.light,
+    required this.dark,
+  });
+
+  final String system;
+  final String light;
+  final String dark;
+}
+
+class _ThemeRow extends StatelessWidget {
+  const _ThemeRow({
+    required this.title,
+    required this.description,
+    required this.value,
+    required this.onChanged,
+    required this.labels,
+  });
+
+  final String title;
+  final String description;
+  final AppThemePreference value;
+  final ValueChanged<AppThemePreference> onChanged;
+  final _ThemeLabels labels;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.macosColors;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        title,
+        style: TextStyle(color: colors.heading, fontWeight: FontWeight.w400),
+      ),
+      subtitle: Text(
+        description,
+        style: TextStyle(color: colors.mutedGrey, fontWeight: FontWeight.w300),
+      ),
+      trailing: DropdownButton<AppThemePreference>(
+        value: value,
+        dropdownColor: colors.sidebar,
+        borderRadius: BorderRadius.circular(8),
+        style: TextStyle(color: colors.heading),
+        onChanged: (selection) {
+          if (selection != null) {
+            onChanged(selection);
+          }
+        },
+        items: [
+          DropdownMenuItem(
+            value: AppThemePreference.system,
+            child: Text(labels.system),
+          ),
+          DropdownMenuItem(
+            value: AppThemePreference.light,
+            child: Text(labels.light),
+          ),
+          DropdownMenuItem(
+            value: AppThemePreference.dark,
+            child: Text(labels.dark),
           ),
         ],
       ),

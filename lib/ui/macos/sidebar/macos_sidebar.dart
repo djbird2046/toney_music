@@ -33,9 +33,10 @@ class MacosSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Container(
       width: 200,
-      color: MacosColors.sidebar,
+      color: colors.sidebar,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -47,8 +48,8 @@ class MacosSidebar extends StatelessWidget {
                 const SizedBox(width: 12),
                 Text(
                   l10n.sidebarAppName,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: colors.heading,
                     fontSize: 24,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.8,
@@ -127,6 +128,7 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Material(
@@ -135,7 +137,7 @@ class _NavButton extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
-          hoverColor: MacosColors.accentHover,
+          hoverColor: colors.accentHover,
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
           child: Container(
@@ -143,15 +145,15 @@ class _NavButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: isSelected
-                  ? MacosColors.navSelectedBackground
+                  ? colors.navSelectedBackground
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               boxShadow: isSelected
-                  ? const [
+                  ? [
                       BoxShadow(
-                        color: MacosColors.navSelectedShadow,
+                        color: colors.navSelectedShadow,
                         blurRadius: 8,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ]
                   : null,
@@ -163,8 +165,8 @@ class _NavButton extends StatelessWidget {
                     icon,
                     size: 20,
                     color: isSelected
-                        ? MacosColors.accentBlue
-                        : MacosColors.secondaryGrey,
+                        ? colors.accentBlue
+                        : colors.secondaryGrey,
                   ),
                   const SizedBox(width: 12),
                 ],
@@ -172,8 +174,8 @@ class _NavButton extends StatelessWidget {
                   label,
                   style: TextStyle(
                     color: isSelected
-                        ? MacosColors.accentBlue
-                        : MacosColors.secondaryGrey,
+                        ? colors.accentBlue
+                        : colors.secondaryGrey,
                     fontSize: 15,
                     fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
                     letterSpacing: 0.4,
@@ -223,6 +225,7 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.macosColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -238,13 +241,13 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                     Icon(
                       expanded ? Icons.expand_more : Icons.chevron_right,
                       size: 16,
-                      color: MacosColors.mutedGrey,
+                      color: colors.mutedGrey,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       l10n.sidebarPlaylists,
-                      style: const TextStyle(
-                        color: MacosColors.sectionLabel,
+                      style: TextStyle(
+                        color: colors.sectionLabel,
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         letterSpacing: 0.6,
@@ -254,11 +257,7 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                 ),
               ),
               IconButton(
-                icon: const Icon(
-                  Icons.add,
-                  size: 16,
-                  color: MacosColors.mutedGrey,
-                ),
+                icon: Icon(Icons.add, size: 16, color: colors.mutedGrey),
                 onPressed: widget.onAddPlaylist,
                 padding: EdgeInsets.zero,
                 splashRadius: 16,
@@ -283,9 +282,9 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: MacosColors.renameBackground,
+                      color: colors.renameBackground,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: MacosColors.renameBorder),
+                      border: Border.all(color: colors.renameBorder),
                     ),
                     child: TextField(
                       controller: widget.renameController,
@@ -295,14 +294,12 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                         widget.onRenameSubmit();
                         expanded = true;
                       },
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      style: TextStyle(color: colors.heading, fontSize: 14),
                       decoration: InputDecoration(
                         isDense: true,
                         border: InputBorder.none,
                         hintText: l10n.sidebarRenamePlaylistHint,
-                        hintStyle: const TextStyle(
-                          color: MacosColors.mutedGrey,
-                        ),
+                        hintStyle: TextStyle(color: colors.mutedGrey),
                       ),
                     ),
                   );
@@ -332,7 +329,7 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                           );
                         },
                         borderRadius: BorderRadius.circular(10),
-                        hoverColor: MacosColors.accentHover,
+                        hoverColor: colors.accentHover,
                         splashColor: Colors.transparent,
                         highlightColor: Colors.transparent,
                         child: Container(
@@ -344,7 +341,7 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? MacosColors.navSelectedBackground
+                                ? colors.navSelectedBackground
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -354,8 +351,8 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                               widget.playlists[index],
                               style: TextStyle(
                                 color: isSelected
-                                    ? MacosColors.accentBlue
-                                    : MacosColors.tertiaryGrey,
+                                    ? colors.accentBlue
+                                    : colors.tertiaryGrey,
                                 fontSize: 13,
                                 fontWeight: isSelected
                                     ? FontWeight.w400
