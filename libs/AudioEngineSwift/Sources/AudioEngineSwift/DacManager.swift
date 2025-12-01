@@ -2,6 +2,9 @@ import Foundation
 import CoreAudio
 import AudioToolbox
 import Darwin
+#if canImport(AppKit)
+import AppKit
+#endif
 
 struct AudioDeviceInfo {
     let id: AudioDeviceID
@@ -15,7 +18,29 @@ struct AudioDeviceInfo {
 enum DacManagerError: Error {
     case deviceNotFound
     case propertyError(OSStatus, String)
-    case deviceBusy
+    case deviceBusy(pid_t?, String?)
+}
+
+extension DacManagerError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .deviceNotFound:
+            return "Audio device not found"
+        case .propertyError(let status, let op):
+            return "\(op) failed (status: \(status))"
+        case .deviceBusy(let pid, let name):
+            if let name = name {
+                if let pid = pid, pid > 0 {
+                    return "\(name) (PID \(pid))"
+                }
+                return name
+            }
+            if let pid = pid, pid > 0 {
+                return "PID \(pid)"
+            }
+            return "another application"
+        }
+    }
 }
 
 final class DacManager {
@@ -95,39 +120,34 @@ final class DacManager {
 
     func acquireHogMode(_ id: AudioDeviceID) throws {
         try queue.sync {
-            var pid = pid_t(0)
+            var ownerPID = pid_t(0)
             var address = AudioObjectPropertyAddress(
                 mSelector: kAudioDevicePropertyHogMode,
                 mScope: kAudioObjectPropertyScopeGlobal,
                 mElement: kAudioObjectPropertyElementMain
             )
-            var size = UInt32(MemoryLayout.size(ofValue: pid))
+            var size = UInt32(MemoryLayout.size(ofValue: ownerPID))
             try checkStatus(AudioObjectGetPropertyData(id,
                                                        &address,
                                                        0,
                                                        nil,
                                                        &size,
-                                                       &pid),
+                                                       &ownerPID),
                             operation: "Read hog mode")
-            if pid != 0 && pid != getpid() {
-                // Check if the holding process is still alive
-                let killResult = kill(pid, 0)
-                let killErrno = errno
-                print("[DacManager] Hogged by PID: \(pid), MyPID: \(getpid()), kill(\(pid), 0) returned \(killResult), errno: \(killErrno)")
 
-                if killResult == 0 || killErrno != ESRCH {
-                    throw DacManagerError.deviceBusy
-                }
-                print("[DacManager] PID \(pid) seems dead (ESRCH), stealing hog mode.")
-            }
             var newPID = getpid()
-            try checkStatus(AudioObjectSetPropertyData(id,
-                                                       &address,
-                                                       0,
-                                                       nil,
-                                                       UInt32(MemoryLayout.size(ofValue: newPID)),
-                                                       &newPID),
-                            operation: "Acquire hog mode")
+            let status = AudioObjectSetPropertyData(id,
+                                                    &address,
+                                                    0,
+                                                    nil,
+                                                    UInt32(MemoryLayout.size(ofValue: newPID)),
+                                                    &newPID)
+            if status == kAudioHardwareIllegalOperationError {
+                let blockingPID = ownerPID != 0 && ownerPID != getpid() ? ownerPID : nil
+                let ownerName = blockingPID.flatMap { resolveProcessName(for: $0) }
+                throw DacManagerError.deviceBusy(blockingPID, ownerName)
+            }
+            try checkStatus(status, operation: "Acquire hog mode")
         }
     }
 
@@ -359,5 +379,23 @@ final class DacManager {
 
     private func checkStatus(_ status: OSStatus, operation: String) throws {
         guard status == noErr else { throw DacManagerError.propertyError(status, operation) }
+    }
+
+    private func resolveProcessName(for pid: pid_t) -> String? {
+        #if canImport(AppKit)
+        if let app = NSRunningApplication(processIdentifier: pid) {
+            return app.localizedName
+        }
+        #endif
+        var pathBuffer = [CChar](repeating: 0, count: Int(PATH_MAX))
+        let result = proc_pidpath(pid, &pathBuffer, UInt32(pathBuffer.count))
+        if result > 0 {
+            let path = String(cString: pathBuffer)
+            if let name = path.split(separator: "/").last {
+                return String(name)
+            }
+            return path
+        }
+        return nil
     }
 }

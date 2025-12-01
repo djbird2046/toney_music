@@ -623,7 +623,7 @@ final class AudioEngine {
             try dac.acquireHogMode(targetDevice)
             try? dac.releaseHogMode(targetDevice)
         } catch {
-            throw AudioEngineError.bitPerfectUnavailable("Exclusive access denied: \(error.localizedDescription)")
+            throw AudioEngineError.bitPerfectUnavailable(exclusiveAccessErrorMessage(for: error))
         }
     }
 
@@ -745,7 +745,7 @@ final class AudioEngine {
             hoggedDevice = targetDevice
         } catch {
             if bitPerfectModeEnabled {
-                throw AudioEngineError.bitPerfectUnavailable("Exclusive access denied: \(error.localizedDescription)")
+                throw AudioEngineError.bitPerfectUnavailable(exclusiveAccessErrorMessage(for: error))
             }
             logger.warning("Hog mode unavailable: \(error.localizedDescription, privacy: .public). Fallback to shared mode.")
         }
@@ -829,6 +829,23 @@ final class AudioEngine {
             logger.error("Failed to release hog mode: \(error.localizedDescription, privacy: .public)")
         }
         hoggedDevice = kAudioObjectUnknown
+    }
+
+    private func exclusiveAccessErrorMessage(for error: Error) -> String {
+        if let dacError = error as? DacManagerError,
+           case let .deviceBusy(pid, processName) = dacError {
+            if let name = processName {
+                if let pid = pid, pid > 0 {
+                    return "Exclusive access denied. \(name) (PID \(pid)) is currently using this output device. Quit it and try again."
+                }
+                return "Exclusive access denied. \(name) is currently using this output device. Quit it and try again."
+            }
+            if let pid = pid, pid > 0 {
+                return "Exclusive access denied. Another process (PID \(pid)) is using this output device."
+            }
+            return "Exclusive access denied. Another application is currently using this output device."
+        }
+        return "Exclusive access denied: \(error.localizedDescription)"
     }
 
     private func startMonitoringDefaultDeviceChanges() {
