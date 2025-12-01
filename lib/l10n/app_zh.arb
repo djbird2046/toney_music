@@ -1,0 +1,187 @@
+{
+  "@@locale": "zh",
+  "macosAppTitle": "Toney（macOS）",
+  "iosAppTitle": "Toney iOS",
+  "unsupportedPlatform": "不支持的平台：{platform}",
+  "languageSystemDefault": "跟随系统",
+  "languageSimplifiedChinese": "简体中文",
+  "languageEnglish": "英文",
+  "settingsLanguageLabel": "语言",
+  "settingsPlaybackHeader": "播放",
+  "settingsLibraryHeader": "曲库",
+  "settingsBitPerfectTitle": "比特完美模式",
+  "settingsBitPerfectSubtitle": "绕过系统 DSP，直接输出到 CoreAudio",
+  "settingsAutoSampleRateTitle": "自动切换采样率",
+  "settingsAutoSampleRateSubtitle": "根据音源文件采样率调整输出",
+  "settingsWatchMusicFolderTitle": "监听音乐文件夹",
+  "settingsWatchMusicFolderSubtitle": "自动导入 ~/Music 中的新文件",
+  "settingsEnableAiTaggingTitle": "启用 AI 标签",
+  "settingsEnableAiTaggingSubtitle": "将指纹发送给本地模型",
+  "settingsLanguageSystemOption": "跟随系统",
+  "settingsLanguageChineseOption": "简体中文",
+  "settingsLanguageEnglishOption": "英文",
+  "settingsLanguageDescription": "选择界面语言",
+  "settingsBitPerfectUnavailableTitle": "无法切换比特完美模式",
+  "settingsBitPerfectUnavailableMessage": "暂时无法更新比特完美模式，请稍后再试。",
+  "commonClose": "关闭",
+  "commonCancel": "取消",
+  "commonRemove": "移除",
+  "commonDelete": "删除",
+  "sidebarAppName": "Toney",
+  "sidebarMusicAi": "音乐 AI",
+  "sidebarFavorites": "收藏",
+  "sidebarLibrary": "曲库",
+  "sidebarSettings": "设置",
+  "sidebarPlaylists": "播放列表",
+  "sidebarRenamePlaylistHint": "重命名播放列表"
+
+  ,"libraryTitle": "曲库",
+  "libraryEmptySubtitle": "尚未导入任何曲目",
+  "libraryTrackCount": "共 {count} 首曲目",
+  "@libraryTrackCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "libraryFilterHint": "筛选",
+  "libraryAddSources": "添加来源",
+  "libraryContextAddToPlaylist": "添加到播放列表",
+  "libraryContextDetails": "详情",
+  "librarySourceSummaryCount": "{count} 首曲目",
+  "@librarySourceSummaryCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "libraryStopImport": "停止",
+  "libraryEmptyPrimary": "从本地磁盘、云盘、Samba、WebDAV 或 NFS 导入音频。",
+  "libraryEmptySecondary": "将文件夹拖入窗口，Toney 会递归筛选可播放的文件。",
+  "librarySourceLocal": "本地",
+  "librarySourceSamba": "Samba",
+  "librarySourceWebdav": "WebDAV",
+  "librarySourceFtp": "FTP",
+  "librarySourceSftp": "SFTP",
+  "libraryUnknownArtist": "未知艺术家",
+  "libraryUnknownAlbum": "未知专辑",
+  "libraryUnknownValue": "未知",
+  "libraryScanningLocations": "正在扫描 {count} 个位置…",
+  "@libraryScanningLocations": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "libraryNoAudioFound": "没有找到可播放的音频文件",
+  "libraryAlreadyImported": "选中的文件已全部在曲库中",
+  "libraryImportProgress": "正在导入 {processed} / {total}",
+  "@libraryImportProgress": {
+    "placeholders": {
+      "processed": {},
+      "total": {}
+    }
+  },
+  "libraryImportProgressSkipped": "正在导入 {processed} / {total}（部分已跳过）",
+  "@libraryImportProgressSkipped": {
+    "placeholders": {
+      "processed": {},
+      "total": {}
+    }
+  },
+  "libraryImportCancelled": "已添加 {count} 首曲目后取消导入",
+  "@libraryImportCancelled": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "libraryImportComplete": "已导入 {count} / {total} 首曲目",
+  "@libraryImportComplete": {
+    "placeholders": {
+      "count": {},
+      "total": {}
+    }
+  },
+  "libraryStoppingImport": "正在停止导入…",
+  "libraryRemoveTrackTitle": "移除“{title}”？",
+  "@libraryRemoveTrackTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "libraryRemoveTrackMessage": "此操作只会从曲库列表移除，磁盘上的文件不会被删除。",
+  "playlistRemoveTitle": "删除播放列表？",
+  "playlistRemoveMessage": "此操作将删除播放列表“{name}”。",
+  "@playlistRemoveMessage": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "playlistNewName": "新的播放列表",
+  "fileTypeAudio": "音频",
+  "playbackErrorTitle": "无法播放曲目",
+  "playbackCopyError": "复制错误",
+  "metadataDialogTitle": "曲目信息",
+  "metadataFieldTitle": "标题",
+  "metadataFieldArtist": "艺术家",
+  "metadataFieldAlbum": "专辑",
+  "metadataFieldPath": "路径",
+  "metadataFieldDuration": "时长",
+  "menuControl": "控制",
+  "menuPlayPause": "播放/暂停",
+  "menuNext": "下一首",
+  "menuPrevious": "上一首",
+  "menuIncreaseVolume": "提高音量",
+  "menuDecreaseVolume": "降低音量",
+  "menuMode": "播放模式",
+  "menuSequence": "顺序播放",
+  "menuLoop": "循环播放",
+  "menuSingle": "单曲循环",
+  "menuShuffle": "随机播放",
+  "menuWindow": "窗口",
+  "playlistTrackCount": "{count} 首曲目",
+  "@playlistTrackCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "playlistMoveSelectionUp": "上移选中项",
+  "playlistMoveSelectionDown": "下移选中项",
+  "playlistAddButton": "添加",
+  "playlistPlayAll": "全部播放",
+  "playlistContextPlay": "播放",
+  "playlistRemoveTrackTitle": "删除曲目？",
+  "playlistRemoveTrackMessage": "该曲目将从播放列表移除。",
+  "playlistColumnNumber": "序号",
+  "favoritesTitle": "收藏",
+  "favoritesEmptyState": "暂无收藏歌曲",
+  "favoritesUnknownTitle": "未知标题",
+  "favoritesUnknownArtist": "未知艺术家",
+  "favoritesUnknownAlbum": "未知专辑",
+  "musicAiChatButton": "AI 对话",
+  "musicAiTabForYou": "为你推荐",
+  "musicAiTabChat": "跟我说",
+  "musicAiTabConfig": "配置 AI",
+  "musicAiLoading": "正在连接...",
+  "musicAiNewSession": "新的会话",
+  "musicAiError": "发生错误：{message}",
+  "@musicAiError": {
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "musicAiMessagePlaceholder": "输入你的问题...",
+  "musicAiSessionInitializing": "正在初始化会话...",
+  "musicAiExtendedInfo": "扩展信息",
+  "iosPlayerTitle": "iOS 播放器",
+  "iosAudioPathPlaceholder": "音频文件路径",
+  "iosLoadButton": "加载",
+  "iosSeekPlaceholder": "跳转位置（毫秒）",
+  "iosSeekButton": "跳转",
+  "iosStatusLabel": "状态：{message}",
+  "@iosStatusLabel": {
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "iosEnterFilePath": "请先输入文件路径",
+  "iosEnterValidPosition": "请输入有效的整数位置",
+  "commonOk": "好的"
+}

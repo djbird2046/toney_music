@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
+import 'package:toney_music/l10n/app_localizations.dart';
 
 import '../../../core/model/song_metadata.dart';
 import '../macos_colors.dart';
@@ -69,6 +70,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final query = _searchController.text.toLowerCase();
     final entries = widget.entries.where((entry) {
       if (query.isEmpty) return true;
@@ -111,7 +113,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                   border: Border.all(color: MacosColors.aiCardBorder),
                 ),
                 child: Text(
-                  '${widget.entries.length} tracks',
+                  l10n.playlistTrackCount(widget.entries.length),
                   style: const TextStyle(color: Colors.white70),
                 ),
               ),
@@ -128,17 +130,26 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Row(
                   children: [
-                    const Icon(Icons.search, size: 16, color: MacosColors.iconGrey),
+                    const Icon(
+                      Icons.search,
+                      size: 16,
+                      color: MacosColors.iconGrey,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
                         controller: _searchController,
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
                         cursorColor: MacosColors.accentBlue,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: InputBorder.none,
-                          hintText: 'Filter',
-                          hintStyle: TextStyle(color: MacosColors.mutedGrey),
+                          hintText: l10n.libraryFilterHint,
+                          hintStyle: const TextStyle(
+                            color: MacosColors.mutedGrey,
+                          ),
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
                         ),
@@ -150,14 +161,14 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
               const SizedBox(width: 8),
 
               Tooltip(
-                message: 'Move selection up',
+                message: l10n.playlistMoveSelectionUp,
                 child: IconButton(
                   onPressed: widget.onMoveSelectionUp,
                   icon: const Icon(Icons.arrow_upward, color: Colors.white70),
                 ),
               ),
               Tooltip(
-                message: 'Move selection down',
+                message: l10n.playlistMoveSelectionDown,
                 child: IconButton(
                   onPressed: widget.onMoveSelectionDown,
                   icon: const Icon(Icons.arrow_downward, color: Colors.white70),
@@ -167,7 +178,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
               TextButton.icon(
                 onPressed: widget.onAddTracks,
                 icon: const Icon(Icons.add),
-                label: const Text('Add'),
+                label: Text(l10n.playlistAddButton),
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor: MacosColors.navSelectedBackground,
@@ -184,7 +195,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                   }
                 },
                 icon: const Icon(Icons.play_arrow),
-                label: const Text('Play All'),
+                label: Text(l10n.playlistPlayAll),
                 style: FilledButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor: MacosColors.accentBlue,
@@ -196,7 +207,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
             ],
           ),
           const SizedBox(height: 24),
-          const _PlaylistHeader(),
+          _PlaylistHeader(),
           Expanded(
             child: DropTarget(
               onDragEntered: (_) => setState(() => _isDropping = true),
@@ -266,7 +277,6 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
   }
 }
 
-
 class _PlaylistRow extends StatelessWidget {
   const _PlaylistRow({
     required this.index,
@@ -299,6 +309,7 @@ class _PlaylistRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final metadata = entry.metadata;
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onSelect,
@@ -316,24 +327,33 @@ class _PlaylistRow extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
-          items: const [
+          items: [
             PopupMenuItem<String>(
               value: 'play',
               height: 30,
-              child: Text('Play', style: TextStyle(color: Colors.white)),
+              child: Text(
+                l10n.playlistContextPlay,
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
-            PopupMenuDivider(height: 6),
+            const PopupMenuDivider(height: 6),
             PopupMenuItem<String>(
               value: 'detail',
               height: 30,
-              child: Text('Details', style: TextStyle(color: Colors.white)),
+              child: Text(
+                l10n.libraryContextDetails,
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
-            PopupMenuDivider(height: 6),
+            const PopupMenuDivider(height: 6),
             PopupMenuItem<String>(
               value: 'delete',
               height: 30,
-              textStyle: TextStyle(color: Colors.redAccent),
-              child: Text('Delete', style: TextStyle(color: Colors.redAccent)),
+              textStyle: const TextStyle(color: Colors.redAccent),
+              child: Text(
+                l10n.commonDelete,
+                style: const TextStyle(color: Colors.redAccent),
+              ),
             ),
           ],
         );
@@ -347,24 +367,24 @@ class _PlaylistRow extends StatelessWidget {
             context: context,
             builder: (context) => AlertDialog(
               backgroundColor: MacosColors.menuBackground,
-              title: const Text(
-                'Remove track?',
-                style: TextStyle(color: Colors.white),
+              title: Text(
+                l10n.playlistRemoveTrackTitle,
+                style: const TextStyle(color: Colors.white),
               ),
-              content: const Text(
-                'This song will be removed from the playlist.',
-                style: TextStyle(color: Colors.white70),
+              content: Text(
+                l10n.playlistRemoveTrackMessage,
+                style: const TextStyle(color: Colors.white70),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.commonCancel),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text(
-                    'Delete',
-                    style: TextStyle(color: Colors.redAccent),
+                  child: Text(
+                    l10n.commonDelete,
+                    style: const TextStyle(color: Colors.redAccent),
                   ),
                 ),
               ],
@@ -563,26 +583,39 @@ class _PlaylistHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
-        children: const [
+        children: [
           SizedBox(
             width: 36,
-            child: Text('No.', style: TextStyle(color: Colors.white54)),
+            child: Text(
+              l10n.playlistColumnNumber,
+              style: const TextStyle(color: Colors.white54),
+            ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             flex: 4,
-            child: Text('Title', style: TextStyle(color: Colors.white54)),
+            child: Text(
+              l10n.metadataFieldTitle,
+              style: const TextStyle(color: Colors.white54),
+            ),
           ),
           Expanded(
             flex: 3,
-            child: Text('Album', style: TextStyle(color: Colors.white54)),
+            child: Text(
+              l10n.metadataFieldAlbum,
+              style: const TextStyle(color: Colors.white54),
+            ),
           ),
           SizedBox(
             width: 60,
-            child: Text('Duration', style: TextStyle(color: Colors.white54)),
+            child: Text(
+              l10n.metadataFieldDuration,
+              style: const TextStyle(color: Colors.white54),
+            ),
           ),
         ],
       ),

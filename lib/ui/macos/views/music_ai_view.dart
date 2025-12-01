@@ -1,6 +1,7 @@
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:toney_music/l10n/app_localizations.dart';
 import 'package:toney_music/core/agent/app_tool.dart';
 import 'package:toney_music/core/agent/app_util.dart';
 import 'package:toney_music/core/audio_controller.dart';
@@ -84,6 +85,7 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       color: MacosColors.contentBackground,
       padding: const EdgeInsets.all(28),
@@ -99,10 +101,11 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
   }
 
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
         Text(
-          _getHeaderTitle(),
+          _getHeaderTitle(l10n),
           style: const TextStyle(
             color: Colors.white,
             fontSize: 28,
@@ -124,7 +127,7 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
               });
             },
             icon: const Icon(Icons.auto_awesome, size: 16),
-            label: const Text('AI Chat'),
+            label: Text(l10n.musicAiChatButton),
             style: FilledButton.styleFrom(
               foregroundColor: Colors.white,
               backgroundColor: MacosColors.accentBlue,
@@ -137,16 +140,16 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
     );
   }
 
-  String _getHeaderTitle() {
+  String _getHeaderTitle(AppLocalizations l10n) {
     switch (_contentState) {
       case _AiContentState.forYou:
-        return 'For You';
+        return l10n.musicAiTabForYou;
       case _AiContentState.chat:
-        return 'Tell Me';
+        return l10n.musicAiTabChat;
       case _AiContentState.config:
-        return 'Configure AI';
+        return l10n.musicAiTabConfig;
       case _AiContentState.loading:
-        return 'Connecting...';
+        return l10n.musicAiLoading;
     }
   }
 
@@ -173,13 +176,14 @@ class _ForYouContent extends StatelessWidget {
   final List<PlaylistEntry> entries;
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         FilledButton.icon(
           onPressed: () {},
           icon: const Icon(Icons.play_arrow),
-          label: const Text('Play All'),
+          label: Text(l10n.playlistPlayAll),
           style: FilledButton.styleFrom(
             foregroundColor: Colors.white,
             backgroundColor: MacosColors.accentBlue,
@@ -224,17 +228,17 @@ class _ChatViewState extends State<_ChatView> {
 
   Future<void> _loadHistory() async {
     await _chatHistoryStorage.init();
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _messages.addAll(_chatHistoryStorage.loadHistory());
       _messages.add(
         ChatMessage(
-          text: 'New Session',
+          text: l10n.musicAiNewSession,
           sender: Sender.system,
           timestamp: DateTime.now(),
         ),
       );
     });
-    await _scrollToBottomAfterLayout();
   }
 
   Future<void> _initializeAgent() async {
@@ -279,7 +283,6 @@ class _ChatViewState extends State<_ChatView> {
               _chatHistoryStorage.updateMessage(newMessage);
             }
           });
-          _scrollToBottomAfterLayout();
         }
       },
       onTextChunk: (messageId, chunk) {
@@ -299,7 +302,6 @@ class _ChatViewState extends State<_ChatView> {
               _chatHistoryStorage.updateMessage(newMessage);
             }
           });
-          _scrollToBottomAfterLayout();
         }
       },
       onExtension: (messageId, extension) {},
@@ -310,9 +312,10 @@ class _ChatViewState extends State<_ChatView> {
         });
       },
       onErrorCallback: (e) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
           final message = ChatMessage(
-            text: 'An error occurred: $e',
+            text: l10n.musicAiError('$e'),
             sender: Sender.ai,
             timestamp: DateTime.now(),
           );
@@ -321,23 +324,12 @@ class _ChatViewState extends State<_ChatView> {
           _isResponding = false;
           _respondingMessageId = null;
         });
-        _scrollToBottomAfterLayout();
       },
     );
     await _liteAgentUtil.initSession();
     setState(() {
       _isSessionInitialized = true;
     });
-  }
-
-  Future<void> _scrollToBottomAfterLayout() async {
-    if (!mounted) return;
-    await Future.delayed(Duration.zero);
-    await WidgetsBinding.instance.endOfFrame;
-
-    if (!_scrollController.hasClients) return;
-    final position = _scrollController.position;
-    position.jumpTo(position.maxScrollExtent);
   }
 
   @override
@@ -354,10 +346,12 @@ class _ChatViewState extends State<_ChatView> {
         Expanded(
           child: ListView.builder(
             controller: _scrollController,
+            reverse: true,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: _messages.length,
             itemBuilder: (context, index) {
-              return _ChatMessageBubble(message: _messages[index]);
+              final message = _messages[_messages.length - 1 - index];
+              return _ChatMessageBubble(message: message);
             },
           ),
         ),
@@ -368,6 +362,7 @@ class _ChatViewState extends State<_ChatView> {
   }
 
   Widget _buildInputArea() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(12.0),
       child: Row(
@@ -379,8 +374,8 @@ class _ChatViewState extends State<_ChatView> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: _isSessionInitialized
-                    ? 'Type your message...'
-                    : 'Initializing session...',
+                    ? l10n.musicAiMessagePlaceholder
+                    : l10n.musicAiSessionInitializing,
                 hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -439,7 +434,6 @@ class _ChatViewState extends State<_ChatView> {
       _isResponding = true;
     });
     _textController.clear();
-    _scrollToBottomAfterLayout();
 
     _liteAgentUtil.chat(userTask);
   }
@@ -580,6 +574,7 @@ class _ExtensionViewState extends State<_ExtensionView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: 400,
       decoration: BoxDecoration(
@@ -596,9 +591,9 @@ class _ExtensionViewState extends State<_ExtensionView> {
         initiallyExpanded: _isExpanded,
         collapsedIconColor: Colors.grey,
         iconColor: Colors.white,
-        title: const Text(
-          'Extended Information',
-          style: TextStyle(
+        title: Text(
+          l10n.musicAiExtendedInfo,
+          style: const TextStyle(
             color: Colors.white70,
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -668,7 +663,7 @@ class _ForYouPlaylist extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const _PlaylistHeader(),
+        _PlaylistHeader(),
         Expanded(
           child: ListView.separated(
             itemCount: entries.length,
@@ -921,26 +916,39 @@ class _PlaylistHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
-        children: const [
+        children: [
           SizedBox(
             width: 36,
-            child: Text('No.', style: TextStyle(color: Colors.white54)),
+            child: Text(
+              l10n.playlistColumnNumber,
+              style: const TextStyle(color: Colors.white54),
+            ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             flex: 4,
-            child: Text('Title', style: TextStyle(color: Colors.white54)),
+            child: Text(
+              l10n.metadataFieldTitle,
+              style: const TextStyle(color: Colors.white54),
+            ),
           ),
           Expanded(
             flex: 3,
-            child: Text('Album', style: TextStyle(color: Colors.white54)),
+            child: Text(
+              l10n.metadataFieldAlbum,
+              style: const TextStyle(color: Colors.white54),
+            ),
           ),
           SizedBox(
             width: 60,
-            child: Text('Duration', style: TextStyle(color: Colors.white54)),
+            child: Text(
+              l10n.metadataFieldDuration,
+              style: const TextStyle(color: Colors.white54),
+            ),
           ),
         ],
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:toney_music/l10n/app_localizations.dart';
 
 import '../macos_colors.dart';
 import '../models/nav_section.dart';
@@ -31,8 +32,9 @@ class MacosSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
-            width: 200,
+      width: 200,
       color: MacosColors.sidebar,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,15 +43,11 @@ class MacosSidebar extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 40, 16, 16),
             child: Row(
               children: [
-                Image.asset(
-                  'assets/images/logo.png',
-                  width: 36,
-                  height: 36,
-                ),
+                Image.asset('assets/images/logo.png', width: 36, height: 36),
                 const SizedBox(width: 12),
-                const Text(
-                  'Toney',
-                  style: TextStyle(
+                Text(
+                  l10n.sidebarAppName,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.w500,
@@ -67,7 +65,7 @@ class MacosSidebar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _NavButton(
-                    label: 'Music AI',
+                    label: l10n.sidebarMusicAi,
                     icon: Icons.auto_awesome,
                     isSelected: selectedSection == NavSection.musicAI,
                     onTap: () => onSelectSection(NavSection.musicAI),
@@ -87,19 +85,19 @@ class MacosSidebar extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   _NavButton(
-                    label: 'Favorites',
+                    label: l10n.sidebarFavorites,
                     icon: Icons.favorite_border,
                     isSelected: selectedSection == NavSection.favorites,
                     onTap: () => onSelectSection(NavSection.favorites),
                   ),
                   _NavButton(
-                    label: 'Library',
+                    label: l10n.sidebarLibrary,
                     icon: Icons.library_music_outlined,
                     isSelected: selectedSection == NavSection.library,
                     onTap: () => onSelectSection(NavSection.library),
                   ),
                   _NavButton(
-                    label: 'Settings',
+                    label: l10n.sidebarSettings,
                     icon: Icons.settings_outlined,
                     isSelected: selectedSection == NavSection.settings,
                     onTap: () => onSelectSection(NavSection.settings),
@@ -224,6 +222,7 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -242,9 +241,9 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                       color: MacosColors.mutedGrey,
                     ),
                     const SizedBox(width: 4),
-                    const Text(
-                      'Playlists',
-                      style: TextStyle(
+                    Text(
+                      l10n.sidebarPlaylists,
+                      style: const TextStyle(
                         color: MacosColors.sectionLabel,
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
@@ -297,11 +296,13 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                         expanded = true;
                       },
                       style: const TextStyle(color: Colors.white, fontSize: 14),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         isDense: true,
                         border: InputBorder.none,
-                        hintText: 'Rename playlist',
-                        hintStyle: TextStyle(color: MacosColors.mutedGrey),
+                        hintText: l10n.sidebarRenamePlaylistHint,
+                        hintStyle: const TextStyle(
+                          color: MacosColors.mutedGrey,
+                        ),
                       ),
                     ),
                   );

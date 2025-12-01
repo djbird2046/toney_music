@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:toney_music/l10n/app_localizations.dart';
 
 import '../../../core/model/song_metadata.dart';
 import '../macos_colors.dart';
@@ -69,12 +70,13 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final sourceCounts = _sourceCounts();
     final query = _searchController.text.toLowerCase();
     final tracks = widget.tracks.where((track) {
       if (query.isEmpty) return true;
       final metadata =
-          widget.metadataByPath[track.path] ?? _fallbackMetadata(track);
+          widget.metadataByPath[track.path] ?? _fallbackMetadata(track, l10n);
       return metadata.title.toLowerCase().contains(query) ||
           metadata.artist.toLowerCase().contains(query) ||
           metadata.album.toLowerCase().contains(query);
@@ -94,9 +96,9 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Library',
-                      style: TextStyle(
+                    Text(
+                      l10n.libraryTitle,
+                      style: const TextStyle(
                         color: MacosColors.heading,
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
@@ -105,8 +107,8 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                     const SizedBox(height: 4),
                     Text(
                       isEmpty
-                          ? 'No tracks have been imported'
-                          : 'Total ${tracks.length} tracks',
+                          ? l10n.libraryEmptySubtitle
+                          : l10n.libraryTrackCount(tracks.length),
                       style: const TextStyle(
                         color: Colors.white54,
                         fontSize: 13,
@@ -127,17 +129,26 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Row(
                     children: [
-                      const Icon(Icons.search, size: 16, color: MacosColors.iconGrey),
+                      const Icon(
+                        Icons.search,
+                        size: 16,
+                        color: MacosColors.iconGrey,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: _searchController,
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                          ),
                           cursorColor: MacosColors.accentBlue,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             border: InputBorder.none,
-                            hintText: 'Filter',
-                            hintStyle: TextStyle(color: MacosColors.mutedGrey),
+                            hintText: l10n.libraryFilterHint,
+                            hintStyle: const TextStyle(
+                              color: MacosColors.mutedGrey,
+                            ),
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -148,9 +159,11 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                 ),
                 const SizedBox(width: 8),
                 FilledButton.icon(
-                  onPressed: widget.importState.isActive ? null : widget.onAddLibrarySource,
+                  onPressed: widget.importState.isActive
+                      ? null
+                      : widget.onAddLibrarySource,
                   icon: const Icon(Icons.library_add),
-                  label: const Text('Add Sources'),
+                  label: Text(l10n.libraryAddSources),
                 ),
               ],
             ),
@@ -170,7 +183,7 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                         final track = tracks[index];
                         final metadata =
                             widget.metadataByPath[track.path] ??
-                            _fallbackMetadata(track);
+                            _fallbackMetadata(track, l10n);
                         return TrackRowView(
                           track: track,
                           metadata: metadata,
@@ -185,7 +198,10 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
                     ),
             ),
             if (widget.importState.isActive)
-              _ImportStatusBar(state: widget.importState, onCancel: widget.onCancelImport)
+              _ImportStatusBar(
+                state: widget.importState,
+                onCancel: widget.onCancelImport,
+              )
             else if (widget.importState.hasStatus)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
@@ -232,6 +248,7 @@ class _TrackRowViewState extends State<TrackRowView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final menuTheme = Theme.of(context).copyWith(
       popupMenuTheme: PopupMenuThemeData(
         color: MacosColors.menuBackground,
@@ -286,9 +303,9 @@ class _TrackRowViewState extends State<TrackRowView> {
                 enabled: widget.playlists.isNotEmpty,
                 height: 30,
                 textStyle: const TextStyle(color: Colors.white),
-                child: const Text(
-                  'Add to Playlist',
-                  style: TextStyle(color: Colors.white),
+                child: Text(
+                  l10n.libraryContextAddToPlaylist,
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
               const PopupMenuDivider(height: 6),
@@ -296,9 +313,9 @@ class _TrackRowViewState extends State<TrackRowView> {
                 value: 'detail',
                 height: 30,
                 textStyle: const TextStyle(color: Colors.white),
-                child: const Text(
-                  'Details',
-                  style: TextStyle(color: Colors.white),
+                child: Text(
+                  l10n.libraryContextDetails,
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
               const PopupMenuDivider(height: 6),
@@ -306,9 +323,9 @@ class _TrackRowViewState extends State<TrackRowView> {
                 value: 'delete',
                 height: 30,
                 textStyle: const TextStyle(color: Colors.redAccent),
-                child: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.redAccent),
+                child: Text(
+                  l10n.commonDelete,
+                  style: const TextStyle(color: Colors.redAccent),
                 ),
               ),
             ],
@@ -371,13 +388,14 @@ class _TrackRowViewState extends State<TrackRowView> {
   Future<String?> _pickPlaylist(BuildContext context) async {
     if (widget.playlists.isEmpty) return null;
     final maxHeight = math.min(320.0, widget.playlists.length * 48.0 + 8);
+    final l10n = AppLocalizations.of(context)!;
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: MacosColors.menuBackground,
-        title: const Text(
-          'Add to playlist',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          l10n.libraryContextAddToPlaylist,
+          style: const TextStyle(color: Colors.white),
         ),
         content: SizedBox(
           width: 280,
@@ -396,7 +414,7 @@ class _TrackRowViewState extends State<TrackRowView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
         ],
       ),
@@ -411,6 +429,7 @@ class _SourceSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -428,7 +447,7 @@ class _SourceSummary extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                entry.key.label,
+                _sourceLabel(entry.key, l10n),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
@@ -437,7 +456,7 @@ class _SourceSummary extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '${entry.value} tracks',
+                l10n.librarySourceSummaryCount(entry.value),
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
@@ -456,6 +475,7 @@ class _SourceBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _sourceColor(type);
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -464,7 +484,7 @@ class _SourceBadge extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
-        type.label,
+        _sourceLabel(type, l10n),
         style: const TextStyle(color: Colors.white, fontSize: 11),
       ),
     );
@@ -479,6 +499,7 @@ class _ImportStatusBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 12),
@@ -514,7 +535,7 @@ class _ImportStatusBar extends StatelessWidget {
             TextButton.icon(
               onPressed: onCancel,
               icon: const Icon(Icons.stop_circle_outlined),
-              label: const Text('Stop'),
+              label: Text(l10n.libraryStopImport),
             ),
           ],
         ],
@@ -528,23 +549,24 @@ class _EmptyLibraryState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.library_music, size: 64, color: Colors.white24),
-          SizedBox(height: 12),
+        children: [
+          const Icon(Icons.library_music, size: 64, color: Colors.white24),
+          const SizedBox(height: 12),
           Text(
-            'Import audio from local disks, cloud drives, Samba, WebDAV, or NFS.',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+            l10n.libraryEmptyPrimary,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
-            'Drag folders in and Toney will recurse to pick playable files only.',
-            style: TextStyle(color: Colors.white54, fontSize: 13),
+            l10n.libraryEmptySecondary,
+            style: const TextStyle(color: Colors.white54, fontSize: 13),
             textAlign: TextAlign.center,
           ),
         ],
@@ -561,11 +583,20 @@ Color _sourceColor(LibrarySourceType type) => switch (type) {
   LibrarySourceType.sftp => Colors.indigoAccent.shade200,
 };
 
-SongMetadata _fallbackMetadata(TrackRow track) {
+String _sourceLabel(LibrarySourceType type, AppLocalizations l10n) =>
+    switch (type) {
+      LibrarySourceType.local => l10n.librarySourceLocal,
+      LibrarySourceType.samba => l10n.librarySourceSamba,
+      LibrarySourceType.webdav => l10n.librarySourceWebdav,
+      LibrarySourceType.ftp => l10n.librarySourceFtp,
+      LibrarySourceType.sftp => l10n.librarySourceSftp,
+    };
+
+SongMetadata _fallbackMetadata(TrackRow track, AppLocalizations l10n) {
   return SongMetadata(
     title: track.title,
     artist: track.artist,
-    album: 'Unknown Album',
+    album: l10n.libraryUnknownAlbum,
     extras: {'Path': track.path},
     isFallback: true,
   );

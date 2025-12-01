@@ -1,0 +1,187 @@
+{
+  "@@locale": "en",
+  "macosAppTitle": "Toney for macOS",
+  "iosAppTitle": "Toney iOS",
+  "unsupportedPlatform": "Unsupported platform: {platform}",
+  "languageSystemDefault": "System default",
+  "languageSimplifiedChinese": "Simplified Chinese",
+  "languageEnglish": "English",
+  "settingsLanguageLabel": "Language",
+  "settingsPlaybackHeader": "Playback",
+  "settingsLibraryHeader": "Library",
+  "settingsBitPerfectTitle": "Bit-perfect mode",
+  "settingsBitPerfectSubtitle": "Bypass system DSP for CoreAudio output",
+  "settingsAutoSampleRateTitle": "Auto sample-rate switching",
+  "settingsAutoSampleRateSubtitle": "Follow source file sample rate on device output",
+  "settingsWatchMusicFolderTitle": "Watch Music folder",
+  "settingsWatchMusicFolderSubtitle": "Automatically import new files inside ~/Music",
+  "settingsEnableAiTaggingTitle": "Enable AI tagging",
+  "settingsEnableAiTaggingSubtitle": "Send fingerprints to on-device model",
+  "settingsLanguageSystemOption": "Follow system",
+  "settingsLanguageChineseOption": "简体中文",
+  "settingsLanguageEnglishOption": "English",
+  "settingsLanguageDescription": "Choose display language",
+  "settingsBitPerfectUnavailableTitle": "Bit-perfect mode unavailable",
+  "settingsBitPerfectUnavailableMessage": "Unable to update bit-perfect mode right now. Please try again later.",
+  "commonClose": "Close",
+  "commonCancel": "Cancel",
+  "commonRemove": "Remove",
+  "commonDelete": "Delete",
+  "sidebarAppName": "Toney",
+  "sidebarMusicAi": "Music AI",
+  "sidebarFavorites": "Favorites",
+  "sidebarLibrary": "Library",
+  "sidebarSettings": "Settings",
+  "sidebarPlaylists": "Playlists",
+  "sidebarRenamePlaylistHint": "Rename playlist"
+
+  ,"libraryTitle": "Library",
+  "libraryEmptySubtitle": "No tracks have been imported",
+  "libraryTrackCount": "Total {count} tracks",
+  "@libraryTrackCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "libraryFilterHint": "Filter",
+  "libraryAddSources": "Add Sources",
+  "libraryContextAddToPlaylist": "Add to Playlist",
+  "libraryContextDetails": "Details",
+  "librarySourceSummaryCount": "{count} tracks",
+  "@librarySourceSummaryCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "libraryStopImport": "Stop",
+  "libraryEmptyPrimary": "Import audio from local disks, cloud drives, Samba, WebDAV, or NFS.",
+  "libraryEmptySecondary": "Drag folders in and Toney will recurse to pick playable files only.",
+  "librarySourceLocal": "Local",
+  "librarySourceSamba": "Samba",
+  "librarySourceWebdav": "WebDAV",
+  "librarySourceFtp": "FTP",
+  "librarySourceSftp": "SFTP",
+  "libraryUnknownArtist": "Unknown Artist",
+  "libraryUnknownAlbum": "Unknown Album",
+  "libraryUnknownValue": "Unknown",
+  "libraryScanningLocations": "Scanning {count} location(s)…",
+  "@libraryScanningLocations": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "libraryNoAudioFound": "No playable audio files found",
+  "libraryAlreadyImported": "All selected files are already in the library",
+  "libraryImportProgress": "Importing {processed} / {total}",
+  "@libraryImportProgress": {
+    "placeholders": {
+      "processed": {},
+      "total": {}
+    }
+  },
+  "libraryImportProgressSkipped": "Importing {processed} / {total} (some skipped)",
+  "@libraryImportProgressSkipped": {
+    "placeholders": {
+      "processed": {},
+      "total": {}
+    }
+  },
+  "libraryImportCancelled": "Import cancelled after adding {count} tracks",
+  "@libraryImportCancelled": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "libraryImportComplete": "Imported {count} / {total} tracks",
+  "@libraryImportComplete": {
+    "placeholders": {
+      "count": {},
+      "total": {}
+    }
+  },
+  "libraryStoppingImport": "Stopping import…",
+  "libraryRemoveTrackTitle": "Remove \"{title}\"?",
+  "@libraryRemoveTrackTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "libraryRemoveTrackMessage": "This will remove the song from the library list. Files on disk are untouched.",
+  "playlistRemoveTitle": "Remove playlist?",
+  "playlistRemoveMessage": "This will delete the playlist \"{name}\".",
+  "@playlistRemoveMessage": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "playlistNewName": "New Playlist",
+  "fileTypeAudio": "Audio",
+  "playbackErrorTitle": "Unable to play track",
+  "playbackCopyError": "Copy error",
+  "metadataDialogTitle": "Track Information",
+  "metadataFieldTitle": "Title",
+  "metadataFieldArtist": "Artist",
+  "metadataFieldAlbum": "Album",
+  "metadataFieldPath": "Path",
+  "metadataFieldDuration": "Duration",
+  "menuControl": "Control",
+  "menuPlayPause": "Play/Pause",
+  "menuNext": "Next",
+  "menuPrevious": "Previous",
+  "menuIncreaseVolume": "Increase Volume",
+  "menuDecreaseVolume": "Decrease Volume",
+  "menuMode": "Mode",
+  "menuSequence": "Sequence",
+  "menuLoop": "Loop",
+  "menuSingle": "Single",
+  "menuShuffle": "Shuffle",
+  "menuWindow": "Window",
+  "playlistTrackCount": "{count} tracks",
+  "@playlistTrackCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "playlistMoveSelectionUp": "Move selection up",
+  "playlistMoveSelectionDown": "Move selection down",
+  "playlistAddButton": "Add",
+  "playlistPlayAll": "Play All",
+  "playlistContextPlay": "Play",
+  "playlistRemoveTrackTitle": "Remove track?",
+  "playlistRemoveTrackMessage": "This song will be removed from the playlist.",
+  "playlistColumnNumber": "No.",
+  "favoritesTitle": "Favorites",
+  "favoritesEmptyState": "No favorites found",
+  "favoritesUnknownTitle": "Unknown Title",
+  "favoritesUnknownArtist": "Unknown Artist",
+  "favoritesUnknownAlbum": "Unknown Album",
+  "musicAiChatButton": "AI Chat",
+  "musicAiTabForYou": "For You",
+  "musicAiTabChat": "Tell Me",
+  "musicAiTabConfig": "Configure AI",
+  "musicAiLoading": "Connecting...",
+  "musicAiNewSession": "New Session",
+  "musicAiError": "An error occurred: {message}",
+  "@musicAiError": {
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "musicAiMessagePlaceholder": "Type your message...",
+  "musicAiSessionInitializing": "Initializing session...",
+  "musicAiExtendedInfo": "Extended Information",
+  "iosPlayerTitle": "iOS Player",
+  "iosAudioPathPlaceholder": "Audio file path",
+  "iosLoadButton": "Load",
+  "iosSeekPlaceholder": "Seek position (ms)",
+  "iosSeekButton": "Seek",
+  "iosStatusLabel": "Status: {message}",
+  "@iosStatusLabel": {
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "iosEnterFilePath": "Enter a file path first",
+  "iosEnterValidPosition": "Enter a valid integer position",
+  "commonOk": "OK"
+}

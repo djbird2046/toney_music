@@ -4,9 +4,12 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:toney_music/l10n/app_localizations.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/audio_controller.dart';
+import '../../core/localization/app_language.dart';
+import '../../core/localization/locale_controller.dart';
 import '../../core/favorites_controller.dart';
 import '../../core/library/library_source.dart';
 import '../../core/media/audio_formats.dart';
@@ -31,9 +34,14 @@ import 'views/settings_view.dart';
 import 'widgets/macos_mini_player.dart';
 
 class MacosPlayerScreen extends StatefulWidget {
-  const MacosPlayerScreen({super.key, required this.controller});
+  const MacosPlayerScreen({
+    super.key,
+    required this.controller,
+    required this.localeController,
+  });
 
   final AudioController controller;
+  final LocaleController localeController;
 
   @override
   State<MacosPlayerScreen> createState() => _MacosPlayerScreenState();
@@ -70,6 +78,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   bool _bitPerfectEnabled = false;
   bool _bitPerfectBusy = false;
   late final FavoritesController _favoritesController;
+  late AppLanguage _languagePreference;
 
   final tracks = [
     const TrackRow(
@@ -124,11 +133,18 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     unawaited(_favoritesController.init());
     unawaited(_liteAgentConfigStorage.init());
     widget.controller.state.addListener(_onPlaybackStateChanged);
+    _languagePreference = widget.localeController.currentPreference;
+    widget.localeController.preference.addListener(
+      _onLanguagePreferenceChanged,
+    );
   }
 
   @override
   void dispose() {
     widget.controller.state.removeListener(_onPlaybackStateChanged);
+    widget.localeController.preference.removeListener(
+      _onLanguagePreferenceChanged,
+    );
     _favoritesController.dispose();
     _playlistNameController.dispose();
     _keyboardFocusNode.dispose();
@@ -210,11 +226,12 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   }
 
   Future<void> _importLibrarySources(LibrarySourceRequest request) async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _cancelLibraryImport = false;
       _libraryImportState = LibraryImportState(
         isActive: true,
-        message: 'Scanning ${request.paths.length} location(s)…',
+        message: l10n.libraryScanningLocations(request.paths.length),
         progress: null,
         canCancel: true,
       );
@@ -236,9 +253,9 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     }
     if (files.isEmpty) {
       setState(() {
-        _libraryImportState = const LibraryImportState(
+        _libraryImportState = LibraryImportState(
           isActive: false,
-          message: 'No playable audio files found',
+          message: l10n.libraryNoAudioFound,
           progress: null,
           canCancel: false,
         );
@@ -251,9 +268,9 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         .toList();
     if (newFiles.isEmpty) {
       setState(() {
-        _libraryImportState = const LibraryImportState(
+        _libraryImportState = LibraryImportState(
           isActive: false,
-          message: 'All selected files are already in the library',
+          message: l10n.libraryAlreadyImported,
           progress: null,
           canCancel: false,
         );
@@ -284,8 +301,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
               : fileName;
           metadata = SongMetadata(
             title: titleWithoutExt,
-            artist: 'Unknown Artist',
-            album: 'Unknown Album',
+            artist: l10n.libraryUnknownArtist,
+            album: l10n.libraryUnknownAlbum,
             extras: {'Path': path, 'isRemote': 'true'},
           );
         }
@@ -324,7 +341,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           _libraryPathIndex[path] = _libraryTracks.length - 1;
           _libraryImportState = LibraryImportState(
             isActive: true,
-            message: 'Importing $processed / $total',
+            message: l10n.libraryImportProgress(processed, total),
             progress: total == 0 ? null : processed / total,
             canCancel: true,
           );
@@ -336,7 +353,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         setState(() {
           _libraryImportState = LibraryImportState(
             isActive: true,
-            message: 'Importing $processed / $total (some skipped)',
+            message: l10n.libraryImportProgressSkipped(processed, total),
             progress: total == 0 ? null : processed / total,
             canCancel: true,
           );
@@ -358,12 +375,13 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     required int total,
   }) {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _libraryImportState = LibraryImportState(
         isActive: false,
         message: cancelled
-            ? 'Import cancelled after adding $added tracks'
-            : 'Imported $added / $total tracks',
+            ? l10n.libraryImportCancelled(added)
+            : l10n.libraryImportComplete(added, total),
         progress: cancelled ? null : 1.0,
         canCancel: false,
       );
@@ -408,11 +426,12 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
 
   void _cancelLibraryImportProcess() {
     if (!_libraryImportState.isActive) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _cancelLibraryImport = true;
       _libraryImportState = LibraryImportState(
         isActive: true,
-        message: 'Stopping import…',
+        message: l10n.libraryStoppingImport,
         progress: _libraryImportState.progress,
         canCancel: false,
       );
@@ -450,28 +469,29 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   }
 
   Future<void> _confirmDeleteLibraryTrack(TrackRow track) async {
+    final l10n = AppLocalizations.of(context)!;
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: MacosColors.menuBackground,
         title: Text(
-          'Remove "${track.title}"?',
+          l10n.libraryRemoveTrackTitle(track.title),
           style: const TextStyle(color: Colors.white),
         ),
-        content: const Text(
-          'This will remove the song from the library list. Files on disk are untouched.',
-          style: TextStyle(color: Colors.white70),
+        content: Text(
+          l10n.libraryRemoveTrackMessage,
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              'Remove',
-              style: TextStyle(color: Colors.redAccent),
+            child: Text(
+              l10n.commonRemove,
+              style: const TextStyle(color: Colors.redAccent),
             ),
           ),
         ],
@@ -615,6 +635,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   }
 
   void _showPlaylistContextMenu(int index, Offset position) async {
+    final l10n = AppLocalizations.of(context)!;
     final result = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
@@ -627,7 +648,10 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       items: [
         PopupMenuItem<String>(
           value: 'remove',
-          child: Text('Remove', style: TextStyle(color: Colors.red.shade400)),
+          child: Text(
+            l10n.commonRemove,
+            style: TextStyle(color: Colors.red.shade400),
+          ),
         ),
       ],
     );
@@ -637,24 +661,24 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: MacosColors.menuBackground,
-          title: const Text(
-            'Remove playlist?',
-            style: TextStyle(color: Colors.white),
+          title: Text(
+            l10n.playlistRemoveTitle,
+            style: const TextStyle(color: Colors.white),
           ),
           content: Text(
-            'This will delete the playlist "${playlists[index]}".',
+            l10n.playlistRemoveMessage(playlists[index]),
             style: const TextStyle(color: Colors.white70),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                'Remove',
-                style: TextStyle(color: Colors.redAccent),
+              child: Text(
+                l10n.commonRemove,
+                style: const TextStyle(color: Colors.redAccent),
               ),
             ),
           ],
@@ -698,25 +722,28 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   }
 
   void _addPlaylist() {
+    final l10n = AppLocalizations.of(context)!;
     _submitPlaylistRename();
     setState(() {
-      playlists.insert(0, 'New Playlist');
-      _playlistEntries['New Playlist'] = <PlaylistEntry>[];
+      final newName = l10n.playlistNewName;
+      playlists.insert(0, newName);
+      _playlistEntries[newName] = <PlaylistEntry>[];
       selectedSection = NavSection.playlists;
       selectedPlaylist = 0;
       isRenamingPlaylist = true;
       _selectedPlaylistRows = <int>{};
       _playlistNameController
-        ..text = playlists[0]
+        ..text = newName
         ..selection = TextSelection(
           baseOffset: 0,
-          extentOffset: playlists[0].length,
+          extentOffset: newName.length,
         );
     });
     _schedulePersist();
   }
 
   void _seedDefaultPlaylist() {
+    final l10n = AppLocalizations.of(context)!;
     final defaultName = playlists.first;
     final entries = tracks
         .map(
@@ -725,7 +752,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
             metadata: SongMetadata(
               title: track.title,
               artist: track.artist,
-              album: 'Unknown Album',
+              album: l10n.libraryUnknownAlbum,
               extras: {'Path': track.path, 'Duration': track.duration},
             ),
           ),
@@ -759,11 +786,12 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   }
 
   Future<void> _addTracksFromPicker() async {
+    final l10n = AppLocalizations.of(context)!;
     final files = await openFiles(
-      acceptedTypeGroups: const [
+      acceptedTypeGroups: [
         XTypeGroup(
-          label: 'Audio',
-          extensions: [
+          label: l10n.fileTypeAudio,
+          extensions: const [
             'flac',
             'wav',
             'wave',
@@ -1024,13 +1052,14 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   Future<void> _showPlaybackErrorDialog(Object error) async {
     final message = error.toString();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: MacosColors.menuBackground,
-        title: const Text(
-          'Unable to play track',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          l10n.playbackErrorTitle,
+          style: const TextStyle(color: Colors.white),
         ),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
@@ -1044,11 +1073,11 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
             onPressed: () {
               Clipboard.setData(ClipboardData(text: message));
             },
-            child: const Text('Copy error'),
+            child: Text(l10n.playbackCopyError),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text(l10n.commonClose),
           ),
         ],
       ),
@@ -1152,8 +1181,25 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           bitPerfectEnabled: _bitPerfectEnabled,
           bitPerfectBusy: _bitPerfectBusy,
           onToggleBitPerfect: _handleBitPerfectToggle,
+          selectedLanguage: _languagePreference,
+          onLanguageChanged: _handleLanguagePreferenceChanged,
         );
     }
+  }
+
+  void _onLanguagePreferenceChanged() {
+    final preference = widget.localeController.currentPreference;
+    if (!mounted || preference == _languagePreference) return;
+    setState(() {
+      _languagePreference = preference;
+    });
+  }
+
+  void _handleLanguagePreferenceChanged(AppLanguage language) {
+    setState(() {
+      _languagePreference = language;
+    });
+    unawaited(widget.localeController.setPreference(language));
   }
 
   Future<void> _handleBitPerfectToggle(bool value) async {
@@ -1187,19 +1233,22 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     final description = error is PlatformException
         ? (error.message?.isNotEmpty == true ? error.message! : error.code)
         : error.toString();
+    final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: MacosColors.menuBackground,
-        title: const Text('Bit-perfect mode unavailable'),
+        title: Text(l10n.settingsBitPerfectUnavailableTitle),
         content: Text(
-          description,
+          description.isNotEmpty
+              ? description
+              : l10n.settingsBitPerfectUnavailableMessage,
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text(l10n.commonClose),
           ),
         ],
       ),
@@ -1207,11 +1256,15 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   }
 
   void _showMetadataDialog(SongMetadata metadata) {
+    final l10n = AppLocalizations.of(context)!;
     final entries = <MapEntry<String, String>>[
-      MapEntry('Title', metadata.title),
-      MapEntry('Artist', metadata.artist),
-      MapEntry('Album', metadata.album),
-      MapEntry('Path', metadata.extras['Path'] ?? 'Unknown'),
+      MapEntry(l10n.metadataFieldTitle, metadata.title),
+      MapEntry(l10n.metadataFieldArtist, metadata.artist),
+      MapEntry(l10n.metadataFieldAlbum, metadata.album),
+      MapEntry(
+        l10n.metadataFieldPath,
+        metadata.extras['Path'] ?? l10n.libraryUnknownValue,
+      ),
       ...metadata.extras.entries.where(
         (entry) =>
             entry.key != 'Id' && entry.key != 'Picture' && entry.key != 'Path',
@@ -1221,9 +1274,9 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: MacosColors.menuBackground,
-        title: const Text(
-          'Track Information',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          l10n.metadataDialogTitle,
+          style: const TextStyle(color: Colors.white),
         ),
         content: SizedBox(
           width: 360,
@@ -1238,7 +1291,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          entry.key,
+                          _metadataLabel(entry.key, l10n),
                           style: TextStyle(
                             color: Colors.grey.shade500,
                             fontSize: 12,
@@ -1261,19 +1314,40 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text(l10n.commonClose),
           ),
         ],
       ),
     );
   }
 
+  String _metadataLabel(String key, AppLocalizations l10n) {
+    switch (key.toLowerCase()) {
+      case 'title':
+        return l10n.metadataFieldTitle;
+      case 'artist':
+        return l10n.metadataFieldArtist;
+      case 'album':
+        return l10n.metadataFieldAlbum;
+      case 'path':
+        return l10n.metadataFieldPath;
+      case 'duration':
+      case 'duration_ms':
+      case 'durationms':
+      case 'duration_seconds':
+        return l10n.metadataFieldDuration;
+      default:
+        return key;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return PlatformMenuBar(
       menus: [
         PlatformMenu(
-          label: 'Toney',
+          label: l10n.sidebarAppName,
           menus: [
             if (PlatformProvidedMenuItem.hasMenu(
               PlatformProvidedMenuItemType.about,
@@ -1284,7 +1358,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
             PlatformMenuItemGroup(
               members: [
                 PlatformMenuItem(
-                  label: 'Settings',
+                  label: l10n.sidebarSettings,
                   shortcut: const SingleActivator(
                     LogicalKeyboardKey.comma,
                     meta: true,
@@ -1302,15 +1376,15 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           ],
         ),
         PlatformMenu(
-          label: 'Control',
+          label: l10n.menuControl,
           menus: [
             PlatformMenuItem(
-              label: 'Play/Pause',
+              label: l10n.menuPlayPause,
               shortcut: const SingleActivator(LogicalKeyboardKey.space),
               onSelected: () => widget.controller.togglePlayPause(),
             ),
             PlatformMenuItem(
-              label: 'Next',
+              label: l10n.menuNext,
               shortcut: const SingleActivator(
                 LogicalKeyboardKey.arrowRight,
                 meta: true,
@@ -1318,7 +1392,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
               onSelected: () => widget.controller.playNext(),
             ),
             PlatformMenuItem(
-              label: 'Previous',
+              label: l10n.menuPrevious,
               shortcut: const SingleActivator(
                 LogicalKeyboardKey.arrowLeft,
                 meta: true,
@@ -1326,7 +1400,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
               onSelected: () => widget.controller.playPrevious(),
             ),
             PlatformMenuItem(
-              label: 'Increase Volume',
+              label: l10n.menuIncreaseVolume,
               shortcut: const SingleActivator(
                 LogicalKeyboardKey.arrowUp,
                 meta: true,
@@ -1337,7 +1411,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
               },
             ),
             PlatformMenuItem(
-              label: 'Decrease Volume',
+              label: l10n.menuDecreaseVolume,
               shortcut: const SingleActivator(
                 LogicalKeyboardKey.arrowDown,
                 meta: true,
@@ -1348,25 +1422,25 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
               },
             ),
             PlatformMenu(
-              label: 'Mode',
+              label: l10n.menuMode,
               menus: [
                 PlatformMenuItem(
-                  label: 'Sequence',
+                  label: l10n.menuSequence,
                   onSelected: () =>
                       widget.controller.setPlaybackMode(PlayMode.sequence),
                 ),
                 PlatformMenuItem(
-                  label: 'Loop',
+                  label: l10n.menuLoop,
                   onSelected: () =>
                       widget.controller.setPlaybackMode(PlayMode.loop),
                 ),
                 PlatformMenuItem(
-                  label: 'Single',
+                  label: l10n.menuSingle,
                   onSelected: () =>
                       widget.controller.setPlaybackMode(PlayMode.single),
                 ),
                 PlatformMenuItem(
-                  label: 'Shuffle',
+                  label: l10n.menuShuffle,
                   onSelected: () =>
                       widget.controller.setPlaybackMode(PlayMode.shuffle),
                 ),
@@ -1375,7 +1449,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           ],
         ),
         PlatformMenu(
-          label: 'Window',
+          label: l10n.menuWindow,
           menus: [
             if (PlatformProvidedMenuItem.hasMenu(
               PlatformProvidedMenuItemType.minimizeWindow,
@@ -1384,7 +1458,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
                 type: PlatformProvidedMenuItemType.minimizeWindow,
               ),
             PlatformMenuItem(
-              label: 'Close',
+              label: l10n.commonClose,
               shortcut: const SingleActivator(
                 LogicalKeyboardKey.keyW,
                 meta: true,
