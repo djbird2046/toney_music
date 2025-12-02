@@ -42,18 +42,40 @@ class MacosLibraryView extends StatefulWidget {
 
 class _MacosLibraryViewState extends State<MacosLibraryView> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  int _previousTrackCount = 0;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _previousTrackCount = widget.tracks.length;
   }
 
   @override
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant MacosLibraryView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.importState.isActive &&
+        widget.tracks.length > _previousTrackCount) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+    _previousTrackCount = widget.tracks.length;
   }
 
   void _onSearchChanged() {
@@ -161,9 +183,10 @@ class _MacosLibraryViewState extends State<MacosLibraryView> {
             if (sourceCounts.isNotEmpty) const SizedBox(height: 12),
             Expanded(
               child: isEmpty
-                  ? const _EmptyLibraryState()
-                  : ListView.separated(
-                      itemCount: tracks.length,
+                ? const _EmptyLibraryState()
+                : ListView.separated(
+                    controller: _scrollController,
+                    itemCount: tracks.length,
                       separatorBuilder: (context, _) =>
                           Divider(color: colors.innerDivider, height: 1),
                       itemBuilder: (context, index) {

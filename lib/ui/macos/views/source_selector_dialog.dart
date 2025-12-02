@@ -1,5 +1,6 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:toney_music/l10n/app_localizations.dart';
 import '../../../core/library/library_source.dart';
 import '../../../core/media/audio_formats.dart';
 import '../../../core/remote/models/connection_config.dart';
@@ -60,7 +61,8 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        _showErrorDialog('Failed to load configurations: ${e.toString()}');
+        final l10n = AppLocalizations.of(context)!;
+        _showErrorDialog(l10n.libraryLoadRemoteError(e.toString()));
       }
     }
   }
@@ -68,10 +70,11 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = context.macosColors;
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
       backgroundColor: colors.menuBackground,
       title: Text(
-        'Select Music Source',
+        l10n.librarySourceSelectorTitle,
         style: TextStyle(color: colors.heading, fontSize: 18),
       ),
       content: SizedBox(
@@ -84,7 +87,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Click a card to select source, or add a new remote mount',
+                      l10n.librarySourceSelectorSubtitle,
                       style: TextStyle(color: colors.mutedGrey, fontSize: 13),
                     ),
                     const SizedBox(height: 20),
@@ -92,7 +95,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                     const SizedBox(height: 16),
                     if (_remoteConfigs.isNotEmpty) ...[
                       Text(
-                        'Remote Mounts',
+                        l10n.libraryRemoteMounts,
                         style: TextStyle(
                           color: colors.heading,
                           fontSize: 15,
@@ -115,7 +118,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
       actions: [
         TextButton(
           onPressed: _isPicking ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
       ],
     );
@@ -123,6 +126,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
 
   Widget _buildLocalCard() {
     final colors = context.macosColors;
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       color: colors.accentBlue.withValues(alpha: 0.12),
       shape: RoundedRectangleBorder(
@@ -151,16 +155,16 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Local',
+                      l10n.librarySourceLocal,
                       style: TextStyle(
                         color: colors.heading,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      'Local disks or external drives',
+                      l10n.libraryLocalDescription,
                       style: TextStyle(color: colors.mutedGrey, fontSize: 12),
                     ),
                   ],
@@ -177,6 +181,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
   Widget _buildRemoteCard(ConnectionConfig config) {
     final colors = context.macosColors;
     final color = _getProtocolColor(config.type.name);
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       color: color.withValues(alpha: 0.12),
@@ -236,15 +241,15 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
                   PopupMenuItem(
                     value: 'edit',
                     child: Text(
-                      'Edit',
+                      l10n.commonEdit,
                       style: TextStyle(color: colors.heading),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
                     child: Text(
-                      'Delete',
-                      style: TextStyle(color: Colors.redAccent),
+                      l10n.commonDelete,
+                      style: const TextStyle(color: Colors.redAccent),
                     ),
                   ),
                 ],
@@ -258,6 +263,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
 
   Widget _buildAddRemoteButton() {
     final colors = context.macosColors;
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       color: colors.navSelectedBackground.withValues(alpha: 0.15),
       shape: RoundedRectangleBorder(
@@ -277,7 +283,7 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
               Icon(Icons.add_circle_outline, color: colors.accentBlue),
               const SizedBox(width: 8),
               Text(
-                'Add Remote Mount',
+                l10n.libraryAddRemoteMount,
                 style: TextStyle(color: colors.heading, fontSize: 14),
               ),
             ],
@@ -382,25 +388,26 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
       context: context,
       builder: (context) {
         final colors = context.macosColors;
+        final l10n = AppLocalizations.of(context)!;
         return AlertDialog(
           backgroundColor: colors.menuBackground,
           title: Text(
-            'Confirm Delete',
+            l10n.libraryConfirmDeleteRemoteTitle,
             style: TextStyle(color: colors.heading),
           ),
           content: Text(
-            'Are you sure you want to delete remote mount "${config.name}"?',
+            l10n.libraryConfirmDeleteRemoteMessage(config.name),
             style: TextStyle(color: colors.mutedGrey),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(l10n.commonCancel),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-              child: const Text('Delete'),
+              child: Text(l10n.commonDelete),
             ),
           ],
         );
@@ -413,7 +420,8 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
         await _loadRemoteConfigs();
       } catch (e) {
         if (mounted) {
-          _showErrorDialog('Failed to delete: ${e.toString()}');
+          final l10n = AppLocalizations.of(context)!;
+          _showErrorDialog(l10n.libraryDeleteRemoteError(e.toString()));
         }
       }
     }
@@ -424,14 +432,15 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
       context: context,
       builder: (context) {
         final colors = context.macosColors;
+        final l10n = AppLocalizations.of(context)!;
         return AlertDialog(
           backgroundColor: colors.menuBackground,
-          title: Text('Error', style: TextStyle(color: colors.heading)),
+          title: Text(l10n.commonError, style: TextStyle(color: colors.heading)),
           content: Text(message, style: TextStyle(color: colors.mutedGrey)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
+              child: Text(l10n.commonOk),
             ),
           ],
         );
@@ -453,10 +462,11 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = context.macosColors;
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
       backgroundColor: colors.menuBackground,
       title: Text(
-        'Select Local Files or Folders',
+        l10n.libraryPickLocalTitle,
         style: TextStyle(color: colors.heading, fontSize: 18),
       ),
       content: SizedBox(
@@ -470,7 +480,7 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
                   child: FilledButton.icon(
                     onPressed: _isPicking ? null : _pickFiles,
                     icon: const Icon(Icons.audio_file),
-                    label: const Text('Select Audio Files'),
+                    label: Text(l10n.libraryPickAudioFilesButton),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -478,7 +488,7 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
                   child: FilledButton.tonalIcon(
                     onPressed: _isPicking ? null : _pickDirectory,
                     icon: const Icon(Icons.folder),
-                    label: const Text('Select Folder'),
+                    label: Text(l10n.libraryPickFolderButton),
                   ),
                 ),
               ],
@@ -525,13 +535,13 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           onPressed: _selectedPaths.isEmpty
               ? null
               : () => Navigator.of(context).pop(_selectedPaths),
-          child: const Text('OK'),
+          child: Text(l10n.commonOk),
         ),
       ],
     );
@@ -540,10 +550,11 @@ class _LocalFilePickerDialogState extends State<_LocalFilePickerDialog> {
   Future<void> _pickFiles() async {
     setState(() => _isPicking = true);
     try {
+      final l10n = AppLocalizations.of(context)!;
       final files = await openFiles(
         acceptedTypeGroups: [
           XTypeGroup(
-            label: 'Audio',
+            label: l10n.fileTypeAudio,
             extensions: kPlayableAudioExtensions.toList(),
           ),
         ],

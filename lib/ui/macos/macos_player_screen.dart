@@ -197,7 +197,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
 
   Future<void> _initializeLibrary() async {
     await _libraryStorage.init();
-    final entries = _libraryStorage.load();
+    final entries = _libraryStorage.load()
+      ..sort((a, b) => b.importedAt.compareTo(a.importedAt));
     if (!mounted) return;
     setState(() {
       _libraryEntries
@@ -343,10 +344,15 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         newEntries.add(entry);
         setState(() {
           _metadataCache[path] = enriched;
-          _libraryTracks.add(trackRow);
+          _libraryTracks.insert(0, trackRow);
+          _libraryEntries.insert(0, entry);
           _libraryTrackPaths.add(path);
-          _libraryEntries.add(entry);
-          _libraryPathIndex[path] = _libraryTracks.length - 1;
+          _libraryPathIndex
+            ..updateAll((key, value) => value + 1)
+            ..[path] = 0;
+          if (_selectedLibraryIndex != null) {
+            _selectedLibraryIndex = _selectedLibraryIndex! + 1;
+          }
           _libraryImportState = LibraryImportState(
             isActive: true,
             message: l10n.libraryImportProgress(processed, total),

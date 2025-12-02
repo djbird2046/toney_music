@@ -376,12 +376,12 @@ class _ChatViewState extends State<_ChatView> {
             child: TextField(
               controller: _textController,
               enabled: _isSessionInitialized,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: colors.heading),
               decoration: InputDecoration(
                 hintText: _isSessionInitialized
                     ? l10n.musicAiMessagePlaceholder
                     : l10n.musicAiSessionInitializing,
-                hintStyle: const TextStyle(color: Colors.grey),
+                hintStyle: TextStyle(color: colors.mutedGrey),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: colors.innerDivider),

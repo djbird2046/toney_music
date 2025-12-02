@@ -110,6 +110,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonDelete => '删除';
 
   @override
+  String get commonEdit => '编辑';
+
+  @override
+  String get commonError => '错误';
+
+  @override
   String get sidebarAppName => 'Toney';
 
   @override
@@ -148,6 +154,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get libraryAddSources => '添加来源';
 
   @override
+  String get librarySourceSelectorTitle => '选择音乐来源';
+
+  @override
+  String get librarySourceSelectorSubtitle => '点击卡片选择来源，或添加新的远程挂载';
+
+  @override
+  String get libraryRemoteMounts => '远程挂载';
+
+  @override
   String get libraryContextAddToPlaylist => '添加到播放列表';
 
   @override
@@ -171,6 +186,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get librarySourceLocal => '本地';
 
   @override
+  String get libraryLocalDescription => '本地磁盘或外接驱动器';
+
+  @override
   String get librarySourceSamba => 'Samba';
 
   @override
@@ -181,6 +199,103 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get librarySourceSftp => 'SFTP';
+
+  @override
+  String get libraryAddRemoteMount => '添加远程挂载';
+
+  @override
+  String get libraryRemoteConfigAddTitle => '添加远程挂载';
+
+  @override
+  String get libraryRemoteConfigEditTitle => '编辑远程挂载';
+
+  @override
+  String get libraryRemoteConfigProtocolLabel => '协议类型';
+
+  @override
+  String get libraryRemoteConfigMountNameLabel => '挂载名称';
+
+  @override
+  String get libraryRemoteConfigMountNameHint => '例如：My Samba Server';
+
+  @override
+  String get libraryRemoteConfigMountNameEmpty => '请输入挂载名称';
+
+  @override
+  String get libraryRemoteConfigHostLabel => '主机地址';
+
+  @override
+  String get libraryRemoteConfigHostHint => 'IP 地址或域名';
+
+  @override
+  String get libraryRemoteConfigHostEmpty => '请输入主机地址';
+
+  @override
+  String get libraryRemoteConfigPortLabel => '端口';
+
+  @override
+  String get libraryRemoteConfigPortEmpty => '请输入端口';
+
+  @override
+  String get libraryRemoteConfigPortInvalid => '端口无效';
+
+  @override
+  String get libraryRemoteConfigUsernameLabel => '用户名（可选）';
+
+  @override
+  String get libraryRemoteConfigUsernameHint => '留空将使用默认用户';
+
+  @override
+  String get libraryRemoteConfigPasswordLabel => '密码（可选）';
+
+  @override
+  String get libraryRemoteConfigRemotePathLabel => '远程路径（可选）';
+
+  @override
+  String get libraryRemoteConfigRemotePathHint => '例如：/share/music';
+
+  @override
+  String get libraryRemoteConfigTestButton => '测试连接';
+
+  @override
+  String get libraryRemoteConfigTesting => '正在测试…';
+
+  @override
+  String get libraryRemoteConfigSaveButton => '保存';
+
+  @override
+  String get libraryRemoteConfigSaving => '正在保存…';
+
+  @override
+  String get libraryRemoteConfigTestSuccess => '连接测试成功！';
+
+  @override
+  String get libraryRemoteConfigTestFailure => '连接测试失败，请检查配置';
+
+  @override
+  String libraryRemoteConfigTestError(Object message) {
+    return '连接失败：$message';
+  }
+
+  @override
+  String get libraryRemoteConfigSaveFailedTitle => '保存失败';
+
+  @override
+  String libraryRemoteConfigSaveFailedMessage(Object message) {
+    return '无法保存配置：$message';
+  }
+
+  @override
+  String get libraryProtocolSambaDescription => 'Windows 网络文件共享';
+
+  @override
+  String get libraryProtocolWebdavDescription => '基于 HTTP 的文件共享';
+
+  @override
+  String get libraryProtocolFtpDescription => '传统文件传输';
+
+  @override
+  String get libraryProtocolSftpDescription => '安全文件传输';
 
   @override
   String get libraryUnknownArtist => '未知艺术家';
@@ -232,6 +347,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get libraryRemoveTrackMessage => '此操作只会从曲库列表移除，磁盘上的文件不会被删除。';
+
+  @override
+  String get libraryConfirmDeleteRemoteTitle => '确认删除';
+
+  @override
+  String libraryConfirmDeleteRemoteMessage(Object name) {
+    return '确定要删除远程挂载“$name”吗？';
+  }
+
+  @override
+  String libraryLoadRemoteError(Object message) {
+    return '无法加载配置：$message';
+  }
+
+  @override
+  String libraryDeleteRemoteError(Object message) {
+    return '删除失败：$message';
+  }
+
+  @override
+  String get libraryPickLocalTitle => '选择本地文件或文件夹';
+
+  @override
+  String get libraryPickAudioFilesButton => '选择音频文件';
+
+  @override
+  String get libraryPickFolderButton => '选择文件夹';
 
   @override
   String get playlistRemoveTitle => '删除播放列表？';

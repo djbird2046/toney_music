@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:toney_music/l10n/app_localizations.dart';
 import '../../../core/remote/models/protocol_type.dart';
 import '../../../core/remote/models/connection_config.dart';
 import '../../../core/remote/services/config_manager.dart';
@@ -75,12 +76,13 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = context.macosColors;
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
       backgroundColor: colors.menuBackground,
       title: Text(
         widget.existingConfig == null
-            ? 'Add Remote Mount'
-            : 'Edit Remote Mount',
+            ? l10n.libraryRemoteConfigAddTitle
+            : l10n.libraryRemoteConfigEditTitle,
         style: TextStyle(color: colors.heading, fontSize: 18),
       ),
       content: SizedBox(
@@ -92,15 +94,15 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildProtocolSelector(),
+                _buildProtocolSelector(l10n),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _nameController,
-                  label: 'Mount Name',
-                  hint: 'e.g., My Samba Server',
+                  label: l10n.libraryRemoteConfigMountNameLabel,
+                  hint: l10n.libraryRemoteConfigMountNameHint,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter mount name';
+                      return l10n.libraryRemoteConfigMountNameEmpty;
                     }
                     return null;
                   },
@@ -112,11 +114,11 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                       flex: 3,
                       child: _buildTextField(
                         controller: _hostController,
-                        label: 'Host Address',
-                        hint: 'IP address or domain',
+                        label: l10n.libraryRemoteConfigHostLabel,
+                        hint: l10n.libraryRemoteConfigHostHint,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter host address';
+                            return l10n.libraryRemoteConfigHostEmpty;
                           }
                           return null;
                         },
@@ -126,18 +128,18 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                     Expanded(
                       child: _buildTextField(
                         controller: _portController,
-                        label: 'Port',
+                        label: l10n.libraryRemoteConfigPortLabel,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                         ],
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter port';
+                            return l10n.libraryRemoteConfigPortEmpty;
                           }
                           final port = int.tryParse(value);
                           if (port == null || port <= 0 || port > 65535) {
-                            return 'Invalid port';
+                            return l10n.libraryRemoteConfigPortInvalid;
                           }
                           return null;
                         },
@@ -148,20 +150,20 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _usernameController,
-                  label: 'Username (optional)',
-                  hint: 'Leave empty for default user',
+                  label: l10n.libraryRemoteConfigUsernameLabel,
+                  hint: l10n.libraryRemoteConfigUsernameHint,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _passwordController,
-                  label: 'Password (optional)',
+                  label: l10n.libraryRemoteConfigPasswordLabel,
                   obscureText: true,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _remotePathController,
-                  label: 'Remote Path (optional)',
-                  hint: 'e.g., /share/music',
+                  label: l10n.libraryRemoteConfigRemotePathLabel,
+                  hint: l10n.libraryRemoteConfigRemotePathHint,
                 ),
                 if (_testMessage != null) ...[
                   const SizedBox(height: 16),
@@ -215,7 +217,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
           onPressed: _isTesting || _isSaving
               ? null
               : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         TextButton.icon(
           onPressed: _isTesting || _isSaving ? null : _testConnection,
@@ -226,21 +228,29 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.wifi_tethering, size: 18),
-          label: Text(_isTesting ? 'Testing...' : 'Test Connection'),
+          label: Text(
+            _isTesting
+                ? l10n.libraryRemoteConfigTesting
+                : l10n.libraryRemoteConfigTestButton,
+          ),
         ),
         FilledButton(
           onPressed: _isTesting || _isSaving ? null : _saveConfig,
-          child: Text(_isSaving ? 'Saving...' : 'Save'),
+          child: Text(
+            _isSaving
+                ? l10n.libraryRemoteConfigSaving
+                : l10n.libraryRemoteConfigSaveButton,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildProtocolSelector() {
+  Widget _buildProtocolSelector(AppLocalizations l10n) {
     final colors = context.macosColors;
     return InputDecorator(
       decoration: InputDecoration(
-        labelText: 'Protocol Type',
+        labelText: l10n.libraryRemoteConfigProtocolLabel,
         labelStyle: TextStyle(color: colors.mutedGrey),
         enabledBorder: UnderlineInputBorder(
           borderSide: BorderSide(color: colors.innerDivider),
@@ -268,7 +278,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
                 (type) => DropdownMenuItem(
                   value: type,
                   child: Text(
-                    '${type.displayName} · ${type.description}',
+                    '${_protocolName(type, l10n)} · ${_protocolDescription(type, l10n)}',
                     style: TextStyle(color: colors.heading),
                   ),
                 ),
@@ -277,6 +287,32 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
         ),
       ),
     );
+  }
+
+  String _protocolName(ProtocolType type, AppLocalizations l10n) {
+    switch (type) {
+      case ProtocolType.samba:
+        return l10n.librarySourceSamba;
+      case ProtocolType.webdav:
+        return l10n.librarySourceWebdav;
+      case ProtocolType.ftp:
+        return l10n.librarySourceFtp;
+      case ProtocolType.sftp:
+        return l10n.librarySourceSftp;
+    }
+  }
+
+  String _protocolDescription(ProtocolType type, AppLocalizations l10n) {
+    switch (type) {
+      case ProtocolType.samba:
+        return l10n.libraryProtocolSambaDescription;
+      case ProtocolType.webdav:
+        return l10n.libraryProtocolWebdavDescription;
+      case ProtocolType.ftp:
+        return l10n.libraryProtocolFtpDescription;
+      case ProtocolType.sftp:
+        return l10n.libraryProtocolSftpDescription;
+    }
   }
 
   Widget _buildTextField({
@@ -320,6 +356,8 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
   Future<void> _testConnection() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     setState(() {
       _isTesting = true;
       _testMessage = null;
@@ -335,10 +373,10 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
       setState(() {
         _isTesting = false;
         if (connected) {
-          _testMessage = 'Connection test successful!';
+          _testMessage = l10n.libraryRemoteConfigTestSuccess;
           _testSuccess = true;
         } else {
-          _testMessage = 'Connection test failed, please check configuration';
+          _testMessage = l10n.libraryRemoteConfigTestFailure;
           _testSuccess = false;
         }
       });
@@ -347,7 +385,7 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
     } catch (e) {
       setState(() {
         _isTesting = false;
-        _testMessage = 'Connection failed: ${e.toString()}';
+        _testMessage = l10n.libraryRemoteConfigTestError(e.toString());
         _testSuccess = false;
       });
     }
@@ -355,6 +393,8 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
 
   Future<void> _saveConfig() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final l10n = AppLocalizations.of(context)!;
 
     setState(() => _isSaving = true);
 
@@ -376,17 +416,17 @@ class _RemoteConfigDialogState extends State<_RemoteConfigDialog> {
             return AlertDialog(
               backgroundColor: colors.menuBackground,
               title: Text(
-                'Save Failed',
+                l10n.libraryRemoteConfigSaveFailedTitle,
                 style: TextStyle(color: colors.heading),
               ),
               content: Text(
-                'Unable to save configuration: ${e.toString()}',
+                l10n.libraryRemoteConfigSaveFailedMessage(e.toString()),
                 style: TextStyle(color: colors.mutedGrey),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('OK'),
+                  child: Text(l10n.commonOk),
                 ),
               ],
             );

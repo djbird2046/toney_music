@@ -116,6 +116,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonDelete => 'Delete';
 
   @override
+  String get commonEdit => 'Edit';
+
+  @override
+  String get commonError => 'Error';
+
+  @override
   String get sidebarAppName => 'Toney';
 
   @override
@@ -154,6 +160,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryAddSources => 'Add Sources';
 
   @override
+  String get librarySourceSelectorTitle => 'Select Music Source';
+
+  @override
+  String get librarySourceSelectorSubtitle =>
+      'Click a card to select source, or add a new remote mount';
+
+  @override
+  String get libraryRemoteMounts => 'Remote Mounts';
+
+  @override
   String get libraryContextAddToPlaylist => 'Add to Playlist';
 
   @override
@@ -179,6 +195,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get librarySourceLocal => 'Local';
 
   @override
+  String get libraryLocalDescription => 'Local disks or external drives';
+
+  @override
   String get librarySourceSamba => 'Samba';
 
   @override
@@ -189,6 +208,104 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get librarySourceSftp => 'SFTP';
+
+  @override
+  String get libraryAddRemoteMount => 'Add Remote Mount';
+
+  @override
+  String get libraryRemoteConfigAddTitle => 'Add Remote Mount';
+
+  @override
+  String get libraryRemoteConfigEditTitle => 'Edit Remote Mount';
+
+  @override
+  String get libraryRemoteConfigProtocolLabel => 'Protocol Type';
+
+  @override
+  String get libraryRemoteConfigMountNameLabel => 'Mount Name';
+
+  @override
+  String get libraryRemoteConfigMountNameHint => 'e.g., My Samba Server';
+
+  @override
+  String get libraryRemoteConfigMountNameEmpty => 'Please enter mount name';
+
+  @override
+  String get libraryRemoteConfigHostLabel => 'Host Address';
+
+  @override
+  String get libraryRemoteConfigHostHint => 'IP address or domain';
+
+  @override
+  String get libraryRemoteConfigHostEmpty => 'Please enter host address';
+
+  @override
+  String get libraryRemoteConfigPortLabel => 'Port';
+
+  @override
+  String get libraryRemoteConfigPortEmpty => 'Please enter port';
+
+  @override
+  String get libraryRemoteConfigPortInvalid => 'Invalid port';
+
+  @override
+  String get libraryRemoteConfigUsernameLabel => 'Username (optional)';
+
+  @override
+  String get libraryRemoteConfigUsernameHint => 'Leave empty for default user';
+
+  @override
+  String get libraryRemoteConfigPasswordLabel => 'Password (optional)';
+
+  @override
+  String get libraryRemoteConfigRemotePathLabel => 'Remote Path (optional)';
+
+  @override
+  String get libraryRemoteConfigRemotePathHint => 'e.g., /share/music';
+
+  @override
+  String get libraryRemoteConfigTestButton => 'Test Connection';
+
+  @override
+  String get libraryRemoteConfigTesting => 'Testing...';
+
+  @override
+  String get libraryRemoteConfigSaveButton => 'Save';
+
+  @override
+  String get libraryRemoteConfigSaving => 'Saving...';
+
+  @override
+  String get libraryRemoteConfigTestSuccess => 'Connection test successful!';
+
+  @override
+  String get libraryRemoteConfigTestFailure =>
+      'Connection test failed, please check configuration';
+
+  @override
+  String libraryRemoteConfigTestError(Object message) {
+    return 'Connection failed: $message';
+  }
+
+  @override
+  String get libraryRemoteConfigSaveFailedTitle => 'Save Failed';
+
+  @override
+  String libraryRemoteConfigSaveFailedMessage(Object message) {
+    return 'Unable to save configuration: $message';
+  }
+
+  @override
+  String get libraryProtocolSambaDescription => 'Windows network file sharing';
+
+  @override
+  String get libraryProtocolWebdavDescription => 'HTTP-based file sharing';
+
+  @override
+  String get libraryProtocolFtpDescription => 'Traditional file transfer';
+
+  @override
+  String get libraryProtocolSftpDescription => 'Secure file transfer';
 
   @override
   String get libraryUnknownArtist => 'Unknown Artist';
@@ -242,6 +359,33 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get libraryRemoveTrackMessage =>
       'This will remove the song from the library list. Files on disk are untouched.';
+
+  @override
+  String get libraryConfirmDeleteRemoteTitle => 'Confirm Delete';
+
+  @override
+  String libraryConfirmDeleteRemoteMessage(Object name) {
+    return 'Are you sure you want to delete remote mount \"$name\"?';
+  }
+
+  @override
+  String libraryLoadRemoteError(Object message) {
+    return 'Failed to load configurations: $message';
+  }
+
+  @override
+  String libraryDeleteRemoteError(Object message) {
+    return 'Failed to delete: $message';
+  }
+
+  @override
+  String get libraryPickLocalTitle => 'Select Local Files or Folders';
+
+  @override
+  String get libraryPickAudioFilesButton => 'Select Audio Files';
+
+  @override
+  String get libraryPickFolderButton => 'Select Folder';
 
   @override
   String get playlistRemoveTitle => 'Remove playlist?';

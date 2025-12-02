@@ -296,6 +296,18 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get commonDelete;
 
+  /// No description provided for @commonEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get commonEdit;
+
+  /// No description provided for @commonError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get commonError;
+
   /// No description provided for @sidebarAppName.
   ///
   /// In en, this message translates to:
@@ -368,6 +380,24 @@ abstract class AppLocalizations {
   /// **'Add Sources'**
   String get libraryAddSources;
 
+  /// No description provided for @librarySourceSelectorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Music Source'**
+  String get librarySourceSelectorTitle;
+
+  /// No description provided for @librarySourceSelectorSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Click a card to select source, or add a new remote mount'**
+  String get librarySourceSelectorSubtitle;
+
+  /// No description provided for @libraryRemoteMounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote Mounts'**
+  String get libraryRemoteMounts;
+
   /// No description provided for @libraryContextAddToPlaylist.
   ///
   /// In en, this message translates to:
@@ -410,6 +440,12 @@ abstract class AppLocalizations {
   /// **'Local'**
   String get librarySourceLocal;
 
+  /// No description provided for @libraryLocalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Local disks or external drives'**
+  String get libraryLocalDescription;
+
   /// No description provided for @librarySourceSamba.
   ///
   /// In en, this message translates to:
@@ -433,6 +469,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'SFTP'**
   String get librarySourceSftp;
+
+  /// No description provided for @libraryAddRemoteMount.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Remote Mount'**
+  String get libraryAddRemoteMount;
+
+  /// No description provided for @libraryRemoteConfigAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Remote Mount'**
+  String get libraryRemoteConfigAddTitle;
+
+  /// No description provided for @libraryRemoteConfigEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Remote Mount'**
+  String get libraryRemoteConfigEditTitle;
+
+  /// No description provided for @libraryRemoteConfigProtocolLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol Type'**
+  String get libraryRemoteConfigProtocolLabel;
+
+  /// No description provided for @libraryRemoteConfigMountNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Mount Name'**
+  String get libraryRemoteConfigMountNameLabel;
+
+  /// No description provided for @libraryRemoteConfigMountNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., My Samba Server'**
+  String get libraryRemoteConfigMountNameHint;
+
+  /// No description provided for @libraryRemoteConfigMountNameEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter mount name'**
+  String get libraryRemoteConfigMountNameEmpty;
+
+  /// No description provided for @libraryRemoteConfigHostLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Host Address'**
+  String get libraryRemoteConfigHostLabel;
+
+  /// No description provided for @libraryRemoteConfigHostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'IP address or domain'**
+  String get libraryRemoteConfigHostHint;
+
+  /// No description provided for @libraryRemoteConfigHostEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter host address'**
+  String get libraryRemoteConfigHostEmpty;
+
+  /// No description provided for @libraryRemoteConfigPortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Port'**
+  String get libraryRemoteConfigPortLabel;
+
+  /// No description provided for @libraryRemoteConfigPortEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter port'**
+  String get libraryRemoteConfigPortEmpty;
+
+  /// No description provided for @libraryRemoteConfigPortInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid port'**
+  String get libraryRemoteConfigPortInvalid;
+
+  /// No description provided for @libraryRemoteConfigUsernameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Username (optional)'**
+  String get libraryRemoteConfigUsernameLabel;
+
+  /// No description provided for @libraryRemoteConfigUsernameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty for default user'**
+  String get libraryRemoteConfigUsernameHint;
+
+  /// No description provided for @libraryRemoteConfigPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password (optional)'**
+  String get libraryRemoteConfigPasswordLabel;
+
+  /// No description provided for @libraryRemoteConfigRemotePathLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote Path (optional)'**
+  String get libraryRemoteConfigRemotePathLabel;
+
+  /// No description provided for @libraryRemoteConfigRemotePathHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., /share/music'**
+  String get libraryRemoteConfigRemotePathHint;
+
+  /// No description provided for @libraryRemoteConfigTestButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Connection'**
+  String get libraryRemoteConfigTestButton;
+
+  /// No description provided for @libraryRemoteConfigTesting.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing...'**
+  String get libraryRemoteConfigTesting;
+
+  /// No description provided for @libraryRemoteConfigSaveButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get libraryRemoteConfigSaveButton;
+
+  /// No description provided for @libraryRemoteConfigSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving...'**
+  String get libraryRemoteConfigSaving;
+
+  /// No description provided for @libraryRemoteConfigTestSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection test successful!'**
+  String get libraryRemoteConfigTestSuccess;
+
+  /// No description provided for @libraryRemoteConfigTestFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection test failed, please check configuration'**
+  String get libraryRemoteConfigTestFailure;
+
+  /// No description provided for @libraryRemoteConfigTestError.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed: {message}'**
+  String libraryRemoteConfigTestError(Object message);
+
+  /// No description provided for @libraryRemoteConfigSaveFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Failed'**
+  String get libraryRemoteConfigSaveFailedTitle;
+
+  /// No description provided for @libraryRemoteConfigSaveFailedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to save configuration: {message}'**
+  String libraryRemoteConfigSaveFailedMessage(Object message);
+
+  /// No description provided for @libraryProtocolSambaDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Windows network file sharing'**
+  String get libraryProtocolSambaDescription;
+
+  /// No description provided for @libraryProtocolWebdavDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP-based file sharing'**
+  String get libraryProtocolWebdavDescription;
+
+  /// No description provided for @libraryProtocolFtpDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Traditional file transfer'**
+  String get libraryProtocolFtpDescription;
+
+  /// No description provided for @libraryProtocolSftpDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure file transfer'**
+  String get libraryProtocolSftpDescription;
 
   /// No description provided for @libraryUnknownArtist.
   ///
@@ -511,6 +733,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This will remove the song from the library list. Files on disk are untouched.'**
   String get libraryRemoveTrackMessage;
+
+  /// No description provided for @libraryConfirmDeleteRemoteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Delete'**
+  String get libraryConfirmDeleteRemoteTitle;
+
+  /// No description provided for @libraryConfirmDeleteRemoteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete remote mount \"{name}\"?'**
+  String libraryConfirmDeleteRemoteMessage(Object name);
+
+  /// No description provided for @libraryLoadRemoteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load configurations: {message}'**
+  String libraryLoadRemoteError(Object message);
+
+  /// No description provided for @libraryDeleteRemoteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete: {message}'**
+  String libraryDeleteRemoteError(Object message);
+
+  /// No description provided for @libraryPickLocalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Local Files or Folders'**
+  String get libraryPickLocalTitle;
+
+  /// No description provided for @libraryPickAudioFilesButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Audio Files'**
+  String get libraryPickAudioFilesButton;
+
+  /// No description provided for @libraryPickFolderButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Folder'**
+  String get libraryPickFolderButton;
 
   /// No description provided for @playlistRemoveTitle.
   ///
