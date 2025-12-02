@@ -43,8 +43,13 @@ class PlaylistDetailArguments {
 class LibraryTracksArguments {
   final int? limit;
   final int? offset;
+  final String? filter;
 
-  const LibraryTracksArguments({this.limit, this.offset});
+  const LibraryTracksArguments({
+    this.limit,
+    this.offset,
+    this.filter,
+  });
 
   factory LibraryTracksArguments.fromJson(Map<String, dynamic> json) =>
       _$LibraryTracksArgumentsFromJson(json);

@@ -85,7 +85,6 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final colors = context.macosColors;
     return Container(
       color: colors.contentBackground,
@@ -183,17 +182,36 @@ class _ForYouContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FilledButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.play_arrow),
-          label: Text(l10n.playlistPlayAll),
-          style: FilledButton.styleFrom(
-            foregroundColor: Colors.white,
-            backgroundColor: colors.accentBlue,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.play_arrow),
+              label: Text(l10n.playlistPlayAll),
+              style: FilledButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: colors.accentBlue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
             ),
-          ),
+            OutlinedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.auto_awesome),
+              label: Text(l10n.musicAiRefreshPicks),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colors.accentBlue,
+                side: BorderSide(color: colors.accentBlue),
+                backgroundColor: colors.navSelectedBackground,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         Expanded(child: _ForYouPlaylist(entries: entries)),
@@ -218,6 +236,8 @@ class _ChatViewState extends State<_ChatView> {
   final _messages = <ChatMessage>[];
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  final Map<ChatMessage, String> _messageIds = {};
+  final _AiDiagnosticsCache _diagnosticsCache = _AiDiagnosticsCache.instance;
   bool _isResponding = false;
   String? _respondingMessageId;
   bool _isSessionInitialized = false;
@@ -232,8 +252,9 @@ class _ChatViewState extends State<_ChatView> {
   Future<void> _loadHistory() async {
     await _chatHistoryStorage.init();
     final l10n = AppLocalizations.of(context)!;
+    final history = _chatHistoryStorage.loadHistory();
     setState(() {
-      _messages.addAll(_chatHistoryStorage.loadHistory());
+      _messages.addAll(history);
       _messages.add(
         ChatMessage(
           text: l10n.musicAiNewSession,
@@ -242,6 +263,12 @@ class _ChatViewState extends State<_ChatView> {
         ),
       );
     });
+    for (final message in history) {
+      final messageId = _diagnosticsCache.idForKey(_messageKey(message));
+      if (messageId != null) {
+        _messageIds[message] = messageId;
+      }
+    }
   }
 
   Future<void> _initializeAgent() async {
@@ -267,6 +294,7 @@ class _ChatViewState extends State<_ChatView> {
           );
           _messages.add(message);
           _chatHistoryStorage.addMessage(message);
+          _attachMessageId(message, messageId);
         });
       },
       onFullText: (messageId, fullText) {
@@ -283,6 +311,10 @@ class _ChatViewState extends State<_ChatView> {
                 timestamp: oldMessage.timestamp,
               );
               _messages[index] = newMessage;
+              final id = _messageIds.remove(oldMessage);
+              if (id != null) {
+                _attachMessageId(newMessage, id);
+              }
               _chatHistoryStorage.updateMessage(newMessage);
             }
           });
@@ -302,12 +334,21 @@ class _ChatViewState extends State<_ChatView> {
                 timestamp: oldMessage.timestamp,
               );
               _messages[index] = newMessage;
+              final id = _messageIds.remove(oldMessage);
+              if (id != null) {
+                _attachMessageId(newMessage, id);
+              }
               _chatHistoryStorage.updateMessage(newMessage);
             }
           });
         }
       },
       onExtension: (messageId, extension) {},
+      onMessageLog: (messageId, jsonLine) {
+        setState(() {
+          _diagnosticsCache.addLog(messageId, jsonLine);
+        });
+      },
       onDoneCallback: () {
         setState(() {
           _isResponding = false;
@@ -355,7 +396,13 @@ class _ChatViewState extends State<_ChatView> {
             itemCount: _messages.length,
             itemBuilder: (context, index) {
               final message = _messages[_messages.length - 1 - index];
-              return _ChatMessageBubble(message: message);
+              final l10n = AppLocalizations.of(context)!;
+              return _ChatMessageBubble(
+                message: message,
+                hasDetails: _hasDiagnostics(message),
+                detailLabel: l10n.musicAiMessageDetail,
+                onShowDetails: () => _showMessageDetails(message),
+              );
             },
           ),
         ),
@@ -442,12 +489,93 @@ class _ChatViewState extends State<_ChatView> {
 
     _liteAgentUtil.chat(userTask);
   }
+
+  bool _hasDiagnostics(ChatMessage message) {
+    final id = _resolveMessageId(message);
+    if (id == null) return false;
+    final logs = _diagnosticsCache.logsFor(id);
+    return logs.isNotEmpty;
+  }
+
+  void _showMessageDetails(ChatMessage message) {
+    final messageId = _resolveMessageId(message);
+    if (messageId == null) return;
+    final logs = _diagnosticsCache.logsFor(messageId);
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final colors = dialogContext.macosColors;
+        return AlertDialog(
+          backgroundColor: colors.menuBackground,
+          title: Text(
+            l10n.musicAiMessageDetailTitle,
+            style: TextStyle(color: colors.heading),
+          ),
+          content: logs.isEmpty
+              ? Text(
+                  l10n.musicAiMessageDetailEmpty,
+                  style: TextStyle(color: colors.mutedGrey),
+                )
+              : SizedBox(
+                  width: 500,
+                  height: 240,
+                  child: SelectionArea(
+                    child: ListView.builder(
+                      itemCount: logs.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: Text(
+                            logs[index],
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 12,
+                              color: colors.heading,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.commonClose),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _attachMessageId(ChatMessage message, String messageId) {
+    _messageIds[message] = messageId;
+    _diagnosticsCache.recordKey(_messageKey(message), messageId);
+  }
+
+  String _messageKey(ChatMessage message) =>
+      '${message.timestamp.millisecondsSinceEpoch}_${message.sender.index}';
+
+  String? _resolveMessageId(ChatMessage message) {
+    return _messageIds[message] ??
+        _diagnosticsCache.idForKey(_messageKey(message));
+  }
 }
 
 class _ChatMessageBubble extends StatelessWidget {
-  const _ChatMessageBubble({required this.message});
+  const _ChatMessageBubble({
+    required this.message,
+    this.onShowDetails,
+    this.hasDetails = false,
+    this.detailLabel,
+  });
 
   final ChatMessage message;
+  final VoidCallback? onShowDetails;
+  final bool hasDetails;
+  final String? detailLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -490,9 +618,9 @@ class _ChatMessageBubble extends StatelessWidget {
             : MainAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            CircleAvatar(
-              backgroundColor: colors.accentBlue,
-              child: const Icon(Icons.auto_awesome, color: Colors.white),
+            _AiAvatar(
+              onShowDetails: hasDetails ? onShowDetails : null,
+              label: detailLabel,
             ),
             const SizedBox(width: 12),
           ],
@@ -575,6 +703,71 @@ class _ChatMessageBubble extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AiAvatar extends StatelessWidget {
+  const _AiAvatar({this.onShowDetails, this.label});
+
+  final VoidCallback? onShowDetails;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.macosColors;
+    final avatar = CircleAvatar(
+      backgroundColor: colors.accentBlue,
+      child: const Icon(Icons.auto_awesome, color: Colors.white),
+    );
+    if (onShowDetails == null) {
+      return avatar;
+    }
+    return GestureDetector(
+      onSecondaryTapDown: (details) => _showMenu(context, details),
+      child: avatar,
+    );
+  }
+
+  Future<void> _showMenu(BuildContext context, TapDownDetails details) async {
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromRect(
+      details.globalPosition & const Size(40, 40),
+      Offset.zero & overlay.size,
+    );
+    final result = await showMenu<String>(
+      context: context,
+      position: position,
+      items: [
+        PopupMenuItem(
+          value: 'detail',
+          child: Text(label ?? 'Detail'),
+        ),
+      ],
+    );
+    if (result == 'detail') {
+      onShowDetails?.call();
+    }
+  }
+}
+
+class _AiDiagnosticsCache {
+  _AiDiagnosticsCache._();
+
+  static final _AiDiagnosticsCache instance = _AiDiagnosticsCache._();
+
+  final Map<String, List<String>> _logsById = {};
+  final Map<String, String> _keyToId = {};
+
+  void addLog(String messageId, String logLine) {
+    _logsById.putIfAbsent(messageId, () => <String>[]).add(logLine);
+  }
+
+  List<String> logsFor(String messageId) => _logsById[messageId] ?? const [];
+
+  void recordKey(String key, String messageId) {
+    _keyToId[key] = messageId;
+  }
+
+  String? idForKey(String key) => _keyToId[key];
 }
 
 class _HrBuilder extends MarkdownElementBuilder {

@@ -1010,6 +1010,12 @@ abstract class AppLocalizations {
   /// **'AI Chat'**
   String get musicAiChatButton;
 
+  /// No description provided for @musicAiRefreshPicks.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh picks'**
+  String get musicAiRefreshPicks;
+
   /// No description provided for @musicAiTabForYou.
   ///
   /// In en, this message translates to:
@@ -1063,6 +1069,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Extended Information'**
   String get musicAiExtendedInfo;
+
+  /// No description provided for @musicAiMessageDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Detail'**
+  String get musicAiMessageDetail;
+
+  /// No description provided for @musicAiMessageDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Message Details'**
+  String get musicAiMessageDetailTitle;
+
+  /// No description provided for @musicAiMessageDetailEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No diagnostic events for this message'**
+  String get musicAiMessageDetailEmpty;
 
   /// No description provided for @iosPlayerTitle.
   ///

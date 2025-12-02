@@ -143,15 +143,10 @@
       "description": "Return the active queue; optional limit trims the number of tracks",
       "parameters": [
         {
-          "name": "payload",
+          "name": "limit",
           "schema": {
-            "type": "object",
-            "properties": {
-              "limit": {
-                "type": "integer",
-                "description": "Optional maximum number of records to return"
-              }
-            }
+            "type": "integer",
+            "description": "Optional maximum number of records to return"
           },
           "required": false
         }
@@ -261,24 +256,20 @@
       "description": "Return tracks inside a named playlist; limit is optional",
       "parameters": [
         {
-          "name": "payload",
+          "name": "name",
           "schema": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "Playlist name"
-              },
-              "limit": {
-                "type": "integer",
-                "description": "Optional maximum number of tracks"
-              }
-            },
-            "required": [
-              "name"
-            ]
+            "type": "string",
+            "description": "Playlist name"
           },
           "required": true
+        },
+        {
+          "name": "limit",
+          "schema": {
+            "type": "integer",
+            "description": "Optional maximum number of tracks"
+          },
+          "required": false
         }
       ],
       "return": {
@@ -344,22 +335,29 @@
     },
     {
       "name": "getLibraryTracks",
-      "description": "Return library tracks; limit/offset enable pagination",
+      "description": "Return library tracks; support pagination and a lightweight search filter",
       "parameters": [
         {
-          "name": "payload",
+          "name": "limit",
           "schema": {
-            "type": "object",
-            "properties": {
-              "limit": {
-                "type": "integer",
-                "description": "Optional maximum number of tracks"
-              },
-              "offset": {
-                "type": "integer",
-                "description": "Optional starting offset for pagination"
-              }
-            }
+            "type": "integer",
+            "description": "Optional maximum number of tracks"
+          },
+          "required": false
+        },
+        {
+          "name": "offset",
+          "schema": {
+            "type": "integer",
+            "description": "Optional starting offset for pagination"
+          },
+          "required": false
+        },
+        {
+          "name": "filter",
+          "schema": {
+            "type": "string",
+            "description": "Case-insensitive substring filter applied to title/artist/album before pagination"
           },
           "required": false
         }
@@ -430,15 +428,10 @@
       "description": "Return favorite songs; optional limit keeps replies short",
       "parameters": [
         {
-          "name": "payload",
+          "name": "limit",
           "schema": {
-            "type": "object",
-            "properties": {
-              "limit": {
-                "type": "integer",
-                "description": "Optional maximum number of records to return"
-              }
-            }
+            "type": "integer",
+            "description": "Optional maximum number of records to return"
           },
           "required": false
         }
@@ -509,18 +502,10 @@
       "description": "Return metadata for a single track identified by path",
       "parameters": [
         {
-          "name": "payload",
+          "name": "path",
           "schema": {
-            "type": "object",
-            "properties": {
-              "path": {
-                "type": "string",
-                "description": "Song path or unique identifier"
-              }
-            },
-            "required": [
-              "path"
-            ]
+            "type": "string",
+            "description": "Song path or unique identifier"
           },
           "required": true
         }
@@ -569,15 +554,10 @@
       "description": "Return the current \"For You\" playlist; limit is optional",
       "parameters": [
         {
-          "name": "payload",
+          "name": "limit",
           "schema": {
-            "type": "object",
-            "properties": {
-              "limit": {
-                "type": "integer",
-                "description": "Optional maximum number of records to return"
-              }
-            }
+            "type": "integer",
+            "description": "Optional maximum number of records to return"
           },
           "required": false
         }
@@ -647,62 +627,58 @@
       "description": "Replace the \"For You\" playlist with the supplied tracks and note",
       "parameters": [
         {
-          "name": "payload",
+          "name": "tracks",
           "schema": {
-            "type": "object",
-            "properties": {
-              "tracks": {
-                "type": "array",
-                "description": "List of songs with minimal metadata for queue or playlist operations",
-                "items": {
-                  "type": "object",
-                  "description": "Compact song summary used across playback and playlist APIs",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "description": "Unique identifier or absolute path"
-                    },
-                    "title": {
-                      "type": "string",
-                      "description": "Song title"
-                    },
-                    "artist": {
-                      "type": "string",
-                      "description": "Artist (optional)"
-                    },
-                    "album": {
-                      "type": "string",
-                      "description": "Album (optional)"
-                    },
-                    "durationSec": {
-                      "type": "integer",
-                      "description": "Duration in seconds (optional)"
-                    },
-                    "format": {
-                      "type": "string",
-                      "description": "Container/codec hint (optional)"
-                    },
-                    "source": {
-                      "type": "string",
-                      "description": "Source label (optional)"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "title"
-                  ]
+            "type": "array",
+            "description": "List of songs with minimal metadata for queue or playlist operations",
+            "items": {
+              "type": "object",
+              "description": "Compact song summary used across playback and playlist APIs",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique identifier or absolute path"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Song title"
+                },
+                "artist": {
+                  "type": "string",
+                  "description": "Artist (optional)"
+                },
+                "album": {
+                  "type": "string",
+                  "description": "Album (optional)"
+                },
+                "durationSec": {
+                  "type": "integer",
+                  "description": "Duration in seconds (optional)"
+                },
+                "format": {
+                  "type": "string",
+                  "description": "Container/codec hint (optional)"
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Source label (optional)"
                 }
               },
-              "note": {
-                "type": "string",
-                "description": "Optional hint or note for the recommendations"
-              }
-            },
-            "required": [
-              "tracks"
-            ]
+              "required": [
+                "id",
+                "title"
+              ]
+            }
           },
           "required": true
+        },
+        {
+          "name": "note",
+          "schema": {
+            "type": "string",
+            "description": "Optional hint or note for the recommendations"
+          },
+          "required": false
         }
       ],
       "return": {
@@ -728,56 +704,48 @@
       "description": "Overwrite the current playback queue without auto-playing",
       "parameters": [
         {
-          "name": "payload",
+          "name": "tracks",
           "schema": {
-            "type": "object",
-            "properties": {
-              "tracks": {
-                "type": "array",
-                "description": "List of songs with minimal metadata for queue or playlist operations",
-                "items": {
-                  "type": "object",
-                  "description": "Compact song summary used across playback and playlist APIs",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "description": "Unique identifier or absolute path"
-                    },
-                    "title": {
-                      "type": "string",
-                      "description": "Song title"
-                    },
-                    "artist": {
-                      "type": "string",
-                      "description": "Artist (optional)"
-                    },
-                    "album": {
-                      "type": "string",
-                      "description": "Album (optional)"
-                    },
-                    "durationSec": {
-                      "type": "integer",
-                      "description": "Duration in seconds (optional)"
-                    },
-                    "format": {
-                      "type": "string",
-                      "description": "Container/codec hint (optional)"
-                    },
-                    "source": {
-                      "type": "string",
-                      "description": "Source label (optional)"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "title"
-                  ]
+            "type": "array",
+            "description": "List of songs with minimal metadata for queue or playlist operations",
+            "items": {
+              "type": "object",
+              "description": "Compact song summary used across playback and playlist APIs",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique identifier or absolute path"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Song title"
+                },
+                "artist": {
+                  "type": "string",
+                  "description": "Artist (optional)"
+                },
+                "album": {
+                  "type": "string",
+                  "description": "Album (optional)"
+                },
+                "durationSec": {
+                  "type": "integer",
+                  "description": "Duration in seconds (optional)"
+                },
+                "format": {
+                  "type": "string",
+                  "description": "Container/codec hint (optional)"
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Source label (optional)"
                 }
-              }
-            },
-            "required": [
-              "tracks"
-            ]
+              },
+              "required": [
+                "id",
+                "title"
+              ]
+            }
           },
           "required": true
         }
@@ -805,61 +773,56 @@
       "description": "Create a playlist and persist the provided tracks",
       "parameters": [
         {
-          "name": "payload",
+          "name": "name",
           "schema": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "Playlist name"
-              },
-              "tracks": {
-                "type": "array",
-                "description": "List of songs with minimal metadata for queue or playlist operations",
-                "items": {
-                  "type": "object",
-                  "description": "Compact song summary used across playback and playlist APIs",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "description": "Unique identifier or absolute path"
-                    },
-                    "title": {
-                      "type": "string",
-                      "description": "Song title"
-                    },
-                    "artist": {
-                      "type": "string",
-                      "description": "Artist (optional)"
-                    },
-                    "album": {
-                      "type": "string",
-                      "description": "Album (optional)"
-                    },
-                    "durationSec": {
-                      "type": "integer",
-                      "description": "Duration in seconds (optional)"
-                    },
-                    "format": {
-                      "type": "string",
-                      "description": "Container/codec hint (optional)"
-                    },
-                    "source": {
-                      "type": "string",
-                      "description": "Source label (optional)"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "title"
-                  ]
+            "type": "string",
+            "description": "Playlist name"
+          },
+          "required": true
+        },
+        {
+          "name": "tracks",
+          "schema": {
+            "type": "array",
+            "description": "List of songs with minimal metadata for queue or playlist operations",
+            "items": {
+              "type": "object",
+              "description": "Compact song summary used across playback and playlist APIs",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique identifier or absolute path"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Song title"
+                },
+                "artist": {
+                  "type": "string",
+                  "description": "Artist (optional)"
+                },
+                "album": {
+                  "type": "string",
+                  "description": "Album (optional)"
+                },
+                "durationSec": {
+                  "type": "integer",
+                  "description": "Duration in seconds (optional)"
+                },
+                "format": {
+                  "type": "string",
+                  "description": "Container/codec hint (optional)"
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Source label (optional)"
                 }
-              }
-            },
-            "required": [
-              "name",
-              "tracks"
-            ]
+              },
+              "required": [
+                "id",
+                "title"
+              ]
+            }
           },
           "required": true
         }
@@ -887,51 +850,43 @@
       "description": "Append a song to the queue and start playback immediately",
       "parameters": [
         {
-          "name": "payload",
+          "name": "song",
           "schema": {
             "type": "object",
+            "description": "Compact song summary used across playback and playlist APIs",
             "properties": {
-              "song": {
-                "type": "object",
-                "description": "Compact song summary used across playback and playlist APIs",
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "description": "Unique identifier or absolute path"
-                  },
-                  "title": {
-                    "type": "string",
-                    "description": "Song title"
-                  },
-                  "artist": {
-                    "type": "string",
-                    "description": "Artist (optional)"
-                  },
-                  "album": {
-                    "type": "string",
-                    "description": "Album (optional)"
-                  },
-                  "durationSec": {
-                    "type": "integer",
-                    "description": "Duration in seconds (optional)"
-                  },
-                  "format": {
-                    "type": "string",
-                    "description": "Container/codec hint (optional)"
-                  },
-                  "source": {
-                    "type": "string",
-                    "description": "Source label (optional)"
-                  }
-                },
-                "required": [
-                  "id",
-                  "title"
-                ]
+              "id": {
+                "type": "string",
+                "description": "Unique identifier or absolute path"
+              },
+              "title": {
+                "type": "string",
+                "description": "Song title"
+              },
+              "artist": {
+                "type": "string",
+                "description": "Artist (optional)"
+              },
+              "album": {
+                "type": "string",
+                "description": "Album (optional)"
+              },
+              "durationSec": {
+                "type": "integer",
+                "description": "Duration in seconds (optional)"
+              },
+              "format": {
+                "type": "string",
+                "description": "Container/codec hint (optional)"
+              },
+              "source": {
+                "type": "string",
+                "description": "Source label (optional)"
               }
             },
             "required": [
-              "song"
+              "id",
+              "title"
             ]
           },
           "required": true

@@ -61,8 +61,13 @@ class AppUtil {
   Future<LibrarySummaryDto> getLibraryTracks({
     int? limit,
     int offset = 0,
+    String? filter,
   }) async {
-    return _libraryAgent.getLibrary(limit: limit, offset: offset);
+    return _libraryAgent.getLibrary(
+      limit: limit,
+      offset: offset,
+      filter: filter,
+    );
   }
 
   Future<FavoritesSummaryDto> getFavoriteTracks({int? limit}) async {

@@ -7,7 +7,7 @@ part of 'app_tool_models.dart';
 // **************************************************************************
 
 EmptyArguments _$EmptyArgumentsFromJson(Map<String, dynamic> json) =>
-    EmptyArguments();
+    const EmptyArguments();
 
 Map<String, dynamic> _$EmptyArgumentsToJson(EmptyArguments instance) =>
     <String, dynamic>{};
@@ -58,6 +58,7 @@ LibraryTracksArguments _$LibraryTracksArgumentsFromJson(
     LibraryTracksArguments(
       limit: (json['limit'] as num?)?.toInt(),
       offset: (json['offset'] as num?)?.toInt(),
+      filter: json['filter'] as String?,
     );
 
 Map<String, dynamic> _$LibraryTracksArgumentsToJson(
@@ -72,6 +73,7 @@ Map<String, dynamic> _$LibraryTracksArgumentsToJson(
 
   writeNotNull('limit', instance.limit);
   writeNotNull('offset', instance.offset);
+  writeNotNull('filter', instance.filter);
   return val;
 }
 

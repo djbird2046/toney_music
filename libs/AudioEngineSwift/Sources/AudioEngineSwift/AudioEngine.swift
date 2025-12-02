@@ -718,36 +718,31 @@ final class AudioEngine {
     private func startAudioOutputLocked() throws {
         let targetDevice = try ensureDeviceIDLocked()
         
-        // Set device sample rate to match file
-        do {
-            try dac.setSampleRate(currentFormat.sampleRate, for: targetDevice)
-            logger.info("Set device sample rate to \(self.currentFormat.sampleRate) Hz")
-        } catch {
-            if bitPerfectModeEnabled {
+        if bitPerfectModeEnabled {
+            // Only adjust sample rate and hog the device when bit-perfect is enabled
+            do {
+                try dac.setSampleRate(currentFormat.sampleRate, for: targetDevice)
+                logger.info("Set device sample rate to \(self.currentFormat.sampleRate) Hz")
+            } catch {
                 throw AudioEngineError.bitPerfectUnavailable("Failed to set device sample rate: \(error.localizedDescription)")
             }
-            logger.error("Failed to set sample rate: \(error.localizedDescription, privacy: .public)")
-        }
-        
-        // Verify the actual device sample rate
-        if let deviceInfo = try? dac.getDeviceInfo(id: targetDevice) {
-            if abs(deviceInfo.currentRate - currentFormat.sampleRate) > 1.0 {
-                let warning = "Sample rate mismatch! File: \(self.currentFormat.sampleRate) Hz, Device: \(deviceInfo.currentRate) Hz"
-                if bitPerfectModeEnabled {
+
+            if let deviceInfo = try? dac.getDeviceInfo(id: targetDevice) {
+                if abs(deviceInfo.currentRate - currentFormat.sampleRate) > 1.0 {
+                    let warning = "Sample rate mismatch! File: \(self.currentFormat.sampleRate) Hz, Device: \(deviceInfo.currentRate) Hz"
                     throw AudioEngineError.bitPerfectUnavailable(warning)
                 }
-                logger.warning("\(warning, privacy: .public)")
             }
-        }
-        
-        do {
-            try dac.acquireHogMode(targetDevice)
-            hoggedDevice = targetDevice
-        } catch {
-            if bitPerfectModeEnabled {
+
+            do {
+                try dac.acquireHogMode(targetDevice)
+                hoggedDevice = targetDevice
+            } catch {
                 throw AudioEngineError.bitPerfectUnavailable(exclusiveAccessErrorMessage(for: error))
             }
-            logger.warning("Hog mode unavailable: \(error.localizedDescription, privacy: .public). Fallback to shared mode.")
+        } else {
+            // In shared mode we leave sample rate untouched and avoid hogging the device
+            releaseHogModeIfNeededLocked()
         }
 
         guard let unit = audioUnit else {

@@ -24,7 +24,14 @@ class _AppToolSchemaBuilder {
         description:
             'Return the active queue; optional limit trims the number of tracks',
         parameters: [
-          Parameter(name: 'payload', schema: limitSchema(), required: false),
+          Parameter(
+            name: 'limit',
+            schema: Schema(
+              type: SchemaType.INTEGER,
+              description: 'Optional maximum number of records to return',
+            ),
+            required: false,
+          ),
         ],
         return_: Return(
           name: 'playlist',
@@ -47,9 +54,20 @@ class _AppToolSchemaBuilder {
         description: 'Return tracks inside a named playlist; limit is optional',
         parameters: [
           Parameter(
-            name: 'payload',
-            schema: playlistDetailPayloadSchema(),
+            name: 'name',
+            schema: Schema(
+              type: SchemaType.STRING,
+              description: 'Playlist name',
+            ),
             required: true,
+          ),
+          Parameter(
+            name: 'limit',
+            schema: Schema(
+              type: SchemaType.INTEGER,
+              description: 'Optional maximum number of records to return',
+            ),
+            required: false,
           ),
         ],
         return_: Return(
@@ -61,11 +79,32 @@ class _AppToolSchemaBuilder {
       ),
       FunctionModel(
         name: 'getLibraryTracks',
-        description: 'Return library tracks; limit/offset enable pagination',
+        description:
+            'Return library tracks; support pagination and a lightweight search filter',
         parameters: [
           Parameter(
-            name: 'payload',
-            schema: libraryPayloadSchema(),
+            name: 'limit',
+            schema: Schema(
+              type: SchemaType.INTEGER,
+              description: 'Optional maximum number of records to return',
+            ),
+            required: false,
+          ),
+          Parameter(
+            name: 'offset',
+            schema: Schema(
+              type: SchemaType.INTEGER,
+              description: 'Optional number of records to skip',
+            ),
+            required: false,
+          ),
+          Parameter(
+            name: 'filter',
+            schema: Schema(
+              type: SchemaType.STRING,
+              description:
+                  'Optional case-insensitive substring filter applied to title/artist/album before pagination',
+            ),
             required: false,
           ),
         ],
@@ -80,7 +119,14 @@ class _AppToolSchemaBuilder {
         description:
             'Return favorite songs; optional limit keeps replies short',
         parameters: [
-          Parameter(name: 'payload', schema: limitSchema(), required: false),
+          Parameter(
+            name: 'limit',
+            schema: Schema(
+              type: SchemaType.INTEGER,
+              description: 'Optional maximum number of records to return',
+            ),
+            required: false,
+          ),
         ],
         return_: Return(
           name: 'favorites',
@@ -93,8 +139,11 @@ class _AppToolSchemaBuilder {
         description: 'Return metadata for a single track identified by path',
         parameters: [
           Parameter(
-            name: 'payload',
-            schema: songMetadataPayloadSchema(),
+            name: 'path',
+            schema: Schema(
+              type: SchemaType.STRING,
+              description: 'Absolute path or unique identifier for the song',
+            ),
             required: true,
           ),
         ],
@@ -108,7 +157,14 @@ class _AppToolSchemaBuilder {
         name: 'getForYouPlaylist',
         description: 'Return the current "For You" playlist; limit is optional',
         parameters: [
-          Parameter(name: 'payload', schema: limitSchema(), required: false),
+          Parameter(
+            name: 'limit',
+            schema: Schema(
+              type: SchemaType.INTEGER,
+              description: 'Optional maximum number of records to return',
+            ),
+            required: false,
+          ),
         ],
         return_: Return(
           name: 'forYou',
@@ -122,9 +178,17 @@ class _AppToolSchemaBuilder {
             'Replace the "For You" playlist with the supplied tracks and note',
         parameters: [
           Parameter(
-            name: 'payload',
-            schema: setForYouPayloadSchema(trackList),
+            name: 'tracks',
+            schema: trackList,
             required: true,
+          ),
+          Parameter(
+            name: 'note',
+            schema: Schema(
+              type: SchemaType.STRING,
+              description: 'Optional hint or note for the recommendations',
+            ),
+            required: false,
           ),
         ],
         return_: Return(
@@ -139,8 +203,8 @@ class _AppToolSchemaBuilder {
             'Overwrite the current playback queue without auto-playing',
         parameters: [
           Parameter(
-            name: 'payload',
-            schema: setCurrentPlaylistPayloadSchema(trackList),
+            name: 'tracks',
+            schema: trackList,
             required: true,
           ),
         ],
@@ -155,8 +219,16 @@ class _AppToolSchemaBuilder {
         description: 'Create a playlist and persist the provided tracks',
         parameters: [
           Parameter(
-            name: 'payload',
-            schema: createPlaylistPayloadSchema(trackList),
+            name: 'name',
+            schema: Schema(
+              type: SchemaType.STRING,
+              description: 'Playlist name',
+            ),
+            required: true,
+          ),
+          Parameter(
+            name: 'tracks',
+            schema: trackList,
             required: true,
           ),
         ],
@@ -172,8 +244,8 @@ class _AppToolSchemaBuilder {
             'Append a song to the queue and start playback immediately',
         parameters: [
           Parameter(
-            name: 'payload',
-            schema: addSongPayloadSchema(songSummary),
+            name: 'song',
+            schema: songSummary,
             required: true,
           ),
         ],
@@ -205,18 +277,6 @@ class _AppToolSchemaBuilder {
             'Expose playback, playlist, and library methods for the Toney app',
       ),
       functions: functions,
-    );
-  }
-
-  static Schema limitSchema() {
-    return Schema(
-      type: SchemaType.OBJECT,
-      properties: {
-        'limit': Schema(
-          type: SchemaType.INTEGER,
-          description: 'Optional maximum number of records to return',
-        ),
-      },
     );
   }
 
@@ -321,36 +381,6 @@ class _AppToolSchemaBuilder {
     );
   }
 
-  static Schema playlistDetailPayloadSchema() {
-    return Schema(
-      type: SchemaType.OBJECT,
-      properties: {
-        'name': Schema(type: SchemaType.STRING, description: 'Playlist name'),
-        'limit': Schema(
-          type: SchemaType.INTEGER,
-          description: 'Optional maximum number of tracks',
-        ),
-      },
-      required: const ['name'],
-    );
-  }
-
-  static Schema libraryPayloadSchema() {
-    return Schema(
-      type: SchemaType.OBJECT,
-      properties: {
-        'limit': Schema(
-          type: SchemaType.INTEGER,
-          description: 'Optional maximum number of tracks',
-        ),
-        'offset': Schema(
-          type: SchemaType.INTEGER,
-          description: 'Optional starting offset for pagination',
-        ),
-      },
-    );
-  }
-
   static Schema librarySummarySchema(Schema trackListSchema) {
     return Schema(
       type: SchemaType.OBJECT,
@@ -382,19 +412,6 @@ class _AppToolSchemaBuilder {
         ),
       },
       required: const ['total', 'favorites'],
-    );
-  }
-
-  static Schema songMetadataPayloadSchema() {
-    return Schema(
-      type: SchemaType.OBJECT,
-      properties: {
-        'path': Schema(
-          type: SchemaType.STRING,
-          description: 'Song path or unique identifier',
-        ),
-      },
-      required: const ['path'],
     );
   }
 
@@ -432,47 +449,6 @@ class _AppToolSchemaBuilder {
         ),
       },
       required: const ['tracks'],
-    );
-  }
-
-  static Schema setForYouPayloadSchema(Schema trackListSchema) {
-    return Schema(
-      type: SchemaType.OBJECT,
-      properties: {
-        'tracks': trackListSchema,
-        'note': Schema(
-          type: SchemaType.STRING,
-          description: 'Optional hint or note for the recommendations',
-        ),
-      },
-      required: const ['tracks'],
-    );
-  }
-
-  static Schema setCurrentPlaylistPayloadSchema(Schema trackListSchema) {
-    return Schema(
-      type: SchemaType.OBJECT,
-      properties: {'tracks': trackListSchema},
-      required: const ['tracks'],
-    );
-  }
-
-  static Schema createPlaylistPayloadSchema(Schema trackListSchema) {
-    return Schema(
-      type: SchemaType.OBJECT,
-      properties: {
-        'name': Schema(type: SchemaType.STRING, description: 'Playlist name'),
-        'tracks': trackListSchema,
-      },
-      required: const ['name', 'tracks'],
-    );
-  }
-
-  static Schema addSongPayloadSchema(Schema songSummarySchema) {
-    return Schema(
-      type: SchemaType.OBJECT,
-      properties: {'song': songSummarySchema},
-      required: const ['song'],
     );
   }
 

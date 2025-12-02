@@ -16,15 +16,30 @@ class LibraryAgent {
 
   bool _libraryReady = false;
 
-  Future<LibrarySummaryDto> getLibrary({int? limit, int offset = 0}) async {
+  Future<LibrarySummaryDto> getLibrary({
+    int? limit,
+    int offset = 0,
+    String? filter,
+  }) async {
     await _ensureLibrary();
     final entries = _libraryStorage.load();
-    final sliced = entries
+    final normalizedFilter = filter?.trim().toLowerCase();
+    final filtered = entries.where((entry) {
+      if (normalizedFilter == null || normalizedFilter.isEmpty) return true;
+      final metadata = entry.metadata;
+      final lower = normalizedFilter;
+      final titleMatch = metadata.title.toLowerCase().contains(lower);
+      final artistMatch = metadata.artist.toLowerCase().contains(lower);
+      final albumMatch = metadata.album.toLowerCase().contains(lower);
+      final pathMatch = entry.path.toLowerCase().contains(lower);
+      return titleMatch || artistMatch || albumMatch || pathMatch;
+    }).toList();
+    final sliced = filtered
         .skip(offset)
-        .take(limit ?? entries.length)
+        .take(limit ?? filtered.length)
         .map(SongMapper.fromLibraryEntry)
         .toList();
-    return LibrarySummaryDto(total: entries.length, tracks: sliced);
+    return LibrarySummaryDto(total: filtered.length, tracks: sliced);
   }
 
   Future<SongMetadataInfoDto> getSongMetadata(String path) async {

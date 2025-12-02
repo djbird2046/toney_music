@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:hive/hive.dart';
 import '../library/library_source.dart';
 import '../model/song_metadata.dart';
@@ -146,6 +148,14 @@ class PlaylistStorage {
         (key, value) =>
             MapEntry(key, value.map((entry) => entry.toJson()).toList()),
       ),
+    });
+  }
+
+  StreamSubscription<BoxEvent>? watch(void Function() onChanged) {
+    final box = _box;
+    if (box == null) return null;
+    return box.watch(key: _snapshotKey).listen((event) {
+      onChanged();
     });
   }
 }

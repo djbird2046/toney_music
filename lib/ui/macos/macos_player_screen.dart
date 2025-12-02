@@ -73,6 +73,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   late final FocusNode _keyboardFocusNode;
   bool _isMetaPressed = false;
   final PlaylistStorage _playlistStorage = PlaylistStorage();
+  StreamSubscription? _playlistWatchSubscription;
   final LiteAgentConfigStorage _liteAgentConfigStorage =
       LiteAgentConfigStorage();
   int? _nowPlayingIndex;
@@ -156,6 +157,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     _favoritesController.dispose();
     _playlistNameController.dispose();
     _keyboardFocusNode.dispose();
+    _playlistWatchSubscription?.cancel();
     super.dispose();
   }
 
@@ -170,6 +172,12 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
 
   Future<void> _initializePlaylists() async {
     await _playlistStorage.init();
+    _playlistWatchSubscription ??=
+        _playlistStorage.watch(_handleExternalPlaylistChange);
+    await _refreshPlaylistsFromStorage();
+  }
+
+  Future<void> _refreshPlaylistsFromStorage() async {
     final snapshot = _playlistStorage.load();
     if (!mounted) return;
     if (snapshot.isEmpty) {
@@ -177,7 +185,13 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       await _persistPlaylists();
       return;
     }
-    final loadedNames = snapshot.names.isEmpty ? ['Default'] : snapshot.names;
+    final previousName =
+        playlists.isNotEmpty && selectedPlaylist < playlists.length
+            ? playlists[selectedPlaylist]
+            : null;
+    final loadedNames = snapshot.names.isEmpty
+        ? snapshot.entries.keys.toList()
+        : snapshot.names;
     final hydrated = <String, List<PlaylistEntry>>{};
     for (final name in loadedNames) {
       final references = snapshot.entries[name] ?? const <PlaylistReference>[];
@@ -191,8 +205,17 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       _playlistEntries
         ..clear()
         ..addAll(hydrated);
-      selectedPlaylist = 0;
+      if (previousName != null && loadedNames.contains(previousName)) {
+        selectedPlaylist = loadedNames.indexOf(previousName);
+      } else {
+        selectedPlaylist = 0;
+      }
     });
+  }
+
+  void _handleExternalPlaylistChange() {
+    if (!mounted) return;
+    unawaited(_refreshPlaylistsFromStorage());
   }
 
   Future<void> _initializeLibrary() async {

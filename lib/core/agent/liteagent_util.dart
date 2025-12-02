@@ -16,6 +16,7 @@ class LiteAgentUtil {
   final Function(String messageId, String fullText) onFullText;
   final Function(String messageId, String chunk) onTextChunk;
   final Function(String messageId, String extension) onExtension;
+  final Function(String messageId, String jsonLine)? onMessageLog;
   final Function(String messageId) onMessageStart;
   final VoidCallback onDoneCallback;
   final Function(Exception) onErrorCallback;
@@ -27,6 +28,7 @@ class LiteAgentUtil {
     required this.onFullText,
     required this.onTextChunk,
     required this.onExtension,
+    this.onMessageLog,
     required this.onMessageStart,
     required this.onDoneCallback,
     required this.onErrorCallback,
@@ -47,6 +49,7 @@ class LiteAgentUtil {
       onTextChunk: onTextChunk,
       onExtension: onExtension,
       onMessageStart: onMessageStart,
+      onMessageLog: onMessageLog,
       onDoneCallback: onDoneCallback,
       onErrorCallback: onErrorCallback,
     )..reset();
@@ -59,6 +62,7 @@ class AppAgentHandler extends AgentMessageHandler {
   final Function(String messageId, String fullText) onFullText;
   final Function(String messageId, String chunk) onTextChunk;
   final Function(String messageId, String extension) onExtension;
+  final Function(String messageId, String jsonLine)? onMessageLog;
   final Function(String messageId) onMessageStart;
   final VoidCallback onDoneCallback;
   final Function(Exception) onErrorCallback;
@@ -70,6 +74,7 @@ class AppAgentHandler extends AgentMessageHandler {
     required this.onFullText,
     required this.onTextChunk,
     required this.onExtension,
+    this.onMessageLog,
     required this.onMessageStart,
     required this.onDoneCallback,
     required this.onErrorCallback,
@@ -132,6 +137,15 @@ class AppAgentHandler extends AgentMessageHandler {
   Future<void> onMessage(String sessionId, AgentMessage agentMessage) async {
     if (_messageCompleted) return;
     _ensureMessageId();
+
+    final typeLabel = agentMessage.type.toString();
+    onMessageLog?.call(
+      _currentMessageId!,
+      jsonEncode({
+        'type': typeLabel,
+        'content': agentMessage.content,
+      }),
+    );
 
     switch (agentMessage.type) {
       case AgentMessageType.TEXT:

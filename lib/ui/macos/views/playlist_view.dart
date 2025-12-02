@@ -73,13 +73,25 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
     final l10n = AppLocalizations.of(context)!;
     final colors = context.macosColors;
     final query = _searchController.text.toLowerCase();
-    final entries = widget.entries.where((entry) {
-      if (query.isEmpty) return true;
+    final filteredEntries = <_IndexedPlaylistEntry>[];
+    for (var i = 0; i < widget.entries.length; i++) {
+      final entry = widget.entries[i];
+      if (query.isEmpty) {
+        filteredEntries.add(
+          _IndexedPlaylistEntry(originalIndex: i, entry: entry),
+        );
+        continue;
+      }
       final metadata = entry.metadata;
-      return metadata.title.toLowerCase().contains(query) ||
+      final matches = metadata.title.toLowerCase().contains(query) ||
           metadata.artist.toLowerCase().contains(query) ||
           metadata.album.toLowerCase().contains(query);
-    }).toList();
+      if (matches) {
+        filteredEntries.add(
+          _IndexedPlaylistEntry(originalIndex: i, entry: entry),
+        );
+      }
+    }
 
     return Container(
       color: colors.contentBackground,
@@ -223,12 +235,15 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                   color: _isDropping ? colors.accentHover : Colors.transparent,
                 ),
                 child: ListView.separated(
-                  itemCount: entries.length,
+                  itemCount: filteredEntries.length,
                   separatorBuilder: (context, _) =>
                       Divider(color: colors.innerDivider, height: 1),
                   itemBuilder: (context, index) {
-                    final entry = entries[index];
-                    final isSelected = widget.selectedIndices.contains(index);
+                    final viewEntry = filteredEntries[index];
+                    final entry = viewEntry.entry;
+                    final originalIndex = viewEntry.originalIndex;
+                    final isSelected =
+                        widget.selectedIndices.contains(originalIndex);
                     return MouseRegion(
                       cursor: SystemMouseCursors.click,
                       onEnter: (_) => setState(() => _hoveredIndex = index),
@@ -238,20 +253,22 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                         }
                       },
                       child: _PlaylistRow(
-                        index: index,
+                        displayIndex: originalIndex,
                         entry: entry,
                         isSelected: isSelected,
                         isHovered: _hoveredIndex == index,
-                        isPlaying: widget.playingIndex == index,
+                        isPlaying: widget.playingIndex == originalIndex,
                         isMissing: entry.metadata.extras['Missing'] == 'true',
-                        isDownloading: widget.downloadingIndex == index,
-                        downloadProgress: widget.downloadingIndex == index
+                        isDownloading:
+                            widget.downloadingIndex == originalIndex,
+                        downloadProgress: widget.downloadingIndex ==
+                                originalIndex
                             ? widget.downloadProgress
                             : null,
-                        onSelect: () => widget.onRowTap(index),
+                        onSelect: () => widget.onRowTap(originalIndex),
                         onShowMetadata: widget.onShowMetadata,
-                        onDelete: () => widget.onDeleteTrack(index),
-                        onPlay: () => widget.onPlayTrack(index),
+                        onDelete: () => widget.onDeleteTrack(originalIndex),
+                        onPlay: () => widget.onPlayTrack(originalIndex),
                       ),
                     );
                   },
@@ -267,7 +284,7 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
 
 class _PlaylistRow extends StatelessWidget {
   const _PlaylistRow({
-    required this.index,
+    required this.displayIndex,
     required this.entry,
     required this.isSelected,
     required this.isHovered,
@@ -281,7 +298,7 @@ class _PlaylistRow extends StatelessWidget {
     required this.onPlay,
   });
 
-  final int index;
+  final int displayIndex;
   final PlaylistEntry entry;
   final bool isSelected;
   final bool isHovered;
@@ -397,7 +414,7 @@ class _PlaylistRow extends StatelessWidget {
             SizedBox(
               width: 36,
               child: Text(
-                '${index + 1}'.padLeft(2, '0'),
+                '${displayIndex + 1}'.padLeft(2, '0'),
                 style: TextStyle(
                   color: colors.mutedGrey,
                   fontFeatures: const [FontFeature.tabularFigures()],
@@ -497,6 +514,16 @@ class _PlaylistRow extends StatelessWidget {
     }
     return null;
   }
+}
+
+class _IndexedPlaylistEntry {
+  const _IndexedPlaylistEntry({
+    required this.originalIndex,
+    required this.entry,
+  });
+
+  final int originalIndex;
+  final PlaylistEntry entry;
 }
 
 class _ArtworkTile extends StatelessWidget {

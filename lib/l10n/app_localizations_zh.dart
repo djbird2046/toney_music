@@ -497,6 +497,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get musicAiChatButton => 'AI 对话';
 
   @override
+  String get musicAiRefreshPicks => '换一批';
+
+  @override
   String get musicAiTabForYou => '为你推荐';
 
   @override
@@ -524,6 +527,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get musicAiExtendedInfo => '扩展信息';
+
+  @override
+  String get musicAiMessageDetail => '详情';
+
+  @override
+  String get musicAiMessageDetailTitle => '消息详情';
+
+  @override
+  String get musicAiMessageDetailEmpty => '该消息没有诊断事件';
 
   @override
   String get iosPlayerTitle => 'iOS 播放器';

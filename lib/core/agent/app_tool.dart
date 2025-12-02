@@ -35,8 +35,10 @@ class AppTool extends Tool {
           final playlists = await _appUtil.getPlaylistSummaries();
           return {'playlists': playlists.map((e) => e.toJson()).toList()};
         case 'getPlaylistDetail':
+          final normalizedArgs =
+              _coerceStringPayload(arguments, fieldName: 'name');
           final payload = _parseArguments(
-            arguments,
+            normalizedArgs,
             PlaylistDetailArguments.fromJson,
           );
           final detail = await _appUtil.getPlaylistDetail(
@@ -55,6 +57,7 @@ class AppTool extends Tool {
           final library = await _appUtil.getLibraryTracks(
             limit: payload.limit,
             offset: payload.offset ?? 0,
+            filter: payload.filter,
           );
           return library.toJson();
         case 'getFavoriteTracks':
@@ -64,8 +67,10 @@ class AppTool extends Tool {
           );
           return favorites.toJson();
         case 'getSongMetadata':
+          final normalizedArgs =
+              _coerceStringPayload(arguments, fieldName: 'path');
           final payload = _parseArguments(
-            arguments,
+            normalizedArgs,
             SongMetadataArguments.fromJson,
           );
           final metadata = await _appUtil.getSongMetadata(payload.path);
@@ -99,7 +104,10 @@ class AppTool extends Tool {
           );
           return response.toJson();
         case 'addSongToCurrentAndPlay':
-          final payload = _parseArguments(arguments, AddSongArguments.fromJson);
+          final payload = _parseArguments(
+            arguments,
+            AddSongArguments.fromJson,
+          );
           final response = await _appUtil.addSongToCurrentAndPlay(payload.song);
           return response.toJson();
         case 'getMoodSignals':
@@ -136,11 +144,38 @@ class AppTool extends Tool {
     try {
       return factory(map);
     } catch (_) {
+      final payloadRaw = map['payload'];
+      if (payloadRaw is Map<String, dynamic>) {
+        try {
+          return factory(payloadRaw);
+        } catch (_) {
+          throw InvalidArgumentsException(arguments: arguments);
+        }
+      }
+      if (payloadRaw is Map) {
+        try {
+          return factory(Map<String, dynamic>.from(payloadRaw));
+        } catch (_) {
+          throw InvalidArgumentsException(arguments: arguments);
+        }
+      }
       throw InvalidArgumentsException(arguments: arguments);
     }
   }
 
   Map<String, dynamic> _argumentsOrEmpty(Map<String, dynamic>? arguments) {
     return arguments ?? const <String, dynamic>{};
+  }
+
+  Map<String, dynamic>? _coerceStringPayload(
+    Map<String, dynamic>? arguments, {
+    required String fieldName,
+  }) {
+    if (arguments == null) return null;
+    final payload = arguments['payload'];
+    if (payload is String && payload.isNotEmpty) {
+      return {fieldName: payload};
+    }
+    return arguments;
   }
 }

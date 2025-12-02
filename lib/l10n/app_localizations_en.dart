@@ -510,6 +510,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicAiChatButton => 'AI Chat';
 
   @override
+  String get musicAiRefreshPicks => 'Refresh picks';
+
+  @override
   String get musicAiTabForYou => 'For You';
 
   @override
@@ -537,6 +540,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get musicAiExtendedInfo => 'Extended Information';
+
+  @override
+  String get musicAiMessageDetail => 'Detail';
+
+  @override
+  String get musicAiMessageDetailTitle => 'Message Details';
+
+  @override
+  String get musicAiMessageDetailEmpty =>
+      'No diagnostic events for this message';
 
   @override
   String get iosPlayerTitle => 'iOS Player';
