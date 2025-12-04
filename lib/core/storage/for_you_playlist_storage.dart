@@ -3,14 +3,23 @@ import 'package:hive/hive.dart';
 import 'playlist_storage.dart';
 
 class ForYouPlaylistSnapshot {
-  const ForYouPlaylistSnapshot({required this.entries, this.note});
+  const ForYouPlaylistSnapshot({
+    required this.entries,
+    this.note,
+    this.generatedAt,
+    this.moodSignals,
+  });
 
   final List<PlaylistReference> entries;
   final String? note;
+  final DateTime? generatedAt;
+  final Map<String, dynamic>? moodSignals;
 
   static const empty = ForYouPlaylistSnapshot(
     entries: <PlaylistReference>[],
     note: null,
+    generatedAt: null,
+    moodSignals: null,
   );
 
   bool get isEmpty => entries.isEmpty;
@@ -35,6 +44,14 @@ class ForYouPlaylistStorage {
     }
     final entriesRaw = raw['entries'];
     final note = raw['note'] as String?;
+    final generatedAtRaw = raw['generatedAt'] as String?;
+    final moodSignalsRaw = raw['moodSignals'];
+    Map<String, dynamic>? moodSignals;
+    if (moodSignalsRaw is Map<String, dynamic>) {
+      moodSignals = moodSignalsRaw;
+    } else if (moodSignalsRaw is Map) {
+      moodSignals = Map<String, dynamic>.from(moodSignalsRaw);
+    }
     final entries = <PlaylistReference>[];
     if (entriesRaw is List) {
       for (final item in entriesRaw) {
@@ -45,7 +62,14 @@ class ForYouPlaylistStorage {
         }
       }
     }
-    return ForYouPlaylistSnapshot(entries: entries, note: note);
+    return ForYouPlaylistSnapshot(
+      entries: entries,
+      note: note,
+      generatedAt: generatedAtRaw != null
+          ? DateTime.tryParse(generatedAtRaw)
+          : null,
+      moodSignals: moodSignals,
+    );
   }
 
   Future<void> save(ForYouPlaylistSnapshot snapshot) async {
@@ -53,6 +77,8 @@ class ForYouPlaylistStorage {
     if (box == null) return;
     await box.put(_keySnapshot, {
       'note': snapshot.note,
+      'generatedAt': snapshot.generatedAt?.toIso8601String(),
+      'moodSignals': snapshot.moodSignals,
       'entries': snapshot.entries.map((e) => e.toJson()).toList(),
     });
   }

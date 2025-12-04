@@ -1010,6 +1010,48 @@ abstract class AppLocalizations {
   /// **'AI Chat'**
   String get musicAiChatButton;
 
+  /// No description provided for @musicAiForYouRefreshing.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshing recommendations...'**
+  String get musicAiForYouRefreshing;
+
+  /// No description provided for @musicAiForYouUpdatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated at {time}'**
+  String musicAiForYouUpdatedAt(Object time);
+
+  /// No description provided for @musicAiForYouError.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh failed, tap to retry'**
+  String get musicAiForYouError;
+
+  /// No description provided for @musicAiForYouEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Your For You playlist will appear here after generation.'**
+  String get musicAiForYouEmpty;
+
+  /// No description provided for @musicAiForYouNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Why these picks: {note}'**
+  String musicAiForYouNote(Object note);
+
+  /// No description provided for @musicAiForYouDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get musicAiForYouDetails;
+
+  /// No description provided for @musicAiForYouNoDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'No agent details yet.'**
+  String get musicAiForYouNoDetails;
+
   /// No description provided for @musicAiRefreshPicks.
   ///
   /// In en, this message translates to:

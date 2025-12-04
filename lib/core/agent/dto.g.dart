@@ -19,7 +19,8 @@ PlaybackInfoDto _$PlaybackInfoDtoFromJson(Map<String, dynamic> json) =>
       currentTrack: json['currentTrack'] == null
           ? null
           : TrackMetadataDto.fromJson(
-              json['currentTrack'] as Map<String, dynamic>),
+              json['currentTrack'] as Map<String, dynamic>,
+            ),
       statusMessage: json['statusMessage'] as String?,
     );
 
@@ -45,15 +46,13 @@ Map<String, dynamic> _$PlaybackInfoDtoToJson(PlaybackInfoDto instance) {
 }
 
 QueueItemDto _$QueueItemDtoFromJson(Map<String, dynamic> json) => QueueItemDto(
-      title: json['title'] as String,
-      url: json['url'] as String,
-      artist: json['artist'] as String?,
-    );
+  title: json['title'] as String,
+  url: json['url'] as String,
+  artist: json['artist'] as String?,
+);
 
 Map<String, dynamic> _$QueueItemDtoToJson(QueueItemDto instance) {
-  final val = <String, dynamic>{
-    'title': instance.title,
-  };
+  final val = <String, dynamic>{'title': instance.title};
 
   void writeNotNull(String key, dynamic value) {
     if (value != null) {
@@ -82,9 +81,7 @@ TrackMetadataDto _$TrackMetadataDtoFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$TrackMetadataDtoToJson(TrackMetadataDto instance) {
-  final val = <String, dynamic>{
-    'url': instance.url,
-  };
+  final val = <String, dynamic>{'url': instance.url};
 
   void writeNotNull(String key, dynamic value) {
     if (value != null) {
@@ -117,10 +114,7 @@ SongSummaryDto _$SongSummaryDtoFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$SongSummaryDtoToJson(SongSummaryDto instance) {
-  final val = <String, dynamic>{
-    'id': instance.id,
-    'title': instance.title,
-  };
+  final val = <String, dynamic>{'id': instance.id, 'title': instance.title};
 
   void writeNotNull(String key, dynamic value) {
     if (value != null) {
@@ -143,10 +137,7 @@ PlaylistSummaryDto _$PlaylistSummaryDtoFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$PlaylistSummaryDtoToJson(PlaylistSummaryDto instance) =>
-    <String, dynamic>{
-      'name': instance.name,
-      'trackCount': instance.trackCount,
-    };
+    <String, dynamic>{'name': instance.name, 'trackCount': instance.trackCount};
 
 PlaylistDetailDto _$PlaylistDetailDtoFromJson(Map<String, dynamic> json) =>
     PlaylistDetailDto(
@@ -185,21 +176,17 @@ FavoritesSummaryDto _$FavoritesSummaryDtoFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$FavoritesSummaryDtoToJson(
-        FavoritesSummaryDto instance) =>
-    <String, dynamic>{
-      'total': instance.total,
-      'favorites': instance.favorites.map((e) => e.toJson()).toList(),
-    };
+  FavoritesSummaryDto instance,
+) => <String, dynamic>{
+  'total': instance.total,
+  'favorites': instance.favorites.map((e) => e.toJson()).toList(),
+};
 
 ResultStringDto _$ResultStringDtoFromJson(Map<String, dynamic> json) =>
-    ResultStringDto(
-      result: json['result'] as String,
-    );
+    ResultStringDto(result: json['result'] as String);
 
 Map<String, dynamic> _$ResultStringDtoToJson(ResultStringDto instance) =>
-    <String, dynamic>{
-      'result': instance.result,
-    };
+    <String, dynamic>{'result': instance.result};
 
 ForYouPlaylistDto _$ForYouPlaylistDtoFromJson(Map<String, dynamic> json) =>
     ForYouPlaylistDto(
@@ -207,6 +194,8 @@ ForYouPlaylistDto _$ForYouPlaylistDtoFromJson(Map<String, dynamic> json) =>
           .map((e) => SongSummaryDto.fromJson(e as Map<String, dynamic>))
           .toList(),
       note: json['note'] as String?,
+      generatedAt: _dateTimeFromJson(json['generatedAt'] as String?),
+      moodSignals: json['moodSignals'] as Map<String, dynamic>?,
     );
 
 Map<String, dynamic> _$ForYouPlaylistDtoToJson(ForYouPlaylistDto instance) {
@@ -221,6 +210,8 @@ Map<String, dynamic> _$ForYouPlaylistDtoToJson(ForYouPlaylistDto instance) {
   }
 
   writeNotNull('note', instance.note);
+  writeNotNull('generatedAt', _dateTimeToJson(instance.generatedAt));
+  writeNotNull('moodSignals', instance.moodSignals);
   return val;
 }
 
@@ -237,10 +228,7 @@ SongMetadataInfoDto _$SongMetadataInfoDtoFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$SongMetadataInfoDtoToJson(SongMetadataInfoDto instance) {
-  final val = <String, dynamic>{
-    'path': instance.path,
-    'title': instance.title,
-  };
+  final val = <String, dynamic>{'path': instance.path, 'title': instance.title};
 
   void writeNotNull(String key, dynamic value) {
     if (value != null) {

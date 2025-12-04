@@ -85,6 +85,8 @@ class PlaylistAgent {
   Future<ResultStringDto> setForYouPlaylist({
     required List<SongSummaryDto> tracks,
     String? note,
+    DateTime? generatedAt,
+    Map<String, dynamic>? moodSignals,
   }) async {
     await _ensureForYou();
     await _forYouPlaylistStorage.save(
@@ -93,6 +95,8 @@ class PlaylistAgent {
             .map(SongMapper.playlistReferenceFromSummary)
             .toList(growable: false),
         note: note,
+        generatedAt: generatedAt ?? DateTime.now(),
+        moodSignals: moodSignals,
       ),
     );
     return ResultStringDto(result: 'for_you_saved:${tracks.length}');
@@ -105,7 +109,12 @@ class PlaylistAgent {
         .take(limit ?? snapshot.entries.length)
         .map(SongMapper.fromPlaylistReference)
         .toList();
-    return ForYouPlaylistDto(tracks: entries, note: snapshot.note);
+    return ForYouPlaylistDto(
+      tracks: entries,
+      note: snapshot.note,
+      generatedAt: snapshot.generatedAt,
+      moodSignals: snapshot.moodSignals,
+    );
   }
 
   Future<void> _ensurePlaylists() async {

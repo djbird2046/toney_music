@@ -497,6 +497,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get musicAiChatButton => 'AI 对话';
 
   @override
+  String get musicAiForYouRefreshing => '正在生成推荐...';
+
+  @override
+  String musicAiForYouUpdatedAt(Object time) {
+    return '更新于 $time';
+  }
+
+  @override
+  String get musicAiForYouError => '生成失败，点击重试';
+
+  @override
+  String get musicAiForYouEmpty => '生成后将在此展示推荐。';
+
+  @override
+  String musicAiForYouNote(Object note) {
+    return '推荐思路：$note';
+  }
+
+  @override
+  String get musicAiForYouDetails => '查看详情';
+
+  @override
+  String get musicAiForYouNoDetails => '暂无 Agent 详情。';
+
+  @override
   String get musicAiRefreshPicks => '换一批';
 
   @override

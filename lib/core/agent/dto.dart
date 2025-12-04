@@ -179,8 +179,16 @@ class ResultStringDto {
 class ForYouPlaylistDto {
   final List<SongSummaryDto> tracks;
   final String? note;
+  @JsonKey(fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
+  final DateTime? generatedAt;
+  final Map<String, dynamic>? moodSignals;
 
-  const ForYouPlaylistDto({required this.tracks, this.note});
+  const ForYouPlaylistDto({
+    required this.tracks,
+    this.note,
+    this.generatedAt,
+    this.moodSignals,
+  });
 
   factory ForYouPlaylistDto.fromJson(Map<String, dynamic> json) =>
       _$ForYouPlaylistDtoFromJson(json);
@@ -262,3 +270,8 @@ class MoodSignalsDto {
 int _durationToJson(Duration value) => value.inMilliseconds;
 
 Duration _durationFromJson(int? value) => Duration(milliseconds: value ?? 0);
+
+DateTime? _dateTimeFromJson(String? value) =>
+    value == null ? null : DateTime.tryParse(value);
+
+String? _dateTimeToJson(DateTime? value) => value?.toIso8601String();

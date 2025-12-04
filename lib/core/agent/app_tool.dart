@@ -1,4 +1,5 @@
 import 'package:opentool_dart/opentool_client.dart';
+import 'package:path/path.dart' as p;
 
 import 'app_tool_models.dart';
 import 'app_tool_spec.dart';
@@ -15,9 +16,9 @@ class AppTool extends Tool {
 
   @override
   Future<Map<String, dynamic>> call(
-      String name,
-      Map<String, dynamic>? arguments,
-      ) async {
+    String name,
+    Map<String, dynamic>? arguments,
+  ) async {
     try {
       switch (name) {
         case 'getPlayback':
@@ -35,8 +36,10 @@ class AppTool extends Tool {
           final playlists = await _appUtil.getPlaylistSummaries();
           return {'playlists': playlists.map((e) => e.toJson()).toList()};
         case 'getPlaylistDetail':
-          final normalizedArgs =
-              _coerceStringPayload(arguments, fieldName: 'name');
+          final normalizedArgs = _coerceStringPayload(
+            arguments,
+            fieldName: 'name',
+          );
           final payload = _parseArguments(
             normalizedArgs,
             PlaylistDetailArguments.fromJson,
@@ -67,8 +70,10 @@ class AppTool extends Tool {
           );
           return favorites.toJson();
         case 'getSongMetadata':
-          final normalizedArgs =
-              _coerceStringPayload(arguments, fieldName: 'path');
+          final normalizedArgs = _coerceStringPayload(
+            arguments,
+            fieldName: 'path',
+          );
           final payload = _parseArguments(
             normalizedArgs,
             SongMetadataArguments.fromJson,
@@ -80,8 +85,15 @@ class AppTool extends Tool {
           final result = await _appUtil.getForYouPlaylist(limit: payload.limit);
           return result.toJson();
         case 'setForYouPlaylist':
+          final normalizedForYouArgs = _normalizeForYouTracks(arguments);
+          final tracks = normalizedForYouArgs?['tracks'];
+          if (tracks is! List || tracks.isEmpty) {
+            throw InvalidArgumentsException(
+              arguments: {'error': 'tracks must be a non-empty array'},
+            );
+          }
           final payload = _parseArguments(
-            arguments,
+            normalizedForYouArgs,
             ForYouPlaylistDto.fromJson,
           );
           final response = await _appUtil.setForYouPlaylist(payload);
@@ -104,10 +116,7 @@ class AppTool extends Tool {
           );
           return response.toJson();
         case 'addSongToCurrentAndPlay':
-          final payload = _parseArguments(
-            arguments,
-            AddSongArguments.fromJson,
-          );
+          final payload = _parseArguments(arguments, AddSongArguments.fromJson);
           final response = await _appUtil.addSongToCurrentAndPlay(payload.song);
           return response.toJson();
         case 'getMoodSignals':
@@ -126,10 +135,10 @@ class AppTool extends Tool {
 
   @override
   Future<void> streamCall(
-      String name,
-      Map<String, dynamic>? arguments,
-      void Function(String event, Map<String, dynamic> data) onEvent,
-      ) async {}
+    String name,
+    Map<String, dynamic>? arguments,
+    void Function(String event, Map<String, dynamic> data) onEvent,
+  ) async {}
 
   @override
   Future<OpenTool?> load() async => AppTool.specification();
@@ -137,9 +146,9 @@ class AppTool extends Tool {
   static OpenTool specification() => buildAppToolSpecification();
 
   T _parseArguments<T>(
-      Map<String, dynamic>? arguments,
-      T Function(Map<String, dynamic> json) factory,
-      ) {
+    Map<String, dynamic>? arguments,
+    T Function(Map<String, dynamic> json) factory,
+  ) {
     final map = _argumentsOrEmpty(arguments);
     try {
       return factory(map);
@@ -177,5 +186,21 @@ class AppTool extends Tool {
       return {fieldName: payload};
     }
     return arguments;
+  }
+
+  Map<String, dynamic>? _normalizeForYouTracks(
+    Map<String, dynamic>? arguments,
+  ) {
+    if (arguments == null) return null;
+    final payload = Map<String, dynamic>.from(arguments);
+    final tracks = payload['tracks'];
+    if (tracks is String) {
+      payload['tracks'] = [
+        {'id': tracks, 'title': p.basenameWithoutExtension(tracks)},
+      ];
+    } else if (tracks is Map) {
+      payload['tracks'] = [Map<String, dynamic>.from(tracks)];
+    }
+    return payload;
   }
 }

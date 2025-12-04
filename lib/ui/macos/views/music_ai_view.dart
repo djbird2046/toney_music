@@ -4,11 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:toney_music/l10n/app_localizations.dart';
 import 'package:toney_music/core/agent/app_tool.dart';
 import 'package:toney_music/core/agent/app_util.dart';
+import 'package:toney_music/core/agent/dto.dart';
+import 'package:toney_music/core/agent/for_you_generator.dart';
 import 'package:toney_music/core/audio_controller.dart';
 import 'package:toney_music/core/model/chat_message.dart';
 import 'package:toney_music/core/storage/chat_history_storage.dart';
+import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
 import '../../../core/agent/liteagent_util.dart';
-import '../../../core/library/library_source.dart';
+import '../../../core/agent/song_mapper.dart';
 import '../../../core/model/song_metadata.dart';
 import '../../../core/storage/liteagent_config_storage.dart';
 import '../macos_colors.dart';
@@ -36,6 +40,7 @@ class MacosMusicAiView extends StatefulWidget {
 
 class _MacosMusicAiViewState extends State<MacosMusicAiView> {
   _AiContentState _contentState = _AiContentState.loading;
+  LiteAgentConfig? _agentConfig;
 
   @override
   void initState() {
@@ -69,15 +74,18 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
         );
         await util.testConnect();
         setState(() {
+          _agentConfig = config;
           _contentState = _AiContentState.forYou;
         });
       } else {
         setState(() {
+          _agentConfig = null;
           _contentState = _AiContentState.config;
         });
       }
     } catch (e) {
       setState(() {
+        _agentConfig = null;
         _contentState = _AiContentState.config;
       });
     }
@@ -157,24 +165,251 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
   Widget _buildContent() {
     switch (_contentState) {
       case _AiContentState.forYou:
-        return _ForYouContent(entries: _demoPlaylistEntries);
+        if (_agentConfig == null) {
+          return const SizedBox.shrink();
+        }
+        return _ForYouContent(
+          key: ValueKey('${_agentConfig!.baseUrl}|${_agentConfig!.apiKey}'),
+          config: _agentConfig!,
+          audioController: widget.audioController,
+        );
       case _AiContentState.chat:
         return _ChatView(audioController: widget.audioController);
       case _AiContentState.config:
-        return LiteAgentConfigView(
-          onConfigSaved: () {
-            setState(() => _contentState = _AiContentState.forYou);
-          },
-        );
+        return LiteAgentConfigView(onConfigSaved: _checkConfigAndSetState);
       case _AiContentState.loading:
         return const Center(child: CircularProgressIndicator());
     }
   }
 }
 
-class _ForYouContent extends StatelessWidget {
-  const _ForYouContent({required this.entries});
-  final List<PlaylistEntry> entries;
+class _ForYouContent extends StatefulWidget {
+  const _ForYouContent({
+    super.key,
+    required this.config,
+    required this.audioController,
+  });
+
+  final LiteAgentConfig config;
+  final AudioController audioController;
+
+  @override
+  State<_ForYouContent> createState() => _ForYouContentState();
+}
+
+class _ForYouContentState extends State<_ForYouContent> {
+  late final AppUtil _appUtil;
+  late final ForYouGenerator _generator;
+  late final LiteAgentSDK _liteAgent;
+  final ScrollController _traceController = ScrollController();
+
+  final _dateFormat = DateFormat('MM-dd HH:mm');
+  final int _targetLimit = 20;
+
+  List<PlaylistEntry> _entries = [];
+  String? _note;
+  DateTime? _generatedAt;
+  bool _isLoading = true;
+  bool _isRefreshing = false;
+  String? _error;
+  List<String> _agentTrace = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _appUtil = AppUtil(audioController: widget.audioController);
+    _liteAgent = LiteAgentSDK(
+      baseUrl: widget.config.baseUrl,
+      apiKey: widget.config.apiKey,
+    );
+    _generator = ForYouGenerator(
+      appUtil: _appUtil,
+      liteAgent: _liteAgent,
+      defaultLimit: _targetLimit,
+    );
+    _loadInitial();
+  }
+
+  @override
+  void dispose() {
+    _traceController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadInitial() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final playlist = await _appUtil.getForYouPlaylist(limit: _targetLimit);
+      _applyPlaylist(playlist);
+      if (!_isToday(playlist.generatedAt)) {
+        await _refreshPlaylist();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = '$e';
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshPlaylist() async {
+    if (_isRefreshing) return;
+    setState(() {
+      _isRefreshing = true;
+      _error = null;
+      _agentTrace = const [];
+    });
+    try {
+      final result = await _generator.refresh(limit: _targetLimit);
+      _applyPlaylist(result.playlist);
+      _agentTrace = result.trace;
+    } on ForYouGenerationException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = '${e.cause}';
+        _agentTrace = e.trace;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = '$e';
+        _agentTrace = const [];
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isRefreshing = false;
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _applyPlaylist(ForYouPlaylistDto playlist) {
+    final mapped = playlist.tracks.map(SongMapper.playlistReferenceFromSummary);
+    final entries = mapped
+        .map(
+          (ref) => PlaylistEntry(
+            path: ref.path,
+            metadata:
+                ref.metadata ??
+                SongMetadata.unknown(p.basenameWithoutExtension(ref.path)),
+            sourceType: ref.sourceType,
+            remoteInfo: ref.remoteInfo,
+          ),
+        )
+        .toList(growable: false);
+    if (!mounted) return;
+    setState(() {
+      _entries = entries;
+      _note = playlist.note?.trim();
+      _generatedAt = playlist.generatedAt;
+    });
+  }
+
+  bool _isToday(DateTime? value) {
+    if (value == null) return false;
+    final now = DateTime.now();
+    final local = value.toLocal();
+    return now.year == local.year &&
+        now.month == local.month &&
+        now.day == local.day;
+  }
+
+  Future<void> _playAll() async {
+    if (_entries.isEmpty) return;
+    final tracks = _entries
+        .map(
+          (entry) => SongMapper.fromMetadata(
+            path: entry.path,
+            metadata: entry.metadata,
+            sourceType: entry.sourceType,
+          ),
+        )
+        .toList();
+    await _appUtil.setCurrentPlaylist(tracks);
+    await widget.audioController.playAt(0);
+  }
+
+  Future<void> _showRefreshMenu(Offset globalPosition) async {
+    final l10n = AppLocalizations.of(context)!;
+    final choice = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        globalPosition.dx,
+        globalPosition.dy,
+        globalPosition.dx,
+        globalPosition.dy,
+      ),
+      items: [
+        PopupMenuItem(value: 'details', child: Text(l10n.musicAiForYouDetails)),
+      ],
+    );
+    if (choice == 'details') {
+      _showTraceDialog();
+    }
+  }
+
+  void _showTraceDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final colors = dialogContext.macosColors;
+        return AlertDialog(
+          backgroundColor: colors.menuBackground,
+          title: Text(
+            l10n.musicAiForYouDetails,
+            style: TextStyle(color: colors.heading),
+          ),
+          content: SizedBox(
+            width: 520,
+            height: 360,
+            child: _agentTrace.isEmpty
+                ? Center(
+                    child: Text(
+                      _isRefreshing
+                          ? l10n.musicAiForYouRefreshing
+                          : l10n.musicAiForYouNoDetails,
+                      style: TextStyle(color: colors.mutedGrey),
+                    ),
+                  )
+                : Scrollbar(
+                    controller: _traceController,
+                    child: ListView.separated(
+                      controller: _traceController,
+                      primary: false,
+                      itemCount: _agentTrace.length,
+                      separatorBuilder: (_, __) =>
+                          Divider(color: colors.innerDivider, height: 1),
+                      itemBuilder: (_, index) {
+                        final entry = _agentTrace[index];
+                        return SelectableText(
+                          entry,
+                          style: TextStyle(color: colors.heading, fontSize: 13),
+                        );
+                      },
+                    ),
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text('OK', style: TextStyle(color: colors.accentBlue)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -187,7 +422,7 @@ class _ForYouContent extends StatelessWidget {
           runSpacing: 8,
           children: [
             FilledButton.icon(
-              onPressed: () {},
+              onPressed: _entries.isEmpty || _isRefreshing ? null : _playAll,
               icon: const Icon(Icons.play_arrow),
               label: Text(l10n.playlistPlayAll),
               style: FilledButton.styleFrom(
@@ -198,25 +433,113 @@ class _ForYouContent extends StatelessWidget {
                 ),
               ),
             ),
-            OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.auto_awesome),
-              label: Text(l10n.musicAiRefreshPicks),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: colors.accentBlue,
-                side: BorderSide(color: colors.accentBlue),
-                backgroundColor: colors.navSelectedBackground,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            GestureDetector(
+              onSecondaryTapDown: (details) =>
+                  _showRefreshMenu(details.globalPosition),
+              child: OutlinedButton.icon(
+                onPressed: _isRefreshing ? null : _refreshPlaylist,
+                icon: _isRefreshing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.auto_awesome),
+                label: Text(l10n.musicAiRefreshPicks),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colors.accentBlue,
+                  side: BorderSide(color: colors.accentBlue),
+                  backgroundColor: colors.navSelectedBackground,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ),
           ],
         ),
+        const SizedBox(height: 8),
+        _buildStatus(l10n, colors),
         const SizedBox(height: 16),
-        Expanded(child: _ForYouPlaylist(entries: entries)),
+        Expanded(child: _buildPlaylistArea(l10n, colors)),
       ],
     );
+  }
+
+  Widget _buildStatus(AppLocalizations l10n, MacosColors colors) {
+    if (_isRefreshing) {
+      return Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: colors.accentBlue,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            l10n.musicAiForYouRefreshing,
+            style: TextStyle(color: colors.mutedGrey),
+          ),
+        ],
+      );
+    }
+    if (_error != null) {
+      return InkWell(
+        onTap: _refreshPlaylist,
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              l10n.musicAiForYouError,
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_generatedAt != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.musicAiForYouUpdatedAt(
+              _dateFormat.format(_generatedAt!.toLocal()),
+            ),
+            style: TextStyle(color: colors.mutedGrey),
+          ),
+          if (_note != null && _note!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n.musicAiForYouNote(_note!),
+              style: TextStyle(color: colors.mutedGrey),
+            ),
+          ],
+        ],
+      );
+    }
+    return Text(
+      l10n.musicAiForYouEmpty,
+      style: TextStyle(color: colors.mutedGrey),
+    );
+  }
+
+  Widget _buildPlaylistArea(AppLocalizations l10n, MacosColors colors) {
+    if (_isLoading && _entries.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_entries.isEmpty) {
+      return Center(
+        child: Text(
+          l10n.musicAiForYouEmpty,
+          style: TextStyle(color: colors.mutedGrey),
+        ),
+      );
+    }
+    return _ForYouPlaylist(entries: _entries);
   }
 }
 
@@ -736,12 +1059,7 @@ class _AiAvatar extends StatelessWidget {
     final result = await showMenu<String>(
       context: context,
       position: position,
-      items: [
-        PopupMenuItem(
-          value: 'detail',
-          child: Text(label ?? 'Detail'),
-        ),
-      ],
+      items: [PopupMenuItem(value: 'detail', child: Text(label ?? 'Detail'))],
     );
     if (result == 'detail') {
       onShowDetails?.call();
@@ -839,40 +1157,6 @@ class _ExtensionViewState extends State<_ExtensionView> {
     );
   }
 }
-
-// Demo Playlist Entries (remains unchanged)
-final List<PlaylistEntry> _demoPlaylistEntries = [
-  PlaylistEntry(
-    path: '/path/to/song1.flac',
-    metadata: const SongMetadata(
-      title: 'Demo Song One',
-      artist: 'Demo Artist A',
-      album: 'Demo Album X',
-      extras: {'Duration': '4:30'},
-    ),
-    sourceType: LibrarySourceType.local,
-  ),
-  PlaylistEntry(
-    path: '/path/to/song2.mp3',
-    metadata: const SongMetadata(
-      title: 'Another Demo Track',
-      artist: 'Demo Artist B',
-      album: 'Demo Album Y',
-      extras: {'Duration': '3:15'},
-    ),
-    sourceType: LibrarySourceType.samba,
-  ),
-  PlaylistEntry(
-    path: '/path/to/song3.wav',
-    metadata: const SongMetadata(
-      title: 'Third Example Tune',
-      artist: 'Demo Artist A',
-      album: 'Demo Album X',
-      extras: {'Duration': '5:00'},
-    ),
-    sourceType: LibrarySourceType.webdav,
-  ),
-];
 
 // Replicated from playlist_view.dart (with withValues replaced by withOpacity)
 class _ForYouPlaylist extends StatelessWidget {

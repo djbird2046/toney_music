@@ -231,6 +231,23 @@
   "favoritesUnknownArtist": "未知艺术家",
   "favoritesUnknownAlbum": "未知专辑",
   "musicAiChatButton": "AI 对话",
+  "musicAiForYouRefreshing": "正在生成推荐...",
+  "musicAiForYouUpdatedAt": "更新于 {time}",
+  "@musicAiForYouUpdatedAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "musicAiForYouError": "生成失败，点击重试",
+  "musicAiForYouEmpty": "生成后将在此展示推荐。",
+  "musicAiForYouNote": "推荐思路：{note}",
+  "@musicAiForYouNote": {
+    "placeholders": {
+      "note": {}
+    }
+  },
+  "musicAiForYouDetails": "查看详情",
+  "musicAiForYouNoDetails": "暂无 Agent 详情。",
   "musicAiRefreshPicks": "换一批",
   "musicAiTabForYou": "为你推荐",
   "musicAiTabChat": "跟我说",

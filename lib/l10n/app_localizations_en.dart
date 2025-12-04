@@ -510,6 +510,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicAiChatButton => 'AI Chat';
 
   @override
+  String get musicAiForYouRefreshing => 'Refreshing recommendations...';
+
+  @override
+  String musicAiForYouUpdatedAt(Object time) {
+    return 'Updated at $time';
+  }
+
+  @override
+  String get musicAiForYouError => 'Refresh failed, tap to retry';
+
+  @override
+  String get musicAiForYouEmpty =>
+      'Your For You playlist will appear here after generation.';
+
+  @override
+  String musicAiForYouNote(Object note) {
+    return 'Why these picks: $note';
+  }
+
+  @override
+  String get musicAiForYouDetails => 'View details';
+
+  @override
+  String get musicAiForYouNoDetails => 'No agent details yet.';
+
+  @override
   String get musicAiRefreshPicks => 'Refresh picks';
 
   @override

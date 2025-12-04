@@ -231,6 +231,23 @@
   "favoritesUnknownArtist": "Unknown Artist",
   "favoritesUnknownAlbum": "Unknown Album",
   "musicAiChatButton": "AI Chat",
+  "musicAiForYouRefreshing": "Refreshing recommendations...",
+  "musicAiForYouUpdatedAt": "Updated at {time}",
+  "@musicAiForYouUpdatedAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "musicAiForYouError": "Refresh failed, tap to retry",
+  "musicAiForYouEmpty": "Your For You playlist will appear here after generation.",
+  "musicAiForYouNote": "Why these picks: {note}",
+  "@musicAiForYouNote": {
+    "placeholders": {
+      "note": {}
+    }
+  },
+  "musicAiForYouDetails": "View details",
+  "musicAiForYouNoDetails": "No agent details yet.",
   "musicAiRefreshPicks": "Refresh picks",
   "musicAiTabForYou": "For You",
   "musicAiTabChat": "Tell Me",

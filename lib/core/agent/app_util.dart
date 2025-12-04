@@ -86,6 +86,8 @@ class AppUtil {
     return _playlistAgent.setForYouPlaylist(
       tracks: payload.tracks,
       note: payload.note,
+      generatedAt: payload.generatedAt,
+      moodSignals: payload.moodSignals,
     );
   }
 

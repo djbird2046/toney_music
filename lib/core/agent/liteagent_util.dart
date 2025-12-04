@@ -93,6 +93,13 @@ class AppAgentHandler extends AgentMessageHandler {
     }
   }
 
+  void _finishMessage() {
+    if (_messageCompleted) return;
+    _messageCompleted = true;
+    onDoneCallback();
+    _currentMessageId = null;
+  }
+
   @override
   Future<void> onChunk(
     String sessionId,
@@ -107,6 +114,15 @@ class AppAgentHandler extends AgentMessageHandler {
           onTextChunk(_currentMessageId!, text);
         }
         break;
+      case AgentMessageType.REASONING_CONTENT:
+        final chunk = agentMessageChunk.part?.toString();
+        if (chunk != null && chunk.isNotEmpty) {
+          onExtension(
+            _currentMessageId!,
+            _prettyPrintJson({'reasoningChunk': chunk}),
+          );
+        }
+        break;
       default:
         log('onChunk: Unhandled AgentMessageType: ${agentMessageChunk.type}');
         break;
@@ -116,10 +132,7 @@ class AppAgentHandler extends AgentMessageHandler {
 
   @override
   Future<void> onDone() {
-    if (_messageCompleted) return Future.value();
-    _messageCompleted = true;
-    onDoneCallback();
-    _currentMessageId = null;
+    _finishMessage();
     return Future.value();
   }
 
@@ -141,10 +154,7 @@ class AppAgentHandler extends AgentMessageHandler {
     final typeLabel = agentMessage.type.toString();
     onMessageLog?.call(
       _currentMessageId!,
-      jsonEncode({
-        'type': typeLabel,
-        'content': agentMessage.content,
-      }),
+      jsonEncode({'type': typeLabel, 'content': agentMessage.content}),
     );
 
     switch (agentMessage.type) {
@@ -153,7 +163,6 @@ class AppAgentHandler extends AgentMessageHandler {
         if (text.isNotEmpty) {
           onFullText(_currentMessageId!, text);
         }
-        onDone();
         break;
       case AgentMessageType.IMAGE_URL:
         break;
@@ -165,13 +174,15 @@ class AppAgentHandler extends AgentMessageHandler {
         onExtension(_currentMessageId!, _prettyPrintJson(toolCalls));
         break;
       case AgentMessageType.TOOL_RETURN:
-        if(agentMessage.content["result"] != null && agentMessage.content["result"] is String) {
+        if (agentMessage.content["result"] != null &&
+            agentMessage.content["result"] is String) {
           String resultString = agentMessage.content["result"] as String;
           Map<String, dynamic> resultJson = jsonDecode(resultString);
           agentMessage.content["result"] = resultJson;
         }
         ToolReturn toolReturn = ToolReturn.fromJson(agentMessage.content);
         onExtension(_currentMessageId!, _prettyPrintJson(toolReturn));
+        _finishMessage();
         break;
       case AgentMessageType.CONTENT_LIST:
         List<dynamic> contentJsonList = agentMessage.content as List<dynamic>;
@@ -180,6 +191,28 @@ class AppAgentHandler extends AgentMessageHandler {
             .toList();
         onExtension(_currentMessageId!, _prettyPrintJson(contentList));
         break;
+      case AgentMessageType.DISPATCH:
+        List<dynamic> dispatchJsonList = agentMessage.content as List<dynamic>;
+        final dispatches = dispatchJsonList
+            .map((json) => Dispatch.fromJson(json as Map<String, dynamic>))
+            .toList();
+        onExtension(_currentMessageId!, _prettyPrintJson(dispatches));
+        break;
+      case AgentMessageType.REASONING_CONTENT:
+        final reasoning = agentMessage.content?.toString() ?? '';
+        if (reasoning.isNotEmpty) {
+          onExtension(
+            _currentMessageId!,
+            _prettyPrintJson({'reasoning': reasoning}),
+          );
+        }
+        break;
+      case AgentMessageType.PLANNING:
+        final planning = PlanningContent.fromJson(
+          agentMessage.content as Map<String, dynamic>,
+        );
+        onExtension(_currentMessageId!, _prettyPrintJson(planning));
+        break;
       case AgentMessageType.REFLECTION:
         Reflection reflection = Reflection.fromJson(agentMessage.content);
         onExtension(_currentMessageId!, _prettyPrintJson(reflection));
@@ -187,6 +220,10 @@ class AppAgentHandler extends AgentMessageHandler {
       case AgentMessageType.TASK_STATUS:
         TaskStatus taskStatus = TaskStatus.fromJson(agentMessage.content);
         onExtension(_currentMessageId!, _prettyPrintJson(taskStatus));
+        if (taskStatus.status == TaskStatusType.DONE ||
+            taskStatus.status == TaskStatusType.STOP) {
+          _finishMessage();
+        }
         break;
       case AgentMessageType.FUNCTION_CALL:
         FunctionCall functionCall = FunctionCall.fromJson(agentMessage.content);
