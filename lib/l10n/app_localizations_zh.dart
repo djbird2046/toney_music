@@ -50,6 +50,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsThemeDarkOption => '深色';
 
   @override
+  String get settingsAiHeader => 'AI';
+
+  @override
   String get settingsPlaybackHeader => '播放';
 
   @override
@@ -90,6 +93,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsLanguageDescription => '选择界面语言';
+
+  @override
+  String get settingsLiteAgentChecking => '正在检查可用性…';
+
+  @override
+  String settingsLiteAgentConnected(Object baseUrl) {
+    return '已连接：$baseUrl';
+  }
+
+  @override
+  String settingsLiteAgentConnectionFailed(Object message) {
+    return '连接失败：$message';
+  }
+
+  @override
+  String get settingsLiteAgentNotConfigured => '未配置 LiteAgent';
+
+  @override
+  String get settingsLiteAgentLogout => '退出';
+
+  @override
+  String get settingsLiteAgentConfigure => '去配置';
 
   @override
   String get settingsBitPerfectUnavailableTitle => '无法切换比特完美模式';

@@ -1,10 +1,7 @@
 import 'package:hive/hive.dart';
 
 class LiteAgentConfig {
-  const LiteAgentConfig({
-    required this.baseUrl,
-    required this.apiKey,
-  });
+  const LiteAgentConfig({required this.baseUrl, required this.apiKey});
 
   final String baseUrl;
   final String apiKey;
@@ -40,5 +37,12 @@ class LiteAgentConfigStorage {
     if (box == null) return;
     await box.put(_baseUrlKey, config.baseUrl);
     await box.put(_apiKeyKey, config.apiKey);
+  }
+
+  Future<void> clear() async {
+    final box = _box;
+    if (box == null) return;
+    await box.delete(_baseUrlKey);
+    await box.delete(_apiKeyKey);
   }
 }

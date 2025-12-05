@@ -176,6 +176,12 @@ abstract class AppLocalizations {
   /// **'Dark'**
   String get settingsThemeDarkOption;
 
+  /// No description provided for @settingsAiHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get settingsAiHeader;
+
   /// No description provided for @settingsPlaybackHeader.
   ///
   /// In en, this message translates to:
@@ -259,6 +265,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose display language'**
   String get settingsLanguageDescription;
+
+  /// No description provided for @settingsLiteAgentChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking availability…'**
+  String get settingsLiteAgentChecking;
+
+  /// No description provided for @settingsLiteAgentConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected: {baseUrl}'**
+  String settingsLiteAgentConnected(Object baseUrl);
+
+  /// No description provided for @settingsLiteAgentConnectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed: {message}'**
+  String settingsLiteAgentConnectionFailed(Object message);
+
+  /// No description provided for @settingsLiteAgentNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'LiteAgent not configured'**
+  String get settingsLiteAgentNotConfigured;
+
+  /// No description provided for @settingsLiteAgentLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get settingsLiteAgentLogout;
+
+  /// No description provided for @settingsLiteAgentConfigure.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure'**
+  String get settingsLiteAgentConfigure;
 
   /// No description provided for @settingsBitPerfectUnavailableTitle.
   ///

@@ -15,14 +15,17 @@ import '../../core/library/library_source.dart';
 import '../../core/media/audio_formats.dart';
 import '../../core/model/playback_mode.dart';
 import '../../core/model/song_metadata.dart';
+import '../../core/agent/liteagent_util.dart';
 import '../../core/media/song_metadata_util.dart';
 import '../../core/model/playback_track.dart';
 import '../../core/playback/playback_helper.dart';
 import '../../core/storage/playlist_storage.dart';
 import '../../core/storage/library_storage.dart';
 import '../../core/storage/liteagent_config_storage.dart';
+import '../../core/storage/playback_settings_storage.dart';
 import '../../core/theme/app_theme_mode.dart';
 import '../../core/theme/theme_controller.dart';
+import 'package:liteagent_sdk_dart/liteagent_sdk_dart.dart';
 import 'macos_colors.dart';
 import 'models/media_models.dart';
 import 'models/nav_section.dart';
@@ -76,6 +79,14 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   StreamSubscription? _playlistWatchSubscription;
   final LiteAgentConfigStorage _liteAgentConfigStorage =
       LiteAgentConfigStorage();
+  LiteAgentConfig? _liteAgentConfig;
+  bool _liteAgentConfigValid = false;
+  bool _liteAgentConfigBusy = false;
+  String? _liteAgentError;
+  final PlaybackSettingsStorage _playbackSettingsStorage =
+      PlaybackSettingsStorage();
+  bool _autoSampleRateEnabled = true;
+  bool _autoSampleRateBusy = false;
   int? _nowPlayingIndex;
   int? _selectedLibraryIndex;
   int? _downloadingIndex;
@@ -138,6 +149,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     _initializePlaylists();
     unawaited(_favoritesController.init());
     unawaited(_liteAgentConfigStorage.init());
+    unawaited(_refreshLiteAgentStatus());
+    unawaited(_initializePlaybackSettings());
     widget.controller.state.addListener(_onPlaybackStateChanged);
     _languagePreference = widget.localeController.currentPreference;
     widget.localeController.preference.addListener(
@@ -172,9 +185,106 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
 
   Future<void> _initializePlaylists() async {
     await _playlistStorage.init();
-    _playlistWatchSubscription ??=
-        _playlistStorage.watch(_handleExternalPlaylistChange);
+    _playlistWatchSubscription ??= _playlistStorage.watch(
+      _handleExternalPlaylistChange,
+    );
     await _refreshPlaylistsFromStorage();
+  }
+
+  Future<void> _initializePlaybackSettings() async {
+    await _playbackSettingsStorage.init();
+    final snapshot = _playbackSettingsStorage.load();
+    try {
+      await widget.controller.setAutoSampleRateSwitching(
+        snapshot.autoSampleRateEnabled,
+      );
+    } catch (error) {
+      debugPrint('Failed to apply auto sample-rate preference: $error');
+    }
+    if (!mounted) return;
+    setState(() {
+      _autoSampleRateEnabled = snapshot.autoSampleRateEnabled;
+    });
+  }
+
+  Future<void> _refreshLiteAgentStatus() async {
+    setState(() {
+      _liteAgentConfigBusy = true;
+    });
+    try {
+      await _liteAgentConfigStorage.init();
+      final config = _liteAgentConfigStorage.load();
+      if (!config.isNotEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _liteAgentConfig = null;
+          _liteAgentConfigValid = false;
+          _liteAgentError = null;
+        });
+        return;
+      }
+
+      final liteAgent = LiteAgentSDK(
+        baseUrl: config.baseUrl,
+        apiKey: config.apiKey,
+      );
+      final util = LiteAgentUtil(
+        agentId: 'status_check',
+        liteAgent: liteAgent,
+        onFullText: (id, text) {},
+        onTextChunk: (id, chunk) {},
+        onExtension: (id, ext) {},
+        onMessageStart: (id) {},
+        onDoneCallback: () {},
+        onErrorCallback: (e) {},
+      );
+      await util.testConnect();
+
+      if (!mounted) return;
+      setState(() {
+        _liteAgentConfig = config;
+        _liteAgentConfigValid = true;
+        _liteAgentError = null;
+      });
+    } catch (error) {
+      debugPrint('LiteAgent status check failed: $error');
+      if (!mounted) return;
+      setState(() {
+        _liteAgentConfig = _liteAgentConfigStorage.load();
+        _liteAgentConfigValid = false;
+        _liteAgentError = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _liteAgentConfigBusy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleLiteAgentLogout() async {
+    setState(() {
+      _liteAgentConfigBusy = true;
+    });
+    try {
+      await _liteAgentConfigStorage.clear();
+    } catch (error) {
+      debugPrint('Failed to clear LiteAgent config: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _liteAgentConfig = null;
+          _liteAgentConfigValid = false;
+          _liteAgentConfigBusy = false;
+          _liteAgentError = null;
+        });
+      }
+    }
+  }
+
+  void _navigateToLiteAgentConfig() {
+    _selectNav(NavSection.musicAI);
   }
 
   Future<void> _refreshPlaylistsFromStorage() async {
@@ -187,8 +297,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     }
     final previousName =
         playlists.isNotEmpty && selectedPlaylist < playlists.length
-            ? playlists[selectedPlaylist]
-            : null;
+        ? playlists[selectedPlaylist]
+        : null;
     final loadedNames = snapshot.names.isEmpty
         ? snapshot.entries.keys.toList()
         : snapshot.names;
@@ -647,6 +757,9 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         _selectedPlaylistRows = <int>{};
       }
     });
+    if (section == NavSection.settings) {
+      unawaited(_refreshLiteAgentStatus());
+    }
   }
 
   void _handlePlaylistTap(int index, {bool allowRename = false}) {
@@ -1227,6 +1340,17 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           bitPerfectEnabled: _bitPerfectEnabled,
           bitPerfectBusy: _bitPerfectBusy,
           onToggleBitPerfect: _handleBitPerfectToggle,
+          autoSampleRateEnabled: _autoSampleRateEnabled,
+          autoSampleRateBusy: _autoSampleRateBusy,
+          onToggleAutoSampleRate: _handleAutoSampleRateToggle,
+          liteAgentConfigured:
+              _liteAgentConfigValid && _liteAgentConfig != null,
+          liteAgentConnected: _liteAgentConfigValid,
+          liteAgentBaseUrl: _liteAgentConfig?.baseUrl ?? '',
+          liteAgentError: _liteAgentError,
+          liteAgentBusy: _liteAgentConfigBusy,
+          onConfigureLiteAgent: _navigateToLiteAgentConfig,
+          onLogoutLiteAgent: _handleLiteAgentLogout,
           selectedLanguage: _languagePreference,
           onLanguageChanged: _handleLanguagePreferenceChanged,
           selectedTheme: _themePreference,
@@ -1268,10 +1392,15 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   Future<void> _handleBitPerfectToggle(bool value) async {
     if (_bitPerfectBusy) return;
     final previous = _bitPerfectEnabled;
+    final previousAuto = _autoSampleRateEnabled;
+    final needsAutoEnable = value && !_autoSampleRateEnabled;
     setState(() {
       _bitPerfectBusy = true;
     });
     try {
+      if (needsAutoEnable) {
+        await _forceEnableAutoSampleRateForBitPerfect();
+      }
       await widget.controller.setBitPerfectMode(value);
       if (!mounted) return;
       setState(() {
@@ -1279,6 +1408,26 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       });
     } catch (error) {
       if (!mounted) return;
+      if (needsAutoEnable && previousAuto != _autoSampleRateEnabled) {
+        setState(() {
+          _autoSampleRateBusy = true;
+          _autoSampleRateEnabled = previousAuto;
+        });
+        try {
+          await widget.controller.setAutoSampleRateSwitching(previousAuto);
+          await _playbackSettingsStorage.save(
+            autoSampleRateEnabled: previousAuto,
+          );
+        } catch (_) {
+          // Ignore restoration failures; original error is shown below.
+        } finally {
+          if (mounted) {
+            setState(() {
+              _autoSampleRateBusy = false;
+            });
+          }
+        }
+      }
       setState(() {
         _bitPerfectEnabled = previous;
       });
@@ -1287,6 +1436,63 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       if (mounted) {
         setState(() {
           _bitPerfectBusy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _forceEnableAutoSampleRateForBitPerfect() async {
+    if (_autoSampleRateEnabled) return;
+    setState(() {
+      _autoSampleRateBusy = true;
+      _autoSampleRateEnabled = true;
+    });
+    try {
+      await widget.controller.setAutoSampleRateSwitching(true);
+      await _playbackSettingsStorage.save(autoSampleRateEnabled: true);
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _autoSampleRateEnabled = false;
+        });
+      }
+      rethrow;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _autoSampleRateBusy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleAutoSampleRateToggle(bool value) async {
+    if (_autoSampleRateBusy || _bitPerfectEnabled) {
+      if (_bitPerfectEnabled) {
+        _showAutoSampleRateError(
+          'Auto sample-rate switching is required while Bit-perfect mode is enabled.',
+        );
+      }
+      return;
+    }
+    final previous = _autoSampleRateEnabled;
+    setState(() {
+      _autoSampleRateBusy = true;
+      _autoSampleRateEnabled = value;
+    });
+    try {
+      await widget.controller.setAutoSampleRateSwitching(value);
+      await _playbackSettingsStorage.save(autoSampleRateEnabled: value);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _autoSampleRateEnabled = previous;
+      });
+      _showAutoSampleRateError(error);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _autoSampleRateBusy = false;
         });
       }
     }
@@ -1313,6 +1519,33 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
                 : l10n.settingsBitPerfectUnavailableMessage,
             style: TextStyle(color: colors.mutedGrey),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.commonClose),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAutoSampleRateError(Object error) {
+    final description = error is PlatformException
+        ? (error.message?.isNotEmpty == true ? error.message! : error.code)
+        : error.toString();
+    final l10n = AppLocalizations.of(context)!;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final colors = dialogContext.macosColors;
+        return AlertDialog(
+          backgroundColor: colors.menuBackground,
+          title: Text(
+            l10n.settingsAutoSampleRateTitle,
+            style: TextStyle(color: colors.heading),
+          ),
+          content: Text(description, style: TextStyle(color: colors.mutedGrey)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),

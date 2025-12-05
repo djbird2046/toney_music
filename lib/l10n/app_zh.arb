@@ -13,6 +13,7 @@
   "settingsThemeSystemOption": "跟随系统",
   "settingsThemeLightOption": "浅色",
   "settingsThemeDarkOption": "深色",
+  "settingsAiHeader": "AI",
   "settingsPlaybackHeader": "播放",
   "settingsLibraryHeader": "曲库",
   "settingsBitPerfectTitle": "比特完美模式",
@@ -27,6 +28,22 @@
   "settingsLanguageChineseOption": "简体中文",
   "settingsLanguageEnglishOption": "英文",
   "settingsLanguageDescription": "选择界面语言",
+  "settingsLiteAgentChecking": "正在检查可用性…",
+  "settingsLiteAgentConnected": "已连接：{baseUrl}",
+  "@settingsLiteAgentConnected": {
+    "placeholders": {
+      "baseUrl": {}
+    }
+  },
+  "settingsLiteAgentConnectionFailed": "连接失败：{message}",
+  "@settingsLiteAgentConnectionFailed": {
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "settingsLiteAgentNotConfigured": "未配置 LiteAgent",
+  "settingsLiteAgentLogout": "退出",
+  "settingsLiteAgentConfigure": "去配置",
   "settingsBitPerfectUnavailableTitle": "无法切换比特完美模式",
   "settingsBitPerfectUnavailableMessage": "暂时无法更新比特完美模式，请稍后再试。",
   "commonClose": "关闭",

@@ -55,6 +55,10 @@ public final class AudioEngineFacade {
         try engine.setBitPerfectMode(enabled: enabled)
     }
 
+    public func setAutoSampleRateSwitching(enabled: Bool) throws {
+        try engine.setAutoSampleRateSwitching(enabled: enabled)
+    }
+
     public var onPlaybackEnded: (() -> Void)? {
         get { engine.onPlaybackEnded }
         set { engine.onPlaybackEnded = newValue }

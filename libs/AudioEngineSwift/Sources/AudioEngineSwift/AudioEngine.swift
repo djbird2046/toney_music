@@ -196,6 +196,7 @@ final class AudioEngine {
     private var fileDurationEstimateMs: Int = 0
     private var currentFileURL: URL?
     private var bitPerfectModeEnabled = false
+    private var autoSampleRateSwitchingEnabled = true
     private let bitPerfectAtomic = ManagedAtomic<Int>(0)
     private let volumePermille = ManagedAtomic<Int>(1000)
     private var defaultDeviceListener: AudioObjectPropertyListenerBlock?
@@ -494,7 +495,14 @@ final class AudioEngine {
 
     func setBitPerfectMode(enabled: Bool) throws {
         try controlQueue.sync {
+            let wasPlaying = playbackState == .playing
+            let wasPaused = playbackState == .paused
+
             if enabled {
+                if !autoSampleRateSwitchingEnabled {
+                    autoSampleRateSwitchingEnabled = true
+                    logger.info("Auto sample-rate switching forced on for Bit-perfect mode")
+                }
                 try validateBitPerfectSupportLocked()
                 bitPerfectModeEnabled = true
                 bitPerfectAtomic.store(1, ordering: .releasing)
@@ -503,6 +511,50 @@ final class AudioEngine {
                 bitPerfectModeEnabled = false
                 bitPerfectAtomic.store(0, ordering: .releasing)
                 releaseHogModeIfNeededLocked()
+            }
+
+            guard decoder != nil else { return }
+
+            if wasPlaying, let unit = audioUnit {
+                AudioOutputUnitStop(unit)
+            }
+
+            try syncDeviceConfigurationLocked()
+
+            if wasPlaying {
+                try startAudioOutputLocked()
+                playbackState = .playing
+            } else if wasPaused {
+                playbackState = .paused
+            }
+        }
+    }
+
+    func setAutoSampleRateSwitching(enabled: Bool) throws {
+        try controlQueue.sync {
+            if bitPerfectModeEnabled && !enabled {
+                throw AudioEngineError.bitPerfectUnavailable("Auto sample-rate switching is required for Bit-perfect mode.")
+            }
+            guard autoSampleRateSwitchingEnabled != enabled else { return }
+            autoSampleRateSwitchingEnabled = enabled
+            logger.info("Auto sample-rate switching \(enabled ? "enabled" : "disabled")")
+
+            guard decoder != nil else { return }
+
+            let wasPlaying = playbackState == .playing
+            let wasPaused = playbackState == .paused
+
+            if wasPlaying, let unit = audioUnit {
+                AudioOutputUnitStop(unit)
+            }
+
+            try syncDeviceConfigurationLocked()
+
+            if wasPlaying {
+                try startAudioOutputLocked()
+                playbackState = .playing
+            } else if wasPaused {
+                playbackState = .paused
             }
         }
     }
@@ -613,11 +665,13 @@ final class AudioEngine {
             return
         }
 
-        do {
-            let info = try dac.getDeviceInfo(id: targetDevice)
-            try dac.setSampleRate(info.currentRate, for: targetDevice)
-        } catch {
-            throw AudioEngineError.bitPerfectUnavailable("Failed to control device sample rate: \(error.localizedDescription)")
+        if autoSampleRateSwitchingEnabled {
+            do {
+                let info = try dac.getDeviceInfo(id: targetDevice)
+                try dac.setSampleRate(info.currentRate, for: targetDevice)
+            } catch {
+                throw AudioEngineError.bitPerfectUnavailable("Failed to control device sample rate: \(error.localizedDescription)")
+            }
         }
         do {
             try dac.acquireHogMode(targetDevice)
@@ -720,18 +774,23 @@ final class AudioEngine {
         
         if bitPerfectModeEnabled {
             // Only adjust sample rate and hog the device when bit-perfect is enabled
-            do {
-                try dac.setSampleRate(currentFormat.sampleRate, for: targetDevice)
-                logger.info("Set device sample rate to \(self.currentFormat.sampleRate) Hz")
-            } catch {
-                throw AudioEngineError.bitPerfectUnavailable("Failed to set device sample rate: \(error.localizedDescription)")
-            }
-
-            if let deviceInfo = try? dac.getDeviceInfo(id: targetDevice) {
-                if abs(deviceInfo.currentRate - currentFormat.sampleRate) > 1.0 {
-                    let warning = "Sample rate mismatch! File: \(self.currentFormat.sampleRate) Hz, Device: \(deviceInfo.currentRate) Hz"
-                    throw AudioEngineError.bitPerfectUnavailable(warning)
+            if autoSampleRateSwitchingEnabled {
+                do {
+                    try dac.setSampleRate(currentFormat.sampleRate, for: targetDevice)
+                    logger.info("Set device sample rate to \(self.currentFormat.sampleRate) Hz")
+                } catch {
+                    throw AudioEngineError.bitPerfectUnavailable("Failed to set device sample rate: \(error.localizedDescription)")
                 }
+
+                if let deviceInfo = try? dac.getDeviceInfo(id: targetDevice) {
+                    if abs(deviceInfo.currentRate - currentFormat.sampleRate) > 1.0 {
+                        let warning = "Sample rate mismatch! File: \(self.currentFormat.sampleRate) Hz, Device: \(deviceInfo.currentRate) Hz"
+                        throw AudioEngineError.bitPerfectUnavailable(warning)
+                    }
+                }
+            } else if let deviceInfo = try? dac.getDeviceInfo(id: targetDevice),
+                      abs(deviceInfo.currentRate - currentFormat.sampleRate) > 1.0 {
+                logger.warning("Bit-perfect mode active but auto sample-rate switching is disabled. Device is at \(deviceInfo.currentRate) Hz while track is \(self.currentFormat.sampleRate) Hz")
             }
 
             do {
@@ -803,7 +862,11 @@ final class AudioEngine {
 
     private func syncDeviceConfigurationLocked() throws {
         let id = try ensureDeviceIDLocked()
-        try dac.setSampleRate(currentFormat.sampleRate, for: id)
+        if autoSampleRateSwitchingEnabled {
+            try dac.setSampleRate(currentFormat.sampleRate, for: id)
+        } else {
+            logger.info("Auto sample-rate switching disabled; keeping device sample rate unchanged.")
+        }
         tearDownAudioUnitLocked()
         try prepareAudioUnitLocked()
     }

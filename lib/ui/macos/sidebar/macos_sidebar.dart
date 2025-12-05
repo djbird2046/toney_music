@@ -34,6 +34,9 @@ class MacosSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colors = context.macosColors;
+    final titleAsset = colors.isDark
+        ? 'assets/images/title_white.png'
+        : 'assets/images/title_black.png';
     return Container(
       width: 200,
       color: colors.sidebar,
@@ -46,15 +49,12 @@ class MacosSidebar extends StatelessWidget {
               children: [
                 Image.asset('assets/images/logo.png', width: 36, height: 36),
                 const SizedBox(width: 12),
-                Text(
-                  l10n.sidebarAppName,
-                  style: TextStyle(
-                    color: colors.heading,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.8,
-                    fontStyle: FontStyle.italic,
-                  ),
+                Image.asset(
+                  titleAsset,
+                  height: 48,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                  semanticLabel: l10n.sidebarAppName,
                 ),
               ],
             ),

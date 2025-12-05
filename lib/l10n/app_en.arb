@@ -13,6 +13,7 @@
   "settingsThemeSystemOption": "Follow system",
   "settingsThemeLightOption": "Light",
   "settingsThemeDarkOption": "Dark",
+  "settingsAiHeader": "AI",
   "settingsPlaybackHeader": "Playback",
   "settingsLibraryHeader": "Library",
   "settingsBitPerfectTitle": "Bit-perfect mode",
@@ -27,6 +28,22 @@
   "settingsLanguageChineseOption": "简体中文",
   "settingsLanguageEnglishOption": "English",
   "settingsLanguageDescription": "Choose display language",
+  "settingsLiteAgentChecking": "Checking availability…",
+  "settingsLiteAgentConnected": "Connected: {baseUrl}",
+  "@settingsLiteAgentConnected": {
+    "placeholders": {
+      "baseUrl": {}
+    }
+  },
+  "settingsLiteAgentConnectionFailed": "Connection failed: {message}",
+  "@settingsLiteAgentConnectionFailed": {
+    "placeholders": {
+      "message": {}
+    }
+  },
+  "settingsLiteAgentNotConfigured": "LiteAgent not configured",
+  "settingsLiteAgentLogout": "Sign out",
+  "settingsLiteAgentConfigure": "Configure",
   "settingsBitPerfectUnavailableTitle": "Bit-perfect mode unavailable",
   "settingsBitPerfectUnavailableMessage": "Unable to update bit-perfect mode right now. Please try again later.",
   "commonClose": "Close",

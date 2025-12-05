@@ -11,6 +11,16 @@ class MacosSettingsView extends StatelessWidget {
     required this.bitPerfectEnabled,
     required this.bitPerfectBusy,
     required this.onToggleBitPerfect,
+    required this.autoSampleRateEnabled,
+    required this.autoSampleRateBusy,
+    required this.onToggleAutoSampleRate,
+    required this.liteAgentConfigured,
+    required this.liteAgentConnected,
+    this.liteAgentError,
+    required this.liteAgentBaseUrl,
+    required this.liteAgentBusy,
+    required this.onConfigureLiteAgent,
+    required this.onLogoutLiteAgent,
     required this.selectedLanguage,
     required this.onLanguageChanged,
     required this.selectedTheme,
@@ -20,6 +30,16 @@ class MacosSettingsView extends StatelessWidget {
   final bool bitPerfectEnabled;
   final bool bitPerfectBusy;
   final ValueChanged<bool> onToggleBitPerfect;
+  final bool autoSampleRateEnabled;
+  final bool autoSampleRateBusy;
+  final ValueChanged<bool> onToggleAutoSampleRate;
+  final bool liteAgentConfigured;
+  final bool liteAgentConnected;
+  final String? liteAgentError;
+  final String? liteAgentBaseUrl;
+  final bool liteAgentBusy;
+  final VoidCallback onConfigureLiteAgent;
+  final VoidCallback onLogoutLiteAgent;
   final AppLanguage selectedLanguage;
   final ValueChanged<AppLanguage> onLanguageChanged;
   final AppThemePreference selectedTheme;
@@ -34,7 +54,7 @@ class MacosSettingsView extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       child: ListView(
         children: [
-          _SettingsHeader(l10n.settingsLanguageLabel),
+          _SettingsHeader(l10n.settingsAppearanceHeader),
           _LanguageRow(
             title: l10n.settingsLanguageLabel,
             description: l10n.settingsLanguageDescription,
@@ -47,7 +67,6 @@ class MacosSettingsView extends StatelessWidget {
             ),
           ),
           Divider(color: colors.innerDivider),
-          _SettingsHeader(l10n.settingsAppearanceHeader),
           _ThemeRow(
             title: l10n.settingsThemeLabel,
             description: l10n.settingsThemeDescription,
@@ -71,19 +90,19 @@ class MacosSettingsView extends StatelessWidget {
           _ToggleRow(
             title: l10n.settingsAutoSampleRateTitle,
             subtitle: l10n.settingsAutoSampleRateSubtitle,
-            value: true,
+            value: autoSampleRateEnabled,
+            isBusy: autoSampleRateBusy,
+            onChanged: bitPerfectEnabled ? null : onToggleAutoSampleRate,
           ),
           Divider(color: colors.innerDivider),
-          _SettingsHeader(l10n.settingsLibraryHeader),
-          _ToggleRow(
-            title: l10n.settingsWatchMusicFolderTitle,
-            subtitle: l10n.settingsWatchMusicFolderSubtitle,
-            value: false,
-          ),
-          _ToggleRow(
-            title: l10n.settingsEnableAiTaggingTitle,
-            subtitle: l10n.settingsEnableAiTaggingSubtitle,
-            value: true,
+          _SettingsHeader(l10n.settingsAiHeader),
+          _LiteAgentRow(
+            isBusy: liteAgentBusy,
+            isConnected: liteAgentConnected,
+            baseUrl: liteAgentConfigured ? liteAgentBaseUrl ?? '' : '',
+            errorMessage: liteAgentError,
+            onConfigure: onConfigureLiteAgent,
+            onLogout: onLogoutLiteAgent,
           ),
         ],
       ),
@@ -291,6 +310,83 @@ class _ThemeRow extends StatelessWidget {
             child: Text(labels.dark),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LiteAgentRow extends StatelessWidget {
+  const _LiteAgentRow({
+    required this.isBusy,
+    required this.isConnected,
+    required this.baseUrl,
+    required this.errorMessage,
+    required this.onConfigure,
+    required this.onLogout,
+  });
+
+  final bool isBusy;
+  final bool isConnected;
+  final String baseUrl;
+  final String? errorMessage;
+  final VoidCallback onConfigure;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.macosColors;
+    final l10n = AppLocalizations.of(context)!;
+    final hasConfig = baseUrl.isNotEmpty;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        'LiteAgent',
+        style: TextStyle(color: colors.heading, fontWeight: FontWeight.w400),
+      ),
+      subtitle: isBusy
+          ? Row(
+              children: [
+                SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      colors.accentBlue,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  l10n.settingsLiteAgentChecking,
+                  style: TextStyle(
+                    color: colors.mutedGrey,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+              ],
+            )
+          : Text(
+              hasConfig
+                  ? (isConnected
+                        ? l10n.settingsLiteAgentConnected(baseUrl)
+                        : l10n.settingsLiteAgentConnectionFailed(
+                            errorMessage ?? '',
+                          ))
+                  : l10n.settingsLiteAgentNotConfigured,
+              style: TextStyle(
+                color: colors.mutedGrey,
+                fontWeight: FontWeight.w300,
+              ),
+            ),
+      trailing: TextButton(
+        onPressed: isBusy ? null : (hasConfig ? onLogout : onConfigure),
+        child: Text(
+          hasConfig
+              ? l10n.settingsLiteAgentLogout
+              : l10n.settingsLiteAgentConfigure,
+          style: TextStyle(color: colors.accentBlue),
+        ),
       ),
     );
   }

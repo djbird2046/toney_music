@@ -58,7 +58,7 @@ class AudioController {
           _currentIndex! >= 0 &&
           _currentIndex! < _queue.length) {
         final track = _queue[_currentIndex!];
-        
+
         // Optimistically set duration if available in the track model
         if (track.duration != null) {
           state.value = state.value.copyWith(duration: track.duration);
@@ -70,7 +70,9 @@ class AudioController {
           // Restore position
           if (state.value.hasFile && snapshot.positionMs > 0) {
             try {
-              await _channel.invokeMethod('seek', {'positionMs': snapshot.positionMs});
+              await _channel.invokeMethod('seek', {
+                'positionMs': snapshot.positionMs,
+              });
               state.value = state.value.copyWith(
                 position: Duration(milliseconds: snapshot.positionMs),
               );
@@ -197,6 +199,12 @@ class AudioController {
     await _channel.invokeMethod('setBitPerfectMode', {'enabled': enabled});
   }
 
+  Future<void> setAutoSampleRateSwitching(bool enabled) async {
+    await _channel.invokeMethod('setAutoSampleRateSwitching', {
+      'enabled': enabled,
+    });
+  }
+
   Future<double> getVolume() async {
     // Always fetch from native to ensure sync.
     final value = await _channel.invokeMethod<double>('getVolume');
@@ -270,7 +278,7 @@ class AudioController {
           ? 0
           : (_currentIndex! + 1) % _queue.length;
     }
-    
+
     await playAt(nextIndex);
   }
 

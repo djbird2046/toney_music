@@ -50,6 +50,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsThemeDarkOption => 'Dark';
 
   @override
+  String get settingsAiHeader => 'AI';
+
+  @override
   String get settingsPlaybackHeader => 'Playback';
 
   @override
@@ -94,6 +97,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLanguageDescription => 'Choose display language';
+
+  @override
+  String get settingsLiteAgentChecking => 'Checking availability…';
+
+  @override
+  String settingsLiteAgentConnected(Object baseUrl) {
+    return 'Connected: $baseUrl';
+  }
+
+  @override
+  String settingsLiteAgentConnectionFailed(Object message) {
+    return 'Connection failed: $message';
+  }
+
+  @override
+  String get settingsLiteAgentNotConfigured => 'LiteAgent not configured';
+
+  @override
+  String get settingsLiteAgentLogout => 'Sign out';
+
+  @override
+  String get settingsLiteAgentConfigure => 'Configure';
 
   @override
   String get settingsBitPerfectUnavailableTitle =>

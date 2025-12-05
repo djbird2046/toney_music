@@ -109,6 +109,15 @@ public class AudioEnginePlugin: NSObject, FlutterPlugin {
                 try AudioEngineFacade.shared.setBitPerfectMode(enabled: enabled)
             }
 
+        case "setAutoSampleRateSwitching":
+            guard let args = call.arguments as? [String: Any],
+                  let enabled = args["enabled"] as? Bool else {
+                return result(FlutterError(code: "INVALID", message: nil, details: nil))
+            }
+            performAsync {
+                try AudioEngineFacade.shared.setAutoSampleRateSwitching(enabled: enabled)
+            }
+
         case "setVolume":
             guard let args = call.arguments as? [String: Any],
                   let value = args["value"] as? Double else {

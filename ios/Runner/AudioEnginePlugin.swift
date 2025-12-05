@@ -79,11 +79,14 @@ public class AudioEnginePlugin: NSObject, FlutterPlugin {
             }
 
         case "setBitPerfectMode":
-            result1(FlutterError(
+            result(FlutterError(
                 code: "UNSUPPORTED",
                 message: "Bit-perfect mode is only available on macOS",
-                details: call.method,
+                details: call.method
             ))
+
+        case "setAutoSampleRateSwitching":
+            result(nil)
 
         case "setVolume":
             guard let args = call.arguments as? [String: Any],
