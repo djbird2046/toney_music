@@ -384,8 +384,15 @@ final class AudioEngine {
                 throw AudioEngineError.decoderUnavailable("Cannot seek without an active file")
             }
 
+            // Flush buffered audio before stopping the decoder to avoid blocking
+            // when the output unit is paused and the ring buffer is full.
+            pcmPlayer.reset()
+
             // Stop the old decoder loop and close it to release all FFmpeg resources
             stopDecoderLocked()
+
+            // Reset the PCM buffer before starting the new decoder
+            pcmPlayer.reset()
 
             // Re-open the decoder to get a fresh state
             guard let newDecoder = FFmpegDecoder(url: url) else {
@@ -395,9 +402,6 @@ final class AudioEngine {
             }
             self.decoder = newDecoder
             
-            // Reset the PCM buffer before starting the new decoder
-            pcmPlayer.reset()
-
             // Seek on the new decoder *before* starting the read loop
             newDecoder.seek(toMs: position)
 
@@ -667,10 +671,11 @@ final class AudioEngine {
 
         if autoSampleRateSwitchingEnabled {
             do {
-                let info = try dac.getDeviceInfo(id: targetDevice)
-                try dac.setSampleRate(info.currentRate, for: targetDevice)
+                _ = try dac.getDeviceInfo(id: targetDevice)
             } catch {
-                throw AudioEngineError.bitPerfectUnavailable("Failed to control device sample rate: \(error.localizedDescription)")
+                throw AudioEngineError.bitPerfectUnavailable(
+                    exclusiveAccessErrorMessage(for: error)
+                )
             }
         }
         do {
@@ -776,10 +781,17 @@ final class AudioEngine {
             // Only adjust sample rate and hog the device when bit-perfect is enabled
             if autoSampleRateSwitchingEnabled {
                 do {
-                    try dac.setSampleRate(currentFormat.sampleRate, for: targetDevice)
-                    logger.info("Set device sample rate to \(self.currentFormat.sampleRate) Hz")
+                    let info = try dac.getDeviceInfo(id: targetDevice)
+                    if abs(info.currentRate - currentFormat.sampleRate) > 1.0 {
+                        try dac.setSampleRate(currentFormat.sampleRate, for: targetDevice)
+                        logger.info("Set device sample rate to \(self.currentFormat.sampleRate) Hz")
+                    } else {
+                        logger.info("Device already at \(info.currentRate) Hz; no sample-rate change needed")
+                    }
                 } catch {
-                    throw AudioEngineError.bitPerfectUnavailable("Failed to set device sample rate: \(error.localizedDescription)")
+                    throw AudioEngineError.bitPerfectUnavailable(
+                        exclusiveAccessErrorMessage(for: error)
+                    )
                 }
 
                 if let deviceInfo = try? dac.getDeviceInfo(id: targetDevice) {
@@ -863,7 +875,32 @@ final class AudioEngine {
     private func syncDeviceConfigurationLocked() throws {
         let id = try ensureDeviceIDLocked()
         if autoSampleRateSwitchingEnabled {
-            try dac.setSampleRate(currentFormat.sampleRate, for: id)
+            do {
+                let info = try dac.getDeviceInfo(id: id)
+                if abs(info.currentRate - currentFormat.sampleRate) > 1.0 {
+                    do {
+                        try dac.setSampleRate(currentFormat.sampleRate, for: id)
+                    } catch {
+                        if bitPerfectModeEnabled {
+                            throw AudioEngineError.bitPerfectUnavailable(
+                                exclusiveAccessErrorMessage(for: error)
+                            )
+                        } else {
+                            logger.warning("Shared mode: could not change sample rate to \(self.currentFormat.sampleRate) Hz (\(error.localizedDescription))")
+                        }
+                    }
+                } else {
+                    logger.info("Device already at \(info.currentRate) Hz; no sample-rate change needed")
+                }
+            } catch {
+                if bitPerfectModeEnabled {
+                    throw AudioEngineError.bitPerfectUnavailable(
+                        exclusiveAccessErrorMessage(for: error)
+                    )
+                } else {
+                    logger.warning("Shared mode: could not inspect device sample rate (\(error.localizedDescription))")
+                }
+            }
         } else {
             logger.info("Auto sample-rate switching disabled; keeping device sample rate unchanged.")
         }
@@ -890,19 +927,38 @@ final class AudioEngine {
     }
 
     private func exclusiveAccessErrorMessage(for error: Error) -> String {
+        let hogInfo = dac.currentHogOwner(for: deviceID)
+        let hogPID = hogInfo?.0
+        let hogName = hogInfo?.1
+
+        func describeOwner(pid: pid_t?, name: String?) -> String {
+            if let pid = pid {
+                if pid <= 0 {
+                    let owner = name ?? "macOS system audio"
+                    return "Exclusive access denied. \(owner) is holding this output device (system-level hog).\nSwitch the default output or disable virtual/multi-output devices, then retry."
+                }
+                if let name = name {
+                    return "Exclusive access denied. \(name) (PID \(pid)) is currently using this output device.\nQuit it and try again."
+                }
+                return "Exclusive access denied. Another process (PID \(pid)) is using this output device.\nQuit it and try again."
+            }
+            if let name = name {
+                return "Exclusive access denied. \(name) is currently using this output device.\nQuit it and try again."
+            }
+            return "Exclusive access denied. Another application is currently using this output device.\nQuit it and try again."
+        }
+
         if let dacError = error as? DacManagerError,
            case let .deviceBusy(pid, processName) = dacError {
-            if let name = processName {
-                if let pid = pid, pid > 0 {
-                    return "Exclusive access denied. \(name) (PID \(pid)) is currently using this output device. Quit it and try again."
-                }
-                return "Exclusive access denied. \(name) is currently using this output device. Quit it and try again."
-            }
-            if let pid = pid, pid > 0 {
-                return "Exclusive access denied. Another process (PID \(pid)) is using this output device."
-            }
-            return "Exclusive access denied. Another application is currently using this output device."
+            let resolvedPID = pid ?? hogPID
+            let resolvedName = processName ?? hogName
+            return describeOwner(pid: resolvedPID, name: resolvedName)
         }
+
+        if hogPID != nil || hogName != nil {
+            return describeOwner(pid: hogPID, name: hogName)
+        }
+
         return "Exclusive access denied: \(error.localizedDescription)"
     }
 

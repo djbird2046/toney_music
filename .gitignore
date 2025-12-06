@@ -46,6 +46,8 @@ app.*.map.json
 
 .dart_tool
 
+log/
+
 # AI coder
 AGENTS.md
 SUMMARY.md

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -91,6 +92,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   int? _selectedLibraryIndex;
   int? _downloadingIndex;
   double? _downloadProgress;
+  bool _isPlaybackBusy = false;
   bool _bitPerfectEnabled = false;
   bool _bitPerfectBusy = false;
   late final FavoritesController _favoritesController;
@@ -151,6 +153,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     unawaited(_liteAgentConfigStorage.init());
     unawaited(_refreshLiteAgentStatus());
     unawaited(_initializePlaybackSettings());
+    _isPlaybackBusy = widget.controller.state.value.isBusy;
     widget.controller.state.addListener(_onPlaybackStateChanged);
     _languagePreference = widget.localeController.currentPreference;
     widget.localeController.preference.addListener(
@@ -176,10 +179,17 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
 
   void _onPlaybackStateChanged() {
     final newState = widget.controller.state.value;
+    var shouldUpdate = false;
     if (newState.currentIndex != _nowPlayingIndex) {
-      setState(() {
-        _nowPlayingIndex = newState.currentIndex;
-      });
+      _nowPlayingIndex = newState.currentIndex;
+      shouldUpdate = true;
+    }
+    if (newState.isBusy != _isPlaybackBusy) {
+      _isPlaybackBusy = newState.isBusy;
+      shouldUpdate = true;
+    }
+    if (shouldUpdate && mounted) {
+      setState(() {});
     }
   }
 
@@ -330,7 +340,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
 
   Future<void> _initializeLibrary() async {
     await _libraryStorage.init();
-    final entries = _libraryStorage.load()
+    final loadedEntries = _libraryStorage.load();
+    final entries = List<LibraryEntry>.from(loadedEntries)
       ..sort((a, b) => b.importedAt.compareTo(a.importedAt));
     if (!mounted) return;
     setState(() {
@@ -941,6 +952,41 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       );
   }
 
+  LibraryEntry _addOrPromoteLibraryEntry({
+    required SongMetadata metadata,
+    required String path,
+    required LibrarySourceType sourceType,
+    RemoteFileInfo? remoteInfo,
+  }) {
+    final enriched = metadata.copyWith(
+      extras: {...metadata.extras, 'Path': path},
+    );
+    final trackRow = _buildLibraryTrackRow(enriched, path, sourceType);
+    final entry = LibraryEntry(
+      path: path,
+      sourceType: sourceType,
+      metadata: enriched,
+      importedAt: DateTime.now(),
+      remoteInfo: remoteInfo,
+    );
+
+    setState(() {
+      _metadataCache[path] = enriched;
+      final existingIndex = _libraryPathIndex[path];
+      if (existingIndex != null) {
+        _libraryEntries.removeAt(existingIndex);
+        _libraryTracks.removeAt(existingIndex);
+      }
+      _libraryEntries.insert(0, entry);
+      _libraryTracks.insert(0, trackRow);
+      _libraryTrackPaths.add(path);
+      _rebuildLibraryIndexCache();
+      _selectedLibraryIndex = 0;
+    });
+
+    return entry;
+  }
+
   Future<void> _addTracksFromPicker() async {
     final l10n = AppLocalizations.of(context)!;
     final files = await openFiles(
@@ -969,21 +1015,30 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   }
 
   Future<void> _addFilesToCurrentPlaylist(List<String> paths) async {
-    final metadataList = <PlaylistEntry>[];
+    final newEntries = <PlaylistEntry>[];
     for (final path in paths) {
       final metadata = await _metadataUtil.loadFromPath(path);
-      final enriched = metadata.copyWith(
-        extras: {...metadata.extras, 'Path': path},
+      final entry = _addOrPromoteLibraryEntry(
+        metadata: metadata,
+        path: path,
+        sourceType: LibrarySourceType.local,
       );
-      _metadataCache[path] = enriched;
-      metadataList.add(PlaylistEntry(path: path, metadata: enriched));
+      newEntries.add(
+        PlaylistEntry(
+          path: path,
+          metadata: entry.metadata,
+          sourceType: entry.sourceType,
+          remoteInfo: entry.remoteInfo,
+        ),
+      );
     }
     if (!mounted) return;
     setState(() {
       final entries = List<PlaylistEntry>.from(_currentPlaylistEntries)
-        ..addAll(metadataList);
+        ..addAll(newEntries);
       _playlistEntries[_currentPlaylistName] = entries;
     });
+    await _libraryStorage.save(_libraryEntries);
     _schedulePersist();
   }
 
@@ -1174,12 +1229,50 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       }
       _updatePlaylistEntryMissingFlag(index, true);
       if (!mounted) return;
+      final nextIndex = _nextIndexAfterFailure(
+        failedIndex: index,
+        mode: widget.controller.state.value.playbackMode,
+      );
+      if (nextIndex != null) {
+        setState(() {
+          _selectedPlaylistRows = {nextIndex};
+          _nowPlayingIndex = nextIndex;
+        });
+        unawaited(widget.controller.playAt(nextIndex));
+        return;
+      }
+
       setState(() {
         _nowPlayingIndex = previousPlaying;
         _selectedPlaylistRows = previousSelection;
       });
       await _showPlaybackErrorDialog(error);
     }
+  }
+
+  int? _nextIndexAfterFailure({
+    required int failedIndex,
+    required PlayMode mode,
+  }) {
+    final count = _currentPlaylistEntries.length;
+    if (count <= 1) return null;
+    if (mode == PlayMode.single) return null;
+
+    if (mode == PlayMode.shuffle) {
+      final rand = Random();
+      int candidate = failedIndex;
+      for (var i = 0; i < 5; i++) {
+        candidate = rand.nextInt(count);
+        if (candidate != failedIndex) break;
+      }
+      if (candidate == failedIndex && count > 1) {
+        candidate = (failedIndex + 1) % count;
+      }
+      return candidate == failedIndex ? null : candidate;
+    }
+
+    final next = (failedIndex + 1) % count;
+    return next == failedIndex ? null : next;
   }
 
   void _updatePlaylistEntryMissingFlag(int index, bool isMissing) {
@@ -1314,6 +1407,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           onPlayTrack: _handlePlayTrack,
           downloadingIndex: _downloadingIndex,
           downloadProgress: _downloadProgress,
+          isBusy: _isPlaybackBusy,
         );
       case NavSection.favorites:
         return MacosFavoritesView(

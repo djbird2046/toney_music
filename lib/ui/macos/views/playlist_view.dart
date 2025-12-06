@@ -25,6 +25,7 @@ class MacosPlaylistView extends StatefulWidget {
     required this.onPlayTrack,
     this.downloadingIndex,
     this.downloadProgress,
+    this.isBusy = false,
   });
 
   final String playlistName;
@@ -41,6 +42,7 @@ class MacosPlaylistView extends StatefulWidget {
   final void Function(int index) onPlayTrack;
   final int? downloadingIndex;
   final double? downloadProgress;
+  final bool isBusy;
 
   @override
   State<MacosPlaylistView> createState() => _MacosPlaylistViewState();
@@ -83,7 +85,8 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
         continue;
       }
       final metadata = entry.metadata;
-      final matches = metadata.title.toLowerCase().contains(query) ||
+      final matches =
+          metadata.title.toLowerCase().contains(query) ||
           metadata.artist.toLowerCase().contains(query) ||
           metadata.album.toLowerCase().contains(query);
       if (matches) {
@@ -102,30 +105,28 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  widget.playlistName,
-                  style: TextStyle(
-                    color: colors.heading,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w600,
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: widget.playlistName,
+                        style: TextStyle(
+                          color: colors.heading,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      TextSpan(
+                        text: ' (${widget.entries.length})',
+                        style: TextStyle(
+                          color: colors.mutedGrey,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
                   overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: colors.navSelectedBackground.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: colors.aiCardBorder),
-                ),
-                child: Text(
-                  l10n.playlistTrackCount(widget.entries.length),
-                  style: TextStyle(color: colors.mutedGrey),
                 ),
               ),
               const Spacer(),
@@ -242,8 +243,9 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                     final viewEntry = filteredEntries[index];
                     final entry = viewEntry.entry;
                     final originalIndex = viewEntry.originalIndex;
-                    final isSelected =
-                        widget.selectedIndices.contains(originalIndex);
+                    final isSelected = widget.selectedIndices.contains(
+                      originalIndex,
+                    );
                     return MouseRegion(
                       cursor: SystemMouseCursors.click,
                       onEnter: (_) => setState(() => _hoveredIndex = index),
@@ -259,12 +261,12 @@ class _MacosPlaylistViewState extends State<MacosPlaylistView> {
                         isHovered: _hoveredIndex == index,
                         isPlaying: widget.playingIndex == originalIndex,
                         isMissing: entry.metadata.extras['Missing'] == 'true',
-                        isDownloading:
-                            widget.downloadingIndex == originalIndex,
-                        downloadProgress: widget.downloadingIndex ==
-                                originalIndex
+                        isDownloading: widget.downloadingIndex == originalIndex,
+                        downloadProgress:
+                            widget.downloadingIndex == originalIndex
                             ? widget.downloadProgress
                             : null,
+                        isBusy: widget.isBusy,
                         onSelect: () => widget.onRowTap(originalIndex),
                         onShowMetadata: widget.onShowMetadata,
                         onDelete: () => widget.onDeleteTrack(originalIndex),
@@ -291,6 +293,7 @@ class _PlaylistRow extends StatelessWidget {
     required this.isPlaying,
     required this.isMissing,
     required this.isDownloading,
+    required this.isBusy,
     this.downloadProgress,
     required this.onSelect,
     required this.onShowMetadata,
@@ -310,12 +313,37 @@ class _PlaylistRow extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onPlay;
   final bool isMissing;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
     final metadata = entry.metadata;
     final l10n = AppLocalizations.of(context)!;
     final colors = context.macosColors;
+
+    String _cleanValue(String value) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return '—';
+      final lower = trimmed.toLowerCase();
+      if (lower == 'unknown' ||
+          lower == 'unknown artist' ||
+          lower == 'unknown album' ||
+          lower == 'unknown title') {
+        return '—';
+      }
+      return trimmed;
+    }
+
+    String _fallbackTitle() {
+      final rawTitle = metadata.title;
+      final cleaned = _cleanValue(rawTitle);
+      if (cleaned != '—') return cleaned;
+      final path = metadata.extras['Path'] ?? '';
+      final fileName = path.split('/').last;
+      if (fileName.isNotEmpty) return fileName;
+      return l10n.metadataFieldTitle;
+    }
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onSelect,
@@ -433,23 +461,23 @@ class _PlaylistRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    metadata.title,
+                    _fallbackTitle(),
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isMissing
                           ? colors.heading.withValues(alpha: 0.25)
                           : colors.heading,
-                      fontWeight: FontWeight.w400,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    metadata.artist,
+                    _cleanValue(metadata.artist),
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isMissing
                           ? colors.mutedGrey.withValues(alpha: 0.25)
-                          : colors.mutedGrey,
+                          : colors.mutedGrey.withValues(alpha: 0.7),
                       fontSize: 13,
                       fontWeight: FontWeight.w300,
                     ),
@@ -460,12 +488,12 @@ class _PlaylistRow extends StatelessWidget {
             Expanded(
               flex: 3,
               child: Text(
-                metadata.album,
+                _cleanValue(metadata.album),
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: isMissing
                       ? colors.mutedGrey.withValues(alpha: 0.25)
-                      : colors.mutedGrey,
+                      : colors.mutedGrey.withValues(alpha: 0.7),
                   fontWeight: FontWeight.w300,
                 ),
               ),
@@ -486,11 +514,18 @@ class _PlaylistRow extends StatelessWidget {
             if (isPlaying)
               Padding(
                 padding: const EdgeInsets.only(left: 8),
-                child: Icon(
-                  Icons.equalizer,
-                  color: colors.accentBlue,
-                  size: 18,
-                ),
+                child: isBusy
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            colors.accentBlue,
+                          ),
+                        ),
+                      )
+                    : Icon(Icons.equalizer, color: colors.accentBlue, size: 18),
               ),
           ],
         ),

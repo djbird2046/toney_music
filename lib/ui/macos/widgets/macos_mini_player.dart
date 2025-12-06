@@ -25,7 +25,8 @@ class MacosMiniPlayer extends StatefulWidget {
   State<MacosMiniPlayer> createState() => _MacosMiniPlayerState();
 }
 
-class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
+class _MacosMiniPlayerState extends State<MacosMiniPlayer>
+    with SingleTickerProviderStateMixin {
   static const _defaultFormat = '--';
   static const _defaultBitrate = '--';
   static const _defaultSampleRate = '--';
@@ -37,13 +38,22 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
   double _volume = 0.7;
   double _preMuteVolume = 0.7;
   bool _isQueueVisible = false;
+  bool _isScrubbing = false;
+  double? _scrubPositionSeconds;
   final ValueNotifier<int> _queueSelection = ValueNotifier<int>(0);
   OverlayEntry? _queueOverlayEntry;
   StreamSubscription<double>? _volumeSubscription;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulse;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _pulse = CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut);
     _loadVolume();
     _volumeSubscription = widget.controller.volumeStream.listen((newVolume) {
       if (!mounted) return;
@@ -114,8 +124,12 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
                 ], _defaultChannel);
             final effectiveDuration =
                 playback.engineMetadata?.duration ?? playback.duration;
-            final positionSeconds = playback.position.inMilliseconds / 1000.0;
+            final originalPositionSeconds =
+                playback.position.inMilliseconds / 1000.0;
             final durationSeconds = effectiveDuration.inMilliseconds / 1000.0;
+            final positionSeconds = originalPositionSeconds;
+            final effectivePositionSeconds =
+                _scrubPositionSeconds ?? positionSeconds;
             final double sliderMax = durationSeconds > 0
                 ? durationSeconds
                 : 1.0;
@@ -127,6 +141,18 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
                 );
 
             final colors = _colors;
+            final isBusy = playback.isBusy;
+            if (isBusy) {
+              if (!_pulseController.isAnimating) {
+                _pulseController.repeat(reverse: true);
+              }
+            } else {
+              if (_pulseController.isAnimating) {
+                _pulseController.stop();
+              }
+              _pulseController.value = 0;
+            }
+
             return Container(
               constraints: const BoxConstraints(minHeight: 120),
               color: colors.miniPlayerBackground,
@@ -192,7 +218,7 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        _formatTimestamp(positionSeconds),
+                        _formatTimestamp(effectivePositionSeconds),
                         style: TextStyle(
                           color: colors.secondaryGrey,
                           fontSize: 12,
@@ -200,32 +226,66 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 4,
-                            thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 5,
-                            ),
-                            inactiveTrackColor: colors.innerDivider,
-                            activeTrackColor: colors.accentBlue,
-                          ),
-                          child: Slider(
-                            value: durationSeconds > 0
-                                ? positionSeconds
-                                      .clamp(0.0, durationSeconds)
-                                      .toDouble()
-                                : 0.0,
-                            max: sliderMax,
-                            onChanged: durationSeconds > 0
-                                ? (value) {
-                                    unawaited(
-                                      widget.controller.seek(
-                                        (value * 1000).round(),
-                                      ),
-                                    );
-                                  }
-                                : null,
-                          ),
+                        child: AnimatedBuilder(
+                          animation: _pulse,
+                          builder: (context, _) {
+                            return SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 4,
+                                thumbShape: _PulsingThumbShape(
+                                  baseRadius: 5,
+                                  pulseExtent: 2,
+                                  t: isBusy ? _pulse.value : 0,
+                                ),
+                                inactiveTrackColor: colors.innerDivider,
+                                activeTrackColor: colors.accentBlue,
+                                thumbColor: colors.accentBlue,
+                              ),
+                              child: Slider(
+                                value: durationSeconds > 0
+                                    ? effectivePositionSeconds
+                                          .clamp(0.0, durationSeconds)
+                                          .toDouble()
+                                    : 0.0,
+                                max: sliderMax,
+                                onChangeStart: durationSeconds > 0
+                                    ? (_) {
+                                        setState(() {
+                                          _isScrubbing = true;
+                                        });
+                                      }
+                                    : null,
+                                onChanged: durationSeconds > 0
+                                    ? (value) => setState(() {
+                                        _scrubPositionSeconds = value;
+                                      })
+                                    : null,
+                                onChangeEnd: durationSeconds > 0
+                                    ? (value) async {
+                                        final targetMs = (value * 1000).round();
+                                        setState(() {
+                                          _isScrubbing = false;
+                                          _scrubPositionSeconds = value;
+                                        });
+                                        try {
+                                          await widget.controller.seek(
+                                            targetMs,
+                                          );
+                                          await widget.controller.play();
+                                        } catch (error) {
+                                          debugPrint('Seek failed: $error');
+                                        } finally {
+                                          if (mounted) {
+                                            setState(() {
+                                              _scrubPositionSeconds = null;
+                                            });
+                                          }
+                                        }
+                                      }
+                                    : null,
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -366,6 +426,7 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer> {
 
   @override
   void dispose() {
+    _pulseController.dispose();
     _volumeSubscription?.cancel();
     _queueOverlayEntry?.remove();
     _queueSelection.dispose();
@@ -413,6 +474,7 @@ class _PlaybackControlsGroup extends StatefulWidget {
     required this.bitrateLabel,
     required this.sampleRateLabel,
     required this.channelLabel,
+    this.disabled = false,
   });
 
   final bool isPlaying;
@@ -427,6 +489,7 @@ class _PlaybackControlsGroup extends StatefulWidget {
   final String bitrateLabel;
   final String sampleRateLabel;
   final String channelLabel;
+  final bool disabled;
 
   @override
   State<_PlaybackControlsGroup> createState() => _PlaybackControlsGroupState();
@@ -458,33 +521,38 @@ class _PlaybackControlsGroupState extends State<_PlaybackControlsGroup> {
             _MiniPlayerButton(
               icon: widget.isFavorite ? Icons.favorite : Icons.favorite_border,
               iconColor: widget.isFavorite ? Colors.redAccent : null,
-              onPressed: widget.onToggleFavorite,
+              onPressed: widget.disabled ? null : widget.onToggleFavorite,
               size: 32,
               iconSize: 16,
             ),
             const SizedBox(width: 12),
             _MiniPlayerButton(
               icon: Icons.skip_previous,
-              onPressed: widget.onPrevious,
+              onPressed: widget.disabled ? null : widget.onPrevious,
             ),
             const SizedBox(width: 12),
             _MiniPlayerButton(
               icon: widget.isPlaying ? Icons.pause : Icons.play_arrow,
               isPrimary: true,
-              onPressed: widget.onTogglePlay,
+              onPressed: widget.disabled ? null : widget.onTogglePlay,
             ),
             const SizedBox(width: 12),
-            _MiniPlayerButton(icon: Icons.skip_next, onPressed: widget.onNext),
+            _MiniPlayerButton(
+              icon: Icons.skip_next,
+              onPressed: widget.disabled ? null : widget.onNext,
+            ),
             const SizedBox(width: 12),
             // Play Mode Button
             _MiniPlayerButton(
               icon: _playModeIcon,
-              onPressed: () {
-                final nextMode =
-                    PlayMode.values[(widget.playbackMode.index + 1) %
-                        PlayMode.values.length];
-                widget.onPlaybackModeChanged(nextMode);
-              },
+              onPressed: widget.disabled
+                  ? null
+                  : () {
+                      final nextMode =
+                          PlayMode.values[(widget.playbackMode.index + 1) %
+                              PlayMode.values.length];
+                      widget.onPlaybackModeChanged(nextMode);
+                    },
               size: 32,
               iconSize: 16,
             ),
@@ -975,6 +1043,54 @@ class _VolumeControl extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _PulsingThumbShape extends SliderComponentShape {
+  const _PulsingThumbShape({
+    required this.baseRadius,
+    required this.pulseExtent,
+    required this.t,
+  });
+
+  final double baseRadius;
+  final double pulseExtent;
+  final double t;
+
+  @override
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) {
+    final radius = baseRadius + pulseExtent * t;
+    return Size.fromRadius(radius);
+  }
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {
+    final canvas = context.canvas;
+    final color =
+        sliderTheme.thumbColor ?? sliderTheme.activeTrackColor ?? Colors.blue;
+    final radius = baseRadius + pulseExtent * t;
+    final paint = Paint()..color = color;
+    canvas.drawCircle(center, radius, paint);
+    if (t > 0) {
+      final haloPaint = Paint()
+        ..color = color.withOpacity(0.15)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4;
+      canvas.drawCircle(center, radius + 2, haloPaint);
+    }
   }
 }
 

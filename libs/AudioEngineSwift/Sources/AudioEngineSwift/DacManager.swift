@@ -51,6 +51,39 @@ final class DacManager {
 
     private init() {}
 
+    private func hogOwnerInfo(id: AudioDeviceID) -> (pid_t, String?)? {
+        var ownerPID = pid_t(0)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyHogMode,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var size = UInt32(MemoryLayout.size(ofValue: ownerPID))
+        guard AudioObjectGetPropertyData(id,
+                                         &address,
+                                         0,
+                                         nil,
+                                         &size,
+                                         &ownerPID) == noErr else { return nil }
+        guard ownerPID != 0 else { return nil }
+        return (ownerPID, resolveProcessName(for: ownerPID))
+    }
+
+    func currentHogOwner(for id: AudioDeviceID?) -> (pid_t?, String?)? {
+        queue.sync {
+            let target: AudioDeviceID
+            if let id, id != kAudioObjectUnknown {
+                target = id
+            } else if let defaultID = try? defaultOutputDeviceID() {
+                target = defaultID
+            } else {
+                return nil
+            }
+            guard let info = hogOwnerInfo(id: target) else { return nil }
+            return (info.0, info.1)
+        }
+    }
+
     func listOutputDevices() -> [AudioDeviceInfo] {
         return (try? queue.sync { try fetchAllDeviceInfos() }) ?? []
     }
@@ -91,19 +124,28 @@ final class DacManager {
 
     func setSampleRate(_ rate: Double, for id: AudioDeviceID) throws {
         try queue.sync {
+            if let hog = hogOwnerInfo(id: id), hog.0 != getpid() {
+                throw DacManagerError.deviceBusy(hog.0, hog.1)
+            }
+
             var mutableRate = rate
             var address = AudioObjectPropertyAddress(
                 mSelector: kAudioDevicePropertyNominalSampleRate,
                 mScope: kAudioObjectPropertyScopeGlobal,
                 mElement: kAudioObjectPropertyElementMain
             )
-            try checkStatus(AudioObjectSetPropertyData(id,
-                                                      &address,
-                                                      0,
-                                                      nil,
-                                                      UInt32(MemoryLayout.size(ofValue: mutableRate)),
-                                                      &mutableRate),
-                            operation: "Set sample rate")
+            let status = AudioObjectSetPropertyData(id,
+                                                    &address,
+                                                    0,
+                                                    nil,
+                                                    UInt32(MemoryLayout.size(ofValue: mutableRate)),
+                                                    &mutableRate)
+            if status == kAudioHardwareIllegalOperationError {
+                if let hog = hogOwnerInfo(id: id), hog.0 != getpid() {
+                    throw DacManagerError.deviceBusy(hog.0, hog.1)
+                }
+            }
+            try checkStatus(status, operation: "Set sample rate")
         }
     }
 
@@ -120,22 +162,19 @@ final class DacManager {
 
     func acquireHogMode(_ id: AudioDeviceID) throws {
         try queue.sync {
-            var ownerPID = pid_t(0)
+            if let hog = hogOwnerInfo(id: id) {
+                if hog.0 == getpid() {
+                    return
+                }
+                throw DacManagerError.deviceBusy(hog.0, hog.1)
+            }
+
+            var newPID = getpid()
             var address = AudioObjectPropertyAddress(
                 mSelector: kAudioDevicePropertyHogMode,
                 mScope: kAudioObjectPropertyScopeGlobal,
                 mElement: kAudioObjectPropertyElementMain
             )
-            var size = UInt32(MemoryLayout.size(ofValue: ownerPID))
-            try checkStatus(AudioObjectGetPropertyData(id,
-                                                       &address,
-                                                       0,
-                                                       nil,
-                                                       &size,
-                                                       &ownerPID),
-                            operation: "Read hog mode")
-
-            var newPID = getpid()
             let status = AudioObjectSetPropertyData(id,
                                                     &address,
                                                     0,
@@ -143,9 +182,9 @@ final class DacManager {
                                                     UInt32(MemoryLayout.size(ofValue: newPID)),
                                                     &newPID)
             if status == kAudioHardwareIllegalOperationError {
-                let blockingPID = ownerPID != 0 && ownerPID != getpid() ? ownerPID : nil
-                let ownerName = blockingPID.flatMap { resolveProcessName(for: $0) }
-                throw DacManagerError.deviceBusy(blockingPID, ownerName)
+                if let hog = hogOwnerInfo(id: id) {
+                    throw DacManagerError.deviceBusy(hog.0, hog.1)
+                }
             }
             try checkStatus(status, operation: "Acquire hog mode")
         }
