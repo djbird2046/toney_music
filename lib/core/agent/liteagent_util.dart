@@ -190,7 +190,6 @@ class AppAgentHandler extends AgentMessageHandler {
         }
         ToolReturn toolReturn = ToolReturn.fromJson(agentMessage.content);
         onExtension(_currentMessageId!, _prettyPrintJson(toolReturn));
-        _finishMessage();
         break;
       case AgentMessageType.CONTENT_LIST:
         // Ignore content list for story text; only log for diagnostics.
