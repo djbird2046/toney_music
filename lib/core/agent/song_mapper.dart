@@ -52,6 +52,9 @@ class SongMapper {
     }
     if (summary.durationSec != null) {
       extras['duration_ms'] = (summary.durationSec! * 1000).toString();
+      extras['Duration'] = _formatDurationLabel(
+        Duration(seconds: summary.durationSec!),
+      );
     }
     if (summary.source != null) {
       extras['Source'] = summary.source!;
@@ -134,5 +137,16 @@ class SongMapper {
     }
     final extension = p.extension(path).replaceFirst('.', '').toUpperCase();
     return extension.isEmpty ? null : extension;
+  }
+
+  static String _formatDurationLabel(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+    final seconds = duration.inSeconds % 60;
+    if (hours > 0) {
+      return '$hours:${minutes.toString().padLeft(2, '0')}:'
+          '${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${duration.inMinutes}:${seconds.toString().padLeft(2, '0')}';
   }
 }

@@ -56,6 +56,13 @@ class MacosPlayerScreen extends StatefulWidget {
   State<MacosPlayerScreen> createState() => _MacosPlayerScreenState();
 }
 
+class _HydrationResult {
+  const _HydrationResult({required this.entries, required this.updated});
+
+  final List<PlaylistEntry> entries;
+  final bool updated;
+}
+
 class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   NavSection selectedSection = NavSection.musicAI;
   final List<String> playlists = ['Default'];
@@ -79,6 +86,8 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   bool _isMetaPressed = false;
   final PlaylistStorage _playlistStorage = PlaylistStorage();
   StreamSubscription? _playlistWatchSubscription;
+  bool _skipNextPlaylistWatch = false;
+  Timer? _playlistWatchResetTimer;
   final LiteAgentConfigStorage _liteAgentConfigStorage =
       LiteAgentConfigStorage();
   LiteAgentConfig? _liteAgentConfig;
@@ -185,6 +194,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     _playlistNameController.dispose();
     _keyboardFocusNode.dispose();
     _playlistWatchSubscription?.cancel();
+    _playlistWatchResetTimer?.cancel();
     super.dispose();
   }
 
@@ -325,9 +335,12 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         ? snapshot.entries.keys.toList()
         : snapshot.names;
     final hydrated = <String, List<PlaylistEntry>>{};
+    var playlistsUpdated = false;
     for (final name in loadedNames) {
       final references = snapshot.entries[name] ?? const <PlaylistReference>[];
-      hydrated[name] = await _hydratePlaylist(references);
+      final result = await _hydratePlaylist(references);
+      hydrated[name] = result.entries;
+      playlistsUpdated = playlistsUpdated || result.updated;
     }
     if (!mounted) return;
     setState(() {
@@ -343,9 +356,17 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         selectedPlaylist = 0;
       }
     });
+    if (playlistsUpdated) {
+      _schedulePersist();
+    }
   }
 
   void _handleExternalPlaylistChange() {
+    if (_skipNextPlaylistWatch) {
+      _skipNextPlaylistWatch = false;
+      _playlistWatchResetTimer?.cancel();
+      return;
+    }
     if (!mounted) return;
     unawaited(_refreshPlaylistsFromStorage());
   }
@@ -353,17 +374,32 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   Future<void> _initializeLibrary() async {
     await _libraryStorage.init();
     final loadedEntries = _libraryStorage.load();
+    var libraryUpdated = false;
     final entries = List<LibraryEntry>.from(loadedEntries)
       ..sort((a, b) => b.importedAt.compareTo(a.importedAt));
+    final normalizedEntries = entries.map((entry) {
+      final normalizedMetadata = _ensureDurationExtras(entry.metadata);
+      if (identical(normalizedMetadata, entry.metadata)) {
+        return entry;
+      }
+      libraryUpdated = true;
+      return LibraryEntry(
+        path: entry.path,
+        sourceType: entry.sourceType,
+        metadata: normalizedMetadata,
+        importedAt: entry.importedAt,
+        remoteInfo: entry.remoteInfo,
+      );
+    }).toList();
     if (!mounted) return;
     setState(() {
       _libraryEntries
         ..clear()
-        ..addAll(entries);
+        ..addAll(normalizedEntries);
       _libraryTracks
         ..clear()
         ..addAll(
-          entries.map(
+          normalizedEntries.map(
             (entry) => _buildLibraryTrackRow(
               entry.metadata,
               entry.path,
@@ -373,12 +409,15 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         );
       _libraryTrackPaths
         ..clear()
-        ..addAll(entries.map((entry) => entry.path));
-      for (final entry in entries) {
+        ..addAll(normalizedEntries.map((entry) => entry.path));
+      for (final entry in normalizedEntries) {
         _metadataCache[entry.path] = entry.metadata;
       }
       _rebuildLibraryIndexCache();
     });
+    if (libraryUpdated) {
+      unawaited(_libraryStorage.save(normalizedEntries));
+    }
   }
 
   Future<void> _handleAddLibrarySource() async {
@@ -471,6 +510,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
             extras: {'Path': path, 'isRemote': 'true'},
           );
         }
+        metadata = _ensureDurationExtras(metadata);
 
         if (!mounted || _cancelLibraryImport) break;
         final enriched = metadata.copyWith(
@@ -724,10 +764,11 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     _schedulePersist();
   }
 
-  Future<List<PlaylistEntry>> _hydratePlaylist(
+  Future<_HydrationResult> _hydratePlaylist(
     List<PlaylistReference> references,
   ) async {
     final entries = <PlaylistEntry>[];
+    var updated = false;
     for (final reference in references) {
       final path = reference.path;
       SongMetadata metadata;
@@ -748,11 +789,17 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           // If metadata is missing or duration is missing, force reload
           // which now uses native fetcher for duration
           metadata = await _metadataUtil.loadFromPath(path);
+          updated = true;
         } catch (_) {
           // Keep existing if fetch fails (e.g. file moved)
         }
       }
 
+      final normalized = _ensureDurationExtras(metadata);
+      if (!identical(normalized, metadata)) {
+        updated = true;
+      }
+      metadata = normalized;
       final enriched = metadata.copyWith(
         extras: {...metadata.extras, 'Path': path},
       );
@@ -766,7 +813,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         ),
       );
     }
-    return entries;
+    return _HydrationResult(entries: entries, updated: updated);
   }
 
   void _selectNav(NavSection section) {
@@ -970,7 +1017,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     required LibrarySourceType sourceType,
     RemoteFileInfo? remoteInfo,
   }) {
-    final enriched = metadata.copyWith(
+    final enriched = _ensureDurationExtras(metadata).copyWith(
       extras: {...metadata.extras, 'Path': path},
     );
     final trackRow = _buildLibraryTrackRow(enriched, path, sourceType);
@@ -1129,6 +1176,11 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   }
 
   Future<void> _persistPlaylists() async {
+    _skipNextPlaylistWatch = true;
+    _playlistWatchResetTimer?.cancel();
+    _playlistWatchResetTimer = Timer(const Duration(milliseconds: 500), () {
+      _skipNextPlaylistWatch = false;
+    });
     final snapshot = PlaylistSnapshot(
       names: List<String>.from(playlists),
       entries: {
@@ -1346,6 +1398,47 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         );
       },
     );
+  }
+
+  SongMetadata _ensureDurationExtras(SongMetadata metadata) {
+    final duration = _durationFromMetadata(metadata);
+    if (duration == null) return metadata;
+
+    final extras = Map<String, String>.from(metadata.extras);
+    var changed = false;
+
+    bool hasDurationMs = false;
+    for (final key in ['duration_ms', 'DurationMs', 'DurationMS', 'TLEN']) {
+      final value = extras[key];
+      if (value != null && value.trim().isNotEmpty) {
+        hasDurationMs = true;
+        break;
+      }
+    }
+
+    if (!hasDurationMs) {
+      extras['duration_ms'] = duration.inMilliseconds.toString();
+      changed = true;
+    }
+
+    final durationLabel = extras['Duration'];
+    if (durationLabel == null || durationLabel.trim().isEmpty) {
+      extras['Duration'] = _formatDurationLabel(duration);
+      changed = true;
+    }
+
+    return changed ? metadata.copyWith(extras: extras) : metadata;
+  }
+
+  String _formatDurationLabel(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+    final seconds = duration.inSeconds % 60;
+    if (hours > 0) {
+      return '$hours:${minutes.toString().padLeft(2, '0')}:'
+          '${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${duration.inMinutes}:${seconds.toString().padLeft(2, '0')}';
   }
 
   Duration? _durationFromMetadata(SongMetadata metadata) {
@@ -1850,6 +1943,9 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         ? (error.message?.isNotEmpty == true ? error.message! : error.code)
         : error.toString();
     final l10n = AppLocalizations.of(context)!;
+    final messageText = description.isNotEmpty
+        ? description
+        : l10n.settingsBitPerfectUnavailableMessage;
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -1860,11 +1956,11 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
             l10n.settingsBitPerfectUnavailableTitle,
             style: TextStyle(color: colors.heading),
           ),
-          content: Text(
-            description.isNotEmpty
-                ? description
-                : l10n.settingsBitPerfectUnavailableMessage,
-            style: TextStyle(color: colors.mutedGrey),
+          content: SelectionArea(
+            child: SelectableText(
+              messageText,
+              style: TextStyle(color: colors.mutedGrey),
+            ),
           ),
           actions: [
             TextButton(
