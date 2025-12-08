@@ -332,6 +332,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get libraryUnknownValue => '未知';
 
   @override
+  String get nowPlayingNotPlaying => '未在播放';
+
+  @override
+  String get nowPlayingCollapse => '收起';
+
+  @override
+  String get nowPlayingStoryButton => '音乐故事';
+
+  @override
+  String get nowPlayingStoryPlaceholder => '暂无故事';
+
+  @override
   String libraryScanningLocations(Object count) {
     return '正在扫描 $count 个位置…';
   }

@@ -308,7 +308,7 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                     widget.selectedSection == NavSection.playlists &&
                     widget.selectedPlaylist == index;
                 return Padding(
-                  padding: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.fromLTRB(8, 4, 0, 4),
                   child: GestureDetector(
                     behavior: HitTestBehavior.translucent,
                     onSecondaryTapDown: (details) {
@@ -334,7 +334,6 @@ class _CollapsiblePlaylistsState extends State<_CollapsiblePlaylists> {
                         highlightColor: Colors.transparent,
                         child: Container(
                           width: double.infinity,
-                          margin: const EdgeInsets.symmetric(vertical: 4),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
                             vertical: 6,

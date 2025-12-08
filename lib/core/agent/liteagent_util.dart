@@ -100,6 +100,28 @@ class AppAgentHandler extends AgentMessageHandler {
     _currentMessageId = null;
   }
 
+  String? _extractText(dynamic part) {
+    if (part == null) return null;
+    if (part is String) return part;
+    if (part is Content) return part.message;
+    if (part is List) {
+      final pieces = part
+          .map(_extractText)
+          .whereType<String>()
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      if (pieces.isNotEmpty) return pieces.join('\n\n');
+    }
+    if (part is Map) {
+      final message = part['message'];
+      if (message is String) return message;
+      final content = part['content'];
+      if (content is String) return content;
+    }
+    return part.toString();
+  }
+
   @override
   Future<void> onChunk(
     String sessionId,
@@ -107,25 +129,11 @@ class AppAgentHandler extends AgentMessageHandler {
   ) async {
     if (_messageCompleted) return;
     _ensureMessageId();
-    switch (agentMessageChunk.type) {
-      case AgentMessageType.TEXT:
-        String text = agentMessageChunk.part as String;
-        if (text.isNotEmpty) {
-          onTextChunk(_currentMessageId!, text);
-        }
-        break;
-      case AgentMessageType.REASONING_CONTENT:
-        final chunk = agentMessageChunk.part?.toString();
-        if (chunk != null && chunk.isNotEmpty) {
-          onExtension(
-            _currentMessageId!,
-            _prettyPrintJson({'reasoningChunk': chunk}),
-          );
-        }
-        break;
-      default:
-        log('onChunk: Unhandled AgentMessageType: ${agentMessageChunk.type}');
-        break;
+    if (agentMessageChunk.type == AgentMessageType.TEXT) {
+      final text = _extractText(agentMessageChunk.part);
+      if (text != null && text.isNotEmpty) {
+        onTextChunk(_currentMessageId!, text);
+      }
     }
     return Future.value();
   }
@@ -159,8 +167,8 @@ class AppAgentHandler extends AgentMessageHandler {
 
     switch (agentMessage.type) {
       case AgentMessageType.TEXT:
-        String text = agentMessage.content as String;
-        if (text.isNotEmpty) {
+        final text = _extractText(agentMessage.content);
+        if (text != null && text.isNotEmpty) {
           onFullText(_currentMessageId!, text);
         }
         break;
@@ -185,11 +193,11 @@ class AppAgentHandler extends AgentMessageHandler {
         _finishMessage();
         break;
       case AgentMessageType.CONTENT_LIST:
-        List<dynamic> contentJsonList = agentMessage.content as List<dynamic>;
-        List<Content> contentList = contentJsonList
-            .map((json) => Content.fromJson(json))
-            .toList();
-        onExtension(_currentMessageId!, _prettyPrintJson(contentList));
+        // Ignore content list for story text; only log for diagnostics.
+        onExtension(
+          _currentMessageId!,
+          _prettyPrintJson(agentMessage.content),
+        );
         break;
       case AgentMessageType.DISPATCH:
         List<dynamic> dispatchJsonList = agentMessage.content as List<dynamic>;

@@ -134,6 +134,10 @@
   "libraryUnknownArtist": "未知艺术家",
   "libraryUnknownAlbum": "未知专辑",
   "libraryUnknownValue": "未知",
+  "nowPlayingNotPlaying": "未在播放",
+  "nowPlayingCollapse": "收起",
+  "nowPlayingStoryButton": "音乐故事",
+  "nowPlayingStoryPlaceholder": "暂无故事",
   "libraryScanningLocations": "正在扫描 {count} 个位置…",
   "@libraryScanningLocations": {
     "placeholders": {

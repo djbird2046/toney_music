@@ -15,11 +15,13 @@ class MacosMiniPlayer extends StatefulWidget {
     required this.controller,
     required this.favoritesController,
     required this.bitPerfectEnabled,
+    this.onOpenNowPlaying,
   });
 
   final AudioController controller;
   final FavoritesController favoritesController;
   final bool bitPerfectEnabled;
+  final VoidCallback? onOpenNowPlaying;
 
   @override
   State<MacosMiniPlayer> createState() => _MacosMiniPlayerState();
@@ -153,152 +155,159 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer>
               _pulseController.value = 0;
             }
 
-            return Container(
-              constraints: const BoxConstraints(minHeight: 120),
-              color: colors.miniPlayerBackground,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 260,
-                        child: _NowPlayingInfo(metadata: metadata),
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        width: 300,
-                        child: _PlaybackControlsGroup(
-                          isPlaying: playback.isPlaying,
-                          onTogglePlay: () =>
-                              unawaited(widget.controller.togglePlayPause()),
-                          onNext: () => unawaited(widget.controller.playNext()),
-                          onPrevious: () =>
-                              unawaited(widget.controller.playPrevious()),
-                          onToggleFavorite: () {
-                            if (playback.currentTrack != null) {
-                              widget.favoritesController.toggleFavorite(
-                                playback.currentTrack!,
-                              );
-                            }
-                          },
-                          isFavorite: isFavorite,
-                          playbackMode: playback.playbackMode,
-                          onPlaybackModeChanged:
-                              widget.controller.setPlaybackMode,
-                          formatLabel: formatLabel,
-                          bitrateLabel: bitrateLabel,
-                          sampleRateLabel: sampleRateLabel,
-                          channelLabel: channelLabel,
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onOpenNowPlaying,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 120),
+                color: colors.miniPlayerBackground,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 260,
+                          child: _NowPlayingInfo(
+                            metadata: metadata,
+                            onTap: widget.onOpenNowPlaying,
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        width: 200,
-                        child: _VolumeControl(
-                          volume: _isMuted ? 0 : _volume,
-                          onChanged: widget.bitPerfectEnabled
-                              ? null
-                              : _handleVolumeChange,
-                          onToggleMute: widget.bitPerfectEnabled
-                              ? null
-                              : _toggleMute,
-                          isMuted: _isMuted || _volume == 0,
-                          onToggleQueue: _handleQueueToggle,
-                          isQueueVisible: _isQueueVisible,
-                          isDisabled: widget.bitPerfectEnabled,
+                        const Spacer(),
+                        SizedBox(
+                          width: 300,
+                          child: _PlaybackControlsGroup(
+                            isPlaying: playback.isPlaying,
+                            onTogglePlay: () =>
+                                unawaited(widget.controller.togglePlayPause()),
+                            onNext: () => unawaited(widget.controller.playNext()),
+                            onPrevious: () =>
+                                unawaited(widget.controller.playPrevious()),
+                            onToggleFavorite: () {
+                              if (playback.currentTrack != null) {
+                                widget.favoritesController.toggleFavorite(
+                                  playback.currentTrack!,
+                                );
+                              }
+                            },
+                            isFavorite: isFavorite,
+                            playbackMode: playback.playbackMode,
+                            onPlaybackModeChanged:
+                                widget.controller.setPlaybackMode,
+                            formatLabel: formatLabel,
+                            bitrateLabel: bitrateLabel,
+                            sampleRateLabel: sampleRateLabel,
+                            channelLabel: channelLabel,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        _formatTimestamp(effectivePositionSeconds),
-                        style: TextStyle(
-                          color: colors.secondaryGrey,
-                          fontSize: 12,
+                        const Spacer(),
+                        SizedBox(
+                          width: 200,
+                          child: _VolumeControl(
+                            volume: _isMuted ? 0 : _volume,
+                            onChanged: widget.bitPerfectEnabled
+                                ? null
+                                : _handleVolumeChange,
+                            onToggleMute: widget.bitPerfectEnabled
+                                ? null
+                                : _toggleMute,
+                            isMuted: _isMuted || _volume == 0,
+                            onToggleQueue: _handleQueueToggle,
+                            isQueueVisible: _isQueueVisible,
+                            isDisabled: widget.bitPerfectEnabled,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AnimatedBuilder(
-                          animation: _pulse,
-                          builder: (context, _) {
-                            return SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                trackHeight: 4,
-                                thumbShape: _PulsingThumbShape(
-                                  baseRadius: 5,
-                                  pulseExtent: 2,
-                                  t: isBusy ? _pulse.value : 0,
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          _formatTimestamp(effectivePositionSeconds),
+                          style: TextStyle(
+                            color: colors.secondaryGrey,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: AnimatedBuilder(
+                            animation: _pulse,
+                            builder: (context, _) {
+                              return SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 4,
+                                  thumbShape: _PulsingThumbShape(
+                                    baseRadius: 5,
+                                    pulseExtent: 2,
+                                    t: isBusy ? _pulse.value : 0,
+                                  ),
+                                  inactiveTrackColor: colors.innerDivider,
+                                  activeTrackColor: colors.accentBlue,
+                                  thumbColor: colors.accentBlue,
                                 ),
-                                inactiveTrackColor: colors.innerDivider,
-                                activeTrackColor: colors.accentBlue,
-                                thumbColor: colors.accentBlue,
-                              ),
-                              child: Slider(
-                                value: durationSeconds > 0
-                                    ? effectivePositionSeconds
-                                          .clamp(0.0, durationSeconds)
-                                          .toDouble()
-                                    : 0.0,
-                                max: sliderMax,
-                                onChangeStart: durationSeconds > 0
-                                    ? (_) {
-                                        setState(() {
-                                          _isScrubbing = true;
-                                        });
-                                      }
-                                    : null,
-                                onChanged: durationSeconds > 0
-                                    ? (value) => setState(() {
-                                        _scrubPositionSeconds = value;
-                                      })
-                                    : null,
-                                onChangeEnd: durationSeconds > 0
-                                    ? (value) async {
-                                        final targetMs = (value * 1000).round();
-                                        setState(() {
-                                          _isScrubbing = false;
+                                child: Slider(
+                                  value: durationSeconds > 0
+                                      ? effectivePositionSeconds
+                                            .clamp(0.0, durationSeconds)
+                                            .toDouble()
+                                      : 0.0,
+                                  max: sliderMax,
+                                  onChangeStart: durationSeconds > 0
+                                      ? (_) {
+                                          setState(() {
+                                            _isScrubbing = true;
+                                          });
+                                        }
+                                      : null,
+                                  onChanged: durationSeconds > 0
+                                      ? (value) => setState(() {
                                           _scrubPositionSeconds = value;
-                                        });
-                                        try {
-                                          await widget.controller.seek(
-                                            targetMs,
-                                          );
-                                          await widget.controller.play();
-                                        } catch (error) {
-                                          debugPrint('Seek failed: $error');
-                                        } finally {
-                                          if (mounted) {
-                                            setState(() {
-                                              _scrubPositionSeconds = null;
-                                            });
+                                        })
+                                      : null,
+                                  onChangeEnd: durationSeconds > 0
+                                      ? (value) async {
+                                          final targetMs = (value * 1000).round();
+                                          setState(() {
+                                            _isScrubbing = false;
+                                            _scrubPositionSeconds = value;
+                                          });
+                                          try {
+                                            await widget.controller.seek(
+                                              targetMs,
+                                            );
+                                            await widget.controller.play();
+                                          } catch (error) {
+                                            debugPrint('Seek failed: $error');
+                                          } finally {
+                                            if (mounted) {
+                                              setState(() {
+                                                _scrubPositionSeconds = null;
+                                              });
+                                            }
                                           }
                                         }
-                                      }
-                                    : null,
-                              ),
-                            );
-                          },
+                                      : null,
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        _formatTimestamp(durationSeconds),
-                        style: TextStyle(
-                          color: colors.secondaryGrey,
-                          fontSize: 12,
+                        const SizedBox(width: 12),
+                        Text(
+                          _formatTimestamp(durationSeconds),
+                          style: TextStyle(
+                            color: colors.secondaryGrey,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -1095,9 +1104,13 @@ class _PulsingThumbShape extends SliderComponentShape {
 }
 
 class _NowPlayingInfo extends StatelessWidget {
-  const _NowPlayingInfo({this.metadata});
+  const _NowPlayingInfo({
+    this.metadata,
+    this.onTap,
+  });
 
   final SongMetadata? metadata;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1105,50 +1118,54 @@ class _NowPlayingInfo extends StatelessWidget {
     final title = metadata?.title ?? 'Nothing playing yet';
     final artist = metadata?.artist ?? 'Select a track to start playback';
     final artwork = metadata?.artwork;
-    return Row(
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: colors.innerDivider),
-            color: colors.contentBackground,
-            image: artwork != null
-                ? DecorationImage(
-                    image: MemoryImage(artwork),
-                    fit: BoxFit.cover,
-                  )
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.innerDivider),
+              color: colors.contentBackground,
+              image: artwork != null
+                  ? DecorationImage(
+                      image: MemoryImage(artwork),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+            ),
+            child: artwork == null
+                ? Icon(Icons.music_note, color: colors.secondaryGrey)
                 : null,
           ),
-          child: artwork == null
-              ? Icon(Icons.music_note, color: colors.secondaryGrey)
-              : null,
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.heading,
-                  fontWeight: FontWeight.w400,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.heading,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                artist,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: colors.secondaryGrey, fontSize: 12),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  artist,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: colors.secondaryGrey, fontSize: 12),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

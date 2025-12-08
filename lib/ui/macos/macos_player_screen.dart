@@ -8,24 +8,24 @@ import 'package:flutter/services.dart';
 import 'package:toney_music/l10n/app_localizations.dart';
 import 'package:path/path.dart' as p;
 
-import '../../core/audio_controller.dart';
-import '../../core/localization/app_language.dart';
-import '../../core/localization/locale_controller.dart';
-import '../../core/favorites_controller.dart';
-import '../../core/library/library_source.dart';
-import '../../core/media/audio_formats.dart';
-import '../../core/model/playback_mode.dart';
-import '../../core/model/song_metadata.dart';
-import '../../core/agent/liteagent_util.dart';
-import '../../core/media/song_metadata_util.dart';
-import '../../core/model/playback_track.dart';
-import '../../core/playback/playback_helper.dart';
-import '../../core/storage/playlist_storage.dart';
-import '../../core/storage/library_storage.dart';
-import '../../core/storage/liteagent_config_storage.dart';
-import '../../core/storage/playback_settings_storage.dart';
-import '../../core/theme/app_theme_mode.dart';
-import '../../core/theme/theme_controller.dart';
+import 'package:toney_music/core/audio_controller.dart';
+import 'package:toney_music/core/localization/app_language.dart';
+import 'package:toney_music/core/localization/locale_controller.dart';
+import 'package:toney_music/core/favorites_controller.dart';
+import 'package:toney_music/core/library/library_source.dart';
+import 'package:toney_music/core/media/audio_formats.dart';
+import 'package:toney_music/core/model/playback_mode.dart';
+import 'package:toney_music/core/model/song_metadata.dart';
+import 'package:toney_music/core/agent/liteagent_util.dart';
+import 'package:toney_music/core/media/song_metadata_util.dart';
+import 'package:toney_music/core/model/playback_track.dart';
+import 'package:toney_music/core/playback/playback_helper.dart';
+import 'package:toney_music/core/storage/playlist_storage.dart';
+import 'package:toney_music/core/storage/library_storage.dart';
+import 'package:toney_music/core/storage/liteagent_config_storage.dart';
+import 'package:toney_music/core/storage/playback_settings_storage.dart';
+import 'package:toney_music/core/theme/app_theme_mode.dart';
+import 'package:toney_music/core/theme/theme_controller.dart';
 import 'package:liteagent_sdk_dart/liteagent_sdk_dart.dart';
 import 'macos_colors.dart';
 import 'models/media_models.dart';
@@ -37,6 +37,7 @@ import 'views/source_selector_dialog.dart';
 import 'views/playlist_view.dart';
 import 'views/favorites_view.dart';
 import 'views/settings_view.dart';
+import 'widgets/macos_now_playing_sheet.dart';
 import 'widgets/macos_mini_player.dart';
 
 class MacosPlayerScreen extends StatefulWidget {
@@ -95,6 +96,13 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   bool _isPlaybackBusy = false;
   bool _bitPerfectEnabled = false;
   bool _bitPerfectBusy = false;
+  bool _isNowPlayingOpen = false;
+  String? _storyText;
+  String _storyDraft = '';
+  String? _storyError;
+  bool _isStoryLoading = false;
+  String? _storyKey;
+  String? _activeStoryMessageId;
   late final FavoritesController _favoritesController;
   late AppLanguage _languagePreference;
   late AppThemePreference _themePreference;
@@ -161,6 +169,9 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     );
     _themePreference = widget.themeController.currentPreference;
     widget.themeController.preference.addListener(_onThemePreferenceChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshStoryFromMetadata();
+    });
   }
 
   @override
@@ -183,6 +194,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     if (newState.currentIndex != _nowPlayingIndex) {
       _nowPlayingIndex = newState.currentIndex;
       shouldUpdate = true;
+      _refreshStoryFromMetadata();
     }
     if (newState.isBusy != _isPlaybackBusy) {
       _isPlaybackBusy = newState.isBusy;
@@ -1459,6 +1471,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     setState(() {
       _languagePreference = preference;
     });
+    _refreshStoryFromMetadata();
   }
 
   void _handleLanguagePreferenceChanged(AppLanguage language) {
@@ -1481,6 +1494,246 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       _themePreference = preference;
     });
     unawaited(widget.themeController.setPreference(preference));
+  }
+
+  void _refreshStoryFromMetadata() {
+    if (!mounted) return;
+    final playback = widget.controller.state.value;
+    final track = playback.currentTrack;
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final newKey = track == null ? null : '${track.path}::$localeCode';
+    String? story = track?.metadata.extras['story_$localeCode'] ??
+        track?.metadata.extras['Story_$localeCode'];
+    // Fall back to cached library metadata so stories persist even if the
+    // current queue entry was built from a summary without extras.
+    if (story == null && track != null) {
+      final cached = _metadataCache[track.path];
+      story = cached?.extras['story_$localeCode'] ??
+          cached?.extras['Story_$localeCode'];
+    }
+    setState(() {
+      final keyChanged = _storyKey != newKey;
+      _storyKey = newKey;
+      if (keyChanged) {
+        _storyDraft = '';
+        _storyError = null;
+        _isStoryLoading = false;
+      }
+      _storyText = story;
+    });
+  }
+
+  String _buildStoryPrompt(SongMetadata metadata, String localeCode) {
+    final title = metadata.title.trim();
+    final artist = metadata.artist.trim();
+    final album = metadata.album.trim();
+    final hasArtist = !_isUnknownValue(artist);
+    final hasAlbum = !_isUnknownValue(album);
+    if (localeCode.startsWith('zh')) {
+      final artistPart = hasArtist ? '，艺术家：$artist' : '';
+      final albumPart = hasAlbum ? '，收录于专辑：$album' : '';
+      return '这首歌名为《$title》$artistPart$albumPart，请告诉我这首歌的背后故事。';
+    }
+    final artistPart = hasArtist ? ', artist: $artist' : '';
+    final albumPart = hasAlbum ? ', album: $album' : '';
+    return 'The song is called "$title"$artistPart$albumPart. Please tell me the backstory behind this song.';
+  }
+
+  bool _isUnknownValue(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) return true;
+    final lower = normalized.toLowerCase();
+    if (lower == 'unknown' || lower.startsWith('unknown ')) return true;
+    const zhUnknowns = {
+      '未知',
+      '未知艺术家',
+      '未知歌手',
+      '未知专辑',
+      '未知專輯',
+      '未知艺人',
+    };
+    if (zhUnknowns.contains(normalized)) return true;
+    return false;
+  }
+
+  Future<void> _generateStory() async {
+    if (_isStoryLoading) return;
+    final playback = widget.controller.state.value;
+    final track = playback.currentTrack;
+    if (track == null) return;
+    final config = _liteAgentConfig;
+    final l10n = AppLocalizations.of(context)!;
+    if (config == null || !_liteAgentConfigValid) {
+      setState(() {
+        _storyError = l10n.settingsLiteAgentNotConfigured;
+      });
+      return;
+    }
+
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final storyKey = '${track.path}::$localeCode';
+    final prompt = _buildStoryPrompt(track.metadata, localeCode);
+
+    setState(() {
+      _isStoryLoading = true;
+      _storyDraft = '';
+      _storyError = null;
+      _storyText = null;
+      _activeStoryMessageId = null;
+      _storyKey = storyKey;
+    });
+
+    try {
+      final liteAgent = LiteAgentSDK(
+        baseUrl: config.baseUrl,
+        apiKey: config.apiKey,
+      );
+      final util = LiteAgentUtil(
+        agentId: 'toney_story',
+        liteAgent: liteAgent,
+        onFullText: (messageId, fullText) {
+          if (_storyKey != storyKey) return;
+          if (!mounted) return;
+          setState(() {
+            _activeStoryMessageId ??= messageId;
+            _storyDraft = fullText;
+            _isStoryLoading = false;
+            _storyText = fullText;
+          });
+        },
+        onTextChunk: (messageId, chunk) {
+          if (_storyKey != storyKey) return;
+          if (!mounted) return;
+          setState(() {
+            _activeStoryMessageId ??= messageId;
+            _storyDraft += chunk;
+            if (chunk.trim().isNotEmpty) {
+              _isStoryLoading = false;
+            }
+          });
+        },
+        onExtension: (_, __) {},
+        onMessageLog: (_, __) {},
+        onMessageStart: (messageId) {
+          if (!mounted) return;
+          if (_storyKey != storyKey) return;
+          setState(() {
+            _activeStoryMessageId = messageId;
+            _storyDraft = '';
+          });
+        },
+        onDoneCallback: () async {
+          if (!mounted || _storyKey != storyKey) return;
+          final finalText = _storyDraft.trim();
+          if (finalText.isEmpty) {
+            setState(() {
+              _isStoryLoading = false;
+              _activeStoryMessageId = null;
+            });
+            return;
+          }
+          setState(() {
+            _storyText = finalText;
+            _isStoryLoading = false;
+            _activeStoryMessageId = null;
+          });
+          await _persistStoryForTrack(track, localeCode, finalText);
+        },
+        onErrorCallback: (e) {
+          if (!mounted || _storyKey != storyKey) return;
+          setState(() {
+            _storyError = e.toString();
+            _isStoryLoading = false;
+            _activeStoryMessageId = null;
+          });
+        },
+      );
+      await util.initSession();
+      await util.chat(
+        UserTask(
+          content: [
+            Content(type: ContentType.text, message: prompt),
+          ],
+          isChunk: true,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _storyError = error.toString();
+        _isStoryLoading = false;
+        _activeStoryMessageId = null;
+      });
+    }
+  }
+
+  Future<void> _persistStoryForTrack(
+    PlaybackTrack track,
+    String localeCode,
+    String story,
+  ) async {
+    final updatedMetadata = track.metadata.copyWith(
+      extras: {
+        ...track.metadata.extras,
+        'story_$localeCode': story,
+      },
+    );
+    final updatedTrack = PlaybackTrack(
+      path: track.path,
+      metadata: updatedMetadata,
+      duration: track.duration,
+    );
+
+    _metadataCache[track.path] = updatedMetadata;
+
+    for (var i = 0; i < _libraryEntries.length; i++) {
+      final entry = _libraryEntries[i];
+      if (entry.path == track.path) {
+        _libraryEntries[i] = LibraryEntry(
+          path: entry.path,
+          sourceType: entry.sourceType,
+          metadata: updatedMetadata,
+          importedAt: entry.importedAt,
+          remoteInfo: entry.remoteInfo,
+        );
+      }
+    }
+    await _libraryStorage.save(_libraryEntries);
+
+    bool playlistsUpdated = false;
+    final updatedPlaylists = <String, List<PlaylistEntry>>{};
+    _playlistEntries.forEach((name, entries) {
+      final newEntries = <PlaylistEntry>[];
+      var changed = false;
+      for (final entry in entries) {
+        if (entry.path == track.path) {
+          newEntries.add(entry.copyWith(metadata: updatedMetadata));
+          changed = true;
+        } else {
+          newEntries.add(entry);
+        }
+      }
+      if (changed) {
+        playlistsUpdated = true;
+        updatedPlaylists[name] = newEntries;
+      }
+    });
+    if (playlistsUpdated) {
+      setState(() {
+        updatedPlaylists.forEach((key, value) {
+          _playlistEntries[key] = value;
+        });
+      });
+      _schedulePersist();
+    }
+
+    final state = widget.controller.state.value;
+    final idx = state.queue.indexWhere((element) => element.path == track.path);
+    if (idx != -1) {
+      final newQueue = List<PlaybackTrack>.from(state.queue);
+      newQueue[idx] = updatedTrack;
+      widget.controller.setQueue(newQueue, startIndex: state.currentIndex);
+    }
   }
 
   Future<void> _handleBitPerfectToggle(bool value) async {
@@ -1892,36 +2145,63 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         },
         child: Scaffold(
           backgroundColor: context.macosColors.background,
-          body: Column(
+          body: Stack(
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    MacosSidebar(
-                      selectedSection: selectedSection,
-                      onSelectSection: _selectNav,
-                      playlists: playlists,
-                      selectedPlaylist: selectedPlaylist,
-                      onPlaylistTap: _handlePlaylistTap,
-                      isRenamingPlaylist: isRenamingPlaylist,
-                      renameController: _playlistNameController,
-                      onPlaylistRenameSubmit: _submitPlaylistRename,
-                      onAddPlaylist: _addPlaylist,
-                      onPlaylistContextMenu: _showPlaylistContextMenu,
+              Column(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        MacosSidebar(
+                          selectedSection: selectedSection,
+                          onSelectSection: _selectNav,
+                          playlists: playlists,
+                          selectedPlaylist: selectedPlaylist,
+                          onPlaylistTap: _handlePlaylistTap,
+                          isRenamingPlaylist: isRenamingPlaylist,
+                          renameController: _playlistNameController,
+                          onPlaylistRenameSubmit: _submitPlaylistRename,
+                          onAddPlaylist: _addPlaylist,
+                          onPlaylistContextMenu: _showPlaylistContextMenu,
+                        ),
+                        VerticalDivider(
+                          width: 1,
+                          color: context.macosColors.divider,
+                        ),
+                        Expanded(child: _buildContent()),
+                      ],
                     ),
-                    VerticalDivider(
-                      width: 1,
-                      color: context.macosColors.divider,
-                    ),
-                    Expanded(child: _buildContent()),
-                  ],
-                ),
+                  ),
+                  Divider(height: 1, color: context.macosColors.divider),
+                  MacosMiniPlayer(
+                    controller: widget.controller,
+                    favoritesController: _favoritesController,
+                    bitPerfectEnabled: _bitPerfectEnabled,
+                    onOpenNowPlaying: () {
+                      final playback = widget.controller.state.value;
+                      final hasTrack =
+                          playback.currentTrack != null || playback.hasFile;
+                      if (!hasTrack) return;
+                      setState(() {
+                        _isNowPlayingOpen = true;
+                      });
+                    },
+                  ),
+                ],
               ),
-              Divider(height: 1, color: context.macosColors.divider),
-              MacosMiniPlayer(
+              MacosNowPlayingSheet(
                 controller: widget.controller,
-                favoritesController: _favoritesController,
-                bitPerfectEnabled: _bitPerfectEnabled,
+                isVisible: _isNowPlayingOpen,
+                onClose: () {
+                  setState(() {
+                    _isNowPlayingOpen = false;
+                  });
+                },
+                storyText: _storyText,
+                storyDraft: _storyDraft,
+                isStoryLoading: _isStoryLoading,
+                storyError: _storyError,
+                onGenerateStory: _generateStory,
               ),
             ],
           ),

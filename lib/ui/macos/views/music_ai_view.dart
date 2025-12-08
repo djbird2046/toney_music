@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -262,13 +264,17 @@ class _ForYouContentState extends State<_ForYouContent> {
 
   Future<void> _refreshPlaylist() async {
     if (_isRefreshing) return;
+    final localeCode = Localizations.localeOf(context).languageCode;
     setState(() {
       _isRefreshing = true;
       _error = null;
       _agentTrace = const [];
     });
     try {
-      final result = await _generator.refresh(limit: _targetLimit);
+      final result = await _generator.refresh(
+        limit: _targetLimit,
+        localeCode: localeCode,
+      );
       _applyPlaylist(result.playlist);
       _agentTrace = result.trace;
     } on ForYouGenerationException catch (e) {
@@ -325,7 +331,20 @@ class _ForYouContentState extends State<_ForYouContent> {
 
   Future<void> _playAll() async {
     if (_entries.isEmpty) return;
-    final tracks = _entries
+    final tracks = _mapEntriesToSummaries();
+    await _appUtil.setCurrentPlaylist(tracks);
+    await widget.audioController.playAt(0);
+  }
+
+  Future<void> _playTrack(int index) async {
+    if (_entries.isEmpty || index < 0 || index >= _entries.length) return;
+    final tracks = _mapEntriesToSummaries();
+    await _appUtil.setCurrentPlaylist(tracks);
+    await widget.audioController.playAt(index);
+  }
+
+  List<SongSummaryDto> _mapEntriesToSummaries() {
+    return _entries
         .map(
           (entry) => SongMapper.fromMetadata(
             path: entry.path,
@@ -333,9 +352,7 @@ class _ForYouContentState extends State<_ForYouContent> {
             sourceType: entry.sourceType,
           ),
         )
-        .toList();
-    await _appUtil.setCurrentPlaylist(tracks);
-    await widget.audioController.playAt(0);
+        .toList(growable: false);
   }
 
   Future<void> _showRefreshMenu(Offset globalPosition) async {
@@ -539,7 +556,10 @@ class _ForYouContentState extends State<_ForYouContent> {
         ),
       );
     }
-    return _ForYouPlaylist(entries: _entries);
+    return _ForYouPlaylist(
+      entries: _entries,
+      onPlayTrack: _playTrack,
+    );
   }
 }
 
@@ -553,6 +573,7 @@ class _ChatView extends StatefulWidget {
 }
 
 class _ChatViewState extends State<_ChatView> {
+  static const String _errorPrefix = '[error] ';
   late final LiteAgentUtil _liteAgentUtil;
   final _configStorage = LiteAgentConfigStorage();
   final _chatHistoryStorage = ChatHistoryStorage();
@@ -564,6 +585,7 @@ class _ChatViewState extends State<_ChatView> {
   bool _isResponding = false;
   String? _respondingMessageId;
   bool _isSessionInitialized = false;
+  bool _sessionFailed = false;
 
   @override
   void initState() {
@@ -679,24 +701,26 @@ class _ChatViewState extends State<_ChatView> {
         });
       },
       onErrorCallback: (e) {
-        final l10n = AppLocalizations.of(context)!;
-        setState(() {
-          final message = ChatMessage(
-            text: l10n.musicAiError('$e'),
-            sender: Sender.ai,
-            timestamp: DateTime.now(),
-          );
-          _messages.add(message);
-          _chatHistoryStorage.addMessage(message);
-          _isResponding = false;
-          _respondingMessageId = null;
-        });
+        if (!mounted) return;
+        _addAiErrorMessage(_formatError(e));
       },
     );
-    await _liteAgentUtil.initSession();
-    setState(() {
-      _isSessionInitialized = true;
-    });
+    try {
+      await _liteAgentUtil.initSession();
+      if (!mounted) return;
+      setState(() {
+        _isSessionInitialized = true;
+        _sessionFailed = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      _addAiErrorMessage(_formatError(e));
+      setState(() {
+        _isSessionInitialized = false;
+        _sessionFailed = true;
+        _isResponding = false;
+      });
+    }
   }
 
   @override
@@ -788,7 +812,7 @@ class _ChatViewState extends State<_ChatView> {
     );
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     if (_isResponding) return;
     final text = _textController.text.trim();
     if (text.isEmpty) return;
@@ -810,7 +834,11 @@ class _ChatViewState extends State<_ChatView> {
     });
     _textController.clear();
 
-    _liteAgentUtil.chat(userTask);
+    try {
+      await _liteAgentUtil.chat(userTask);
+    } catch (e) {
+      _addAiErrorMessage(_formatError(e));
+    }
   }
 
   bool _hasDiagnostics(ChatMessage message) {
@@ -878,6 +906,76 @@ class _ChatViewState extends State<_ChatView> {
     _diagnosticsCache.recordKey(_messageKey(message), messageId);
   }
 
+  void _addAiErrorMessage(String text) {
+    setState(() {
+      final message = ChatMessage(
+        text: '$_errorPrefix$text',
+        sender: Sender.ai,
+        timestamp: DateTime.now(),
+      );
+      _messages.add(message);
+      _chatHistoryStorage.addMessage(message);
+      _isResponding = false;
+      _respondingMessageId = null;
+      _isSessionInitialized = !_sessionFailed;
+    });
+  }
+
+  String _formatError(Object error) {
+    final l10n = AppLocalizations.of(context)!;
+    final raw = _normalizeErrorText(error.toString());
+    final message = _extractMessage(raw);
+    return message ?? l10n.musicAiError(raw);
+  }
+
+  String _normalizeErrorText(String input) {
+    var result = input.trimLeft();
+    const prefix = 'Exception:';
+    while (result.startsWith(prefix)) {
+      result = result.substring(prefix.length).trimLeft();
+    }
+    return result;
+  }
+
+  String? _extractMessage(String raw) {
+    String? fromJson(String candidate) {
+      try {
+        final decoded = jsonDecode(candidate);
+        if (decoded is Map && decoded['message'] is String) {
+          final code = decoded['code'];
+          final msg = decoded['message'] as String;
+          if (code != null) return '[$code] $msg';
+          return msg;
+        }
+      } catch (_) {
+        // Ignore malformed JSON
+      }
+      return null;
+    }
+
+    final direct = fromJson(raw);
+    if (direct != null) return direct;
+
+    final start = raw.indexOf('{');
+    final end = raw.lastIndexOf('}');
+    if (start != -1 && end != -1 && end > start) {
+      final slice = raw.substring(start, end + 1);
+      final sliced = fromJson(slice);
+      if (sliced != null) return sliced;
+    }
+
+    final match = RegExp(r'"message"\\s*:\\s*"([^"]+)"').firstMatch(raw);
+    if (match != null) {
+      final codeMatch = RegExp(r'"code"\\s*:\\s*(\\d+)').firstMatch(raw);
+      final code = codeMatch?.group(1);
+      final msg = match.group(1);
+      if (msg != null) {
+        return code != null ? '[$code] $msg' : msg;
+      }
+    }
+    return null;
+  }
+
   String _messageKey(ChatMessage message) =>
       '${message.timestamp.millisecondsSinceEpoch}_${message.sender.index}';
 
@@ -931,6 +1029,12 @@ class _ChatMessageBubble extends StatelessWidget {
 
   Widget _buildChatMessage(BuildContext context) {
     final isUser = message.sender == Sender.user;
+    final isError =
+        message.sender == Sender.ai &&
+        message.text.startsWith(_ChatViewState._errorPrefix);
+    final displayText = isError
+        ? message.text.substring(_ChatViewState._errorPrefix.length).trimLeft()
+        : message.text;
     final colors = context.macosColors;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -965,38 +1069,60 @@ class _ChatMessageBubble extends StatelessWidget {
                     ),
                     child: MarkdownBody(
                       selectable: true,
-                      data: message.text.trim(),
+                      data: displayText.trim().isEmpty
+                          ? (isError ? 'Error' : '')
+                          : displayText.trim(),
                       styleSheet: MarkdownStyleSheet(
                         p: TextStyle(
-                          color: isUser ? Colors.white : colors.heading,
+                          color: isUser
+                              ? Colors.white
+                              : (isError ? Colors.redAccent : colors.heading),
                           fontSize: 15,
                         ),
                         h1: TextStyle(
-                          color: isUser ? Colors.white : colors.heading,
+                          color: isUser
+                              ? Colors.white
+                              : (isError ? Colors.redAccent : colors.heading),
                         ),
                         h2: TextStyle(
-                          color: isUser ? Colors.white : colors.heading,
+                          color: isUser
+                              ? Colors.white
+                              : (isError ? Colors.redAccent : colors.heading),
                         ),
                         h3: TextStyle(
-                          color: isUser ? Colors.white : colors.heading,
+                          color: isUser
+                              ? Colors.white
+                              : (isError ? Colors.redAccent : colors.heading),
                         ),
                         h4: TextStyle(
-                          color: isUser ? Colors.white : colors.heading,
+                          color: isUser
+                              ? Colors.white
+                              : (isError ? Colors.redAccent : colors.heading),
                         ),
                         h5: TextStyle(
-                          color: isUser ? Colors.white : colors.heading,
+                          color: isUser
+                              ? Colors.white
+                              : (isError ? Colors.redAccent : colors.heading),
                         ),
                         h6: TextStyle(
-                          color: isUser ? Colors.white : colors.heading,
+                          color: isUser
+                              ? Colors.white
+                              : (isError ? Colors.redAccent : colors.heading),
                         ),
                         tableBody: TextStyle(
-                          color: isUser ? Colors.white : colors.heading,
+                          color: isUser
+                              ? Colors.white
+                              : (isError ? Colors.redAccent : colors.heading),
                         ),
                         listBullet: TextStyle(
-                          color: isUser ? Colors.white : colors.heading,
+                          color: isUser
+                              ? Colors.white
+                              : (isError ? Colors.redAccent : colors.heading),
                         ),
                         code: TextStyle(
-                          color: isUser ? Colors.white : colors.heading,
+                          color: isUser
+                              ? Colors.white
+                              : (isError ? Colors.redAccent : colors.heading),
                           fontFamily: 'monospace',
                         ),
                         codeblockDecoration: BoxDecoration(
@@ -1160,9 +1286,10 @@ class _ExtensionViewState extends State<_ExtensionView> {
 
 // Replicated from playlist_view.dart (with withValues replaced by withOpacity)
 class _ForYouPlaylist extends StatelessWidget {
-  const _ForYouPlaylist({required this.entries});
+  const _ForYouPlaylist({required this.entries, required this.onPlayTrack});
 
   final List<PlaylistEntry> entries;
+  final void Function(int index) onPlayTrack;
 
   @override
   Widget build(BuildContext context) {
@@ -1189,7 +1316,7 @@ class _ForYouPlaylist extends StatelessWidget {
                 onSelect: () {},
                 onShowMetadata: (_) {},
                 onDelete: () {},
-                onPlay: () {},
+                onPlay: () => onPlayTrack(index),
               );
             },
           ),

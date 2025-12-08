@@ -39,6 +39,7 @@ class ForYouGenerator {
 
   Future<ForYouGenerateResult> refresh({
     int? limit,
+    required String localeCode,
     Duration timeout = const Duration(seconds: 60),
   }) async {
     final targetLimit = limit ?? defaultLimit;
@@ -47,6 +48,7 @@ class ForYouGenerator {
       try {
         final result = await _runGeneration(
           targetLimit: targetLimit,
+          localeCode: localeCode,
           timeout: timeout,
         );
         if (attempt == 1 && firstError != null) {
@@ -80,6 +82,7 @@ class ForYouGenerator {
 
   Future<ForYouGenerateResult> _runGeneration({
     required int targetLimit,
+    required String localeCode,
     required Duration timeout,
   }) async {
     final moodSignals = await _safeMoodSignals();
@@ -95,6 +98,7 @@ class ForYouGenerator {
       favorites: favorites?.favorites,
       recents: null,
       limit: targetLimit,
+      localeCode: localeCode,
     );
     trace.add('payload: ${_safeEncode(userTask)}');
     trace.add(

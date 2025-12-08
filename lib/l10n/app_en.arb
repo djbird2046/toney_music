@@ -134,6 +134,10 @@
   "libraryUnknownArtist": "Unknown Artist",
   "libraryUnknownAlbum": "Unknown Album",
   "libraryUnknownValue": "Unknown",
+  "nowPlayingNotPlaying": "Not playing",
+  "nowPlayingCollapse": "Collapse",
+  "nowPlayingStoryButton": "Music Story",
+  "nowPlayingStoryPlaceholder": "No story yet",
   "libraryScanningLocations": "Scanning {count} location(s)…",
   "@libraryScanningLocations": {
     "placeholders": {
