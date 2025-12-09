@@ -62,25 +62,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsBitPerfectTitle => 'Bit-perfect mode';
 
   @override
-  String get settingsBitPerfectSubtitle => 'Bypass system DSP for CoreAudio output';
+  String get settingsBitPerfectSubtitle =>
+      'Bypass system DSP for CoreAudio output';
 
   @override
   String get settingsAutoSampleRateTitle => 'Auto sample-rate switching';
 
   @override
-  String get settingsAutoSampleRateSubtitle => 'Follow source file sample rate on device output';
+  String get settingsAutoSampleRateSubtitle =>
+      'Follow source file sample rate on device output';
 
   @override
   String get settingsWatchMusicFolderTitle => 'Watch Music folder';
 
   @override
-  String get settingsWatchMusicFolderSubtitle => 'Automatically import new files inside ~/Music';
+  String get settingsWatchMusicFolderSubtitle =>
+      'Automatically import new files inside ~/Music';
 
   @override
   String get settingsEnableAiTaggingTitle => 'Enable AI tagging';
 
   @override
-  String get settingsEnableAiTaggingSubtitle => 'Send fingerprints to on-device model';
+  String get settingsEnableAiTaggingSubtitle =>
+      'Send fingerprints to on-device model';
 
   @override
   String get settingsLanguageSystemOption => 'Follow system';
@@ -117,10 +121,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLiteAgentConfigure => 'Configure';
 
   @override
-  String get settingsBitPerfectUnavailableTitle => 'Bit-perfect mode unavailable';
+  String get settingsBitPerfectUnavailableTitle =>
+      'Bit-perfect mode unavailable';
 
   @override
-  String get settingsBitPerfectUnavailableMessage => 'Unable to update bit-perfect mode right now. Please try again later.';
+  String get settingsBitPerfectUnavailableMessage =>
+      'Unable to update bit-perfect mode right now. Please try again later.';
 
   @override
   String get commonClose => 'Close';
@@ -182,7 +188,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get librarySourceSelectorTitle => 'Select Music Source';
 
   @override
-  String get librarySourceSelectorSubtitle => 'Click a card to select source, or add a new remote mount';
+  String get librarySourceSelectorSubtitle =>
+      'Click a card to select source, or add a new remote mount';
 
   @override
   String get libraryRemoteMounts => 'Remote Mounts';
@@ -202,10 +209,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryStopImport => 'Stop';
 
   @override
-  String get libraryEmptyPrimary => 'Import audio from local disks, cloud drives, Samba, WebDAV, or NFS.';
+  String get libraryEmptyPrimary =>
+      'Import audio from local disks, cloud drives, Samba, WebDAV, or NFS.';
 
   @override
-  String get libraryEmptySecondary => 'Drag folders in and Toney will recurse to pick playable files only.';
+  String get libraryEmptySecondary =>
+      'Drag folders in and Toney will recurse to pick playable files only.';
 
   @override
   String get librarySourceLocal => 'Local';
@@ -295,7 +304,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryRemoteConfigTestSuccess => 'Connection test successful!';
 
   @override
-  String get libraryRemoteConfigTestFailure => 'Connection test failed, please check configuration';
+  String get libraryRemoteConfigTestFailure =>
+      'Connection test failed, please check configuration';
 
   @override
   String libraryRemoteConfigTestError(Object message) {
@@ -352,7 +362,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryNoAudioFound => 'No playable audio files found';
 
   @override
-  String get libraryAlreadyImported => 'All selected files are already in the library';
+  String get libraryAlreadyImported =>
+      'All selected files are already in the library';
 
   @override
   String libraryImportProgress(Object processed, Object total) {
@@ -383,7 +394,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get libraryRemoveTrackMessage => 'This will remove the song from the library list. Files on disk are untouched.';
+  String get libraryRemoveTrackMessage =>
+      'This will remove the song from the library list. Files on disk are untouched.';
 
   @override
   String get libraryConfirmDeleteRemoteTitle => 'Confirm Delete';
@@ -510,7 +522,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistRemoveTrackTitle => 'Remove track?';
 
   @override
-  String get playlistRemoveTrackMessage => 'This song will be removed from the playlist.';
+  String get playlistRemoveTrackMessage =>
+      'This song will be removed from the playlist.';
 
   @override
   String get playlistColumnNumber => 'No.';
@@ -545,7 +558,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicAiForYouError => 'Refresh failed, tap to retry';
 
   @override
-  String get musicAiForYouEmpty => 'Your For You playlist will appear here after generation.';
+  String get musicAiForYouEmpty =>
+      'Your For You playlist will appear here after generation.';
 
   @override
   String musicAiForYouNote(Object note) {
@@ -597,7 +611,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicAiMessageDetailTitle => 'Message Details';
 
   @override
-  String get musicAiMessageDetailEmpty => 'No diagnostic events for this message';
+  String get musicAiMessageDetailEmpty =>
+      'No diagnostic events for this message';
 
   @override
   String get iosPlayerTitle => 'iOS Player';

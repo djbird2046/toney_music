@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:toney_music/core/model/chat_message.dart';
 
 import 'app.dart';
@@ -15,9 +16,14 @@ late File _appLogFile;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final logDir = Directory('${Directory.current.path}/log');
   final appDocumentDir = await getApplicationDocumentsDirectory();
-  await _initLogging(logDir);
+  final logDir = Directory(p.join(appDocumentDir.path, 'log'));
+
+  try {
+    await _initLogging(logDir);
+  } catch (_) {
+    // Swallow logging setup failures so app can still start.
+  }
   await Hive.initFlutter(appDocumentDir.path);
 
   Hive.registerAdapter(SenderAdapter());
