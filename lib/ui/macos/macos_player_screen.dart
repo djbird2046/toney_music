@@ -116,37 +116,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   late AppLanguage _languagePreference;
   late AppThemePreference _themePreference;
 
-  final tracks = [
-    const TrackRow(
-      title: 'Midnight Transfer',
-      artist: 'Unknown Artist',
-      path: '/Volumes/NAS/HiFi/DSD/MidnightTransfer.dsf',
-      format: 'DSD',
-      sampleRate: '192k',
-      bitDepth: '1-bit',
-      duration: '7:41',
-      aiConfidence: 0.92,
-    ),
-    const TrackRow(
-      title: 'Focus Drift',
-      artist: 'Zeno',
-      path: '/Music/Focus/FocusDrift.flac',
-      format: 'FLAC',
-      sampleRate: '96k',
-      bitDepth: '24-bit',
-      duration: '5:06',
-      aiConfidence: 0.88,
-    ),
-    const TrackRow(
-      title: 'Piano Study in Blue',
-      artist: 'Studio Capture',
-      path: '/Volumes/Local/Piano/Blue.wav',
-      format: 'WAV',
-      sampleRate: '44.1k',
-      bitDepth: '16-bit',
-      duration: '4:20',
-    ),
-  ];
+  final tracks = <TrackRow>[];
 
   final aiCategories = const [
     AiCategory(name: 'Focus', tracks: 34),
@@ -969,23 +939,9 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   }
 
   void _seedDefaultPlaylist() {
-    final l10n = AppLocalizations.of(context)!;
     final defaultName = playlists.first;
-    final entries = tracks
-        .map(
-          (track) => PlaylistEntry(
-            path: track.path,
-            metadata: SongMetadata(
-              title: track.title,
-              artist: track.artist,
-              album: l10n.libraryUnknownAlbum,
-              extras: {'Path': track.path, 'Duration': track.duration},
-            ),
-          ),
-        )
-        .toList();
     setState(() {
-      _playlistEntries[defaultName] = entries;
+      _playlistEntries[defaultName] = <PlaylistEntry>[];
     });
     _schedulePersist();
   }
@@ -1017,9 +973,9 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     required LibrarySourceType sourceType,
     RemoteFileInfo? remoteInfo,
   }) {
-    final enriched = _ensureDurationExtras(metadata).copyWith(
-      extras: {...metadata.extras, 'Path': path},
-    );
+    final enriched = _ensureDurationExtras(
+      metadata,
+    ).copyWith(extras: {...metadata.extras, 'Path': path});
     final trackRow = _buildLibraryTrackRow(enriched, path, sourceType);
     final entry = LibraryEntry(
       path: path,
@@ -1595,13 +1551,15 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     final track = playback.currentTrack;
     final localeCode = Localizations.localeOf(context).languageCode;
     final newKey = track == null ? null : '${track.path}::$localeCode';
-    String? story = track?.metadata.extras['story_$localeCode'] ??
+    String? story =
+        track?.metadata.extras['story_$localeCode'] ??
         track?.metadata.extras['Story_$localeCode'];
     // Fall back to cached library metadata so stories persist even if the
     // current queue entry was built from a summary without extras.
     if (story == null && track != null) {
       final cached = _metadataCache[track.path];
-      story = cached?.extras['story_$localeCode'] ??
+      story =
+          cached?.extras['story_$localeCode'] ??
           cached?.extras['Story_$localeCode'];
     }
     setState(() {
@@ -1637,14 +1595,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     if (normalized.isEmpty) return true;
     final lower = normalized.toLowerCase();
     if (lower == 'unknown' || lower.startsWith('unknown ')) return true;
-    const zhUnknowns = {
-      '未知',
-      '未知艺术家',
-      '未知歌手',
-      '未知专辑',
-      '未知專輯',
-      '未知艺人',
-    };
+    const zhUnknowns = {'未知', '未知艺术家', '未知歌手', '未知专辑', '未知專輯', '未知艺人'};
     if (zhUnknowns.contains(normalized)) return true;
     return false;
   }
@@ -1744,9 +1695,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       await util.initSession();
       await util.chat(
         UserTask(
-          content: [
-            Content(type: ContentType.text, message: prompt),
-          ],
+          content: [Content(type: ContentType.text, message: prompt)],
           isChunk: true,
         ),
       );
@@ -1766,10 +1715,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     String story,
   ) async {
     final updatedMetadata = track.metadata.copyWith(
-      extras: {
-        ...track.metadata.extras,
-        'story_$localeCode': story,
-      },
+      extras: {...track.metadata.extras, 'story_$localeCode': story},
     );
     final updatedTrack = PlaybackTrack(
       path: track.path,
