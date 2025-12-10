@@ -15,6 +15,7 @@ target_include_directories(AudioEngineWindows
 
 target_compile_features(AudioEngineWindows PUBLIC cxx_std_17)
 target_compile_definitions(AudioEngineWindows PRIVATE UNICODE _UNICODE NOMINMAX)
+target_compile_options(AudioEngineWindows PRIVATE /utf-8)
 
 target_link_libraries(AudioEngineWindows
   PUBLIC
