@@ -124,13 +124,13 @@ class _MacosMusicAiViewState extends State<MacosMusicAiView> {
           ),
         ),
         const Spacer(),
-        if (_contentState != _AiContentState.forYou)
+        if (_contentState == _AiContentState.chat)
           IconButton(
             icon: Icon(Icons.close, color: colors.mutedGrey),
             onPressed: () =>
                 setState(() => _contentState = _AiContentState.forYou),
           )
-        else
+        else if (_contentState == _AiContentState.forYou)
           FilledButton.icon(
             onPressed: () {
               setState(() {
