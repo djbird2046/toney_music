@@ -11,6 +11,7 @@ add_executable(${BINARY_NAME} WIN32
   "main.cpp"
   "utils.cpp"
   "win32_window.cpp"
+  "audio_engine_channel.cpp"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
   "Runner.rc"
   "runner.exe.manifest"
@@ -34,7 +35,35 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 # dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
+target_link_libraries(${BINARY_NAME} PRIVATE AudioEngineWindows)
+target_link_libraries(${BINARY_NAME} PRIVATE mfreadwrite mfplat mfuuid)
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
+target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/../libs/AudioEngineWindows/include")
+
+# Copy FFmpeg runtime DLLs beside the executable.
+set(FFMPEG_BIN_DIR "${CMAKE_SOURCE_DIR}/../third_party/ffmpeg-audio/bin")
+add_custom_command(TARGET ${BINARY_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${FFMPEG_BIN_DIR}/avcodec-62.dll"
+    "${FFMPEG_BIN_DIR}/avformat-62.dll"
+    "${FFMPEG_BIN_DIR}/avutil-60.dll"
+    "${FFMPEG_BIN_DIR}/swresample-6.dll"
+    $<TARGET_FILE_DIR:${BINARY_NAME}>
+)
+
+# Copy MinGW runtime dependencies required by the FFmpeg DLLs.
+set(MINGW_BIN "C:/msys64/mingw64/bin")
+add_custom_command(TARGET ${BINARY_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${MINGW_BIN}/libgcc_s_seh-1.dll"
+    "${MINGW_BIN}/libstdc++-6.dll"
+    "${MINGW_BIN}/libwinpthread-1.dll"
+    "${MINGW_BIN}/zlib1.dll"
+    "${MINGW_BIN}/libbz2-1.dll"
+    "${MINGW_BIN}/liblzma-5.dll"
+    "${MINGW_BIN}/libiconv-2.dll"
+    $<TARGET_FILE_DIR:${BINARY_NAME}>
+)
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)

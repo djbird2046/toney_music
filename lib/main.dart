@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:toney_music/core/model/chat_message.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
 import 'core/remote/services/cache_manager.dart';
@@ -16,6 +17,18 @@ late File _appLogFile;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isWindows) {
+    await windowManager.ensureInitialized();
+    const windowOptions = WindowOptions(
+      title: 'Toney Music',
+      titleBarStyle: TitleBarStyle.hidden,
+      windowButtonVisibility: false,
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
   final appDocumentDir = await getApplicationDocumentsDirectory();
   final logDir = Directory(p.join(appDocumentDir.path, 'log'));
 

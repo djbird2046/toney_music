@@ -135,7 +135,8 @@ bool Win32Window::Create(const std::wstring& title,
   double scale_factor = dpi / 96.0;
 
   HWND window = CreateWindow(
-      window_class, title.c_str(), WS_OVERLAPPEDWINDOW,
+      window_class, title.c_str(),
+      WS_OVERLAPPED | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU,
       Scale(origin.x, scale_factor), Scale(origin.y, scale_factor),
       Scale(size.width, scale_factor), Scale(size.height, scale_factor),
       nullptr, nullptr, GetModuleHandle(nullptr), this);
@@ -216,6 +217,17 @@ Win32Window::MessageHandler(HWND hwnd,
     case WM_DWMCOLORIZATIONCOLORCHANGED:
       UpdateTheme(hwnd);
       return 0;
+
+    case WM_SYSCOMMAND:
+      if ((wparam & 0xFFF0) == SC_CLOSE) {
+        // If window is not minimized, treat close as minimize.
+        if (!IsIconic(hwnd)) {
+          ShowWindow(hwnd, SW_MINIMIZE);
+          return 0;
+        }
+        // If already minimized (e.g., taskbar context Close), allow close.
+      }
+      break;
   }
 
   return DefWindowProc(window_handle_, message, wparam, lparam);

@@ -1,0 +1,14 @@
+prefix=/c/Users/Jan/Projects/toney-music/third_party/ffmpeg-audio
+exec_prefix=${prefix}
+libdir=/c/Users/Jan/Projects/toney-music/third_party/ffmpeg-audio/lib
+includedir=/c/Users/Jan/Projects/toney-music/third_party/ffmpeg-audio/include
+
+Name: libavutil
+Description: FFmpeg utility library
+Version: 60.20.100
+Requires: 
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavutil 
+Libs.private: -lm -luser32 -lbcrypt -latomic
+Cflags: -I${includedir}

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:toney_music/l10n/app_localizations.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'core/audio_controller.dart';
 import 'core/localization/app_language.dart';
@@ -11,6 +12,7 @@ import 'core/theme/theme_controller.dart';
 import 'ui/ios/ios_app.dart';
 import 'ui/macos/macos_app.dart';
 import 'ui/shared/typography.dart';
+import 'ui/windows/windows_app.dart';
 
 class ToneyApp extends StatefulWidget {
   const ToneyApp({super.key});
@@ -69,6 +71,14 @@ class _ToneyAppState extends State<ToneyApp> {
             );
           case TargetPlatform.macOS:
             return MacosApp(
+              controller: _controller,
+              locale: locale,
+              localeResolver: localeResolver,
+              localeController: _localeController,
+              themeController: _themeController,
+            );
+          case TargetPlatform.windows:
+            return WindowsApp(
               controller: _controller,
               locale: locale,
               localeResolver: localeResolver,
