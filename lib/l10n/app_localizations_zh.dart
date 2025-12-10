@@ -38,7 +38,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsThemeLabel => '主题';
 
   @override
-  String get settingsThemeDescription => '选择 Toney 的明暗模式';
+  String get settingsThemeDescription => '选择明暗模式';
 
   @override
   String get settingsThemeSystemOption => '跟随系统';
