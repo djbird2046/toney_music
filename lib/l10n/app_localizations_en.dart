@@ -118,7 +118,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLiteAgentLogout => 'Sign out';
 
   @override
-  String get settingsLiteAgentConfigure => 'LiteAgent';
+  String get settingsLiteAgentConfigure => 'Configure';
+
+  @override
+  String get settingsLiteAgentTitle => 'LiteAgent';
 
   @override
   String get liteAgentConnectPrompt => 'Enter your credentials to connect.';

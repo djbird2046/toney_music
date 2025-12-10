@@ -19,7 +19,7 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
   final _configStorage = LiteAgentConfigStorage();
   final TextEditingController _baseUrlController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
-  String _connectionMessage = 'Enter your credentials to connect.';
+  String _connectionMessage = '';
   Color _messageColor = Colors.grey;
   bool _isConnectionSuccessful = false;
 
@@ -31,12 +31,15 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
 
   Future<void> _loadConfig() async {
     await _configStorage.init();
+    if (!mounted) return;
     final config = _configStorage.load();
-    _baseUrlController.text = config.baseUrl;
-    _apiKeyController.text = config.apiKey;
-    if (_connectionMessage.isNotEmpty) {
-      _connectionMessage = AppLocalizations.of(context)!.liteAgentConnectPrompt;
-    }
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      _baseUrlController.text = config.baseUrl;
+      _apiKeyController.text = config.apiKey;
+      _connectionMessage = l10n.liteAgentConnectPrompt;
+      _messageColor = context.macosColors.mutedGrey;
+    });
   }
 
   @override
@@ -59,7 +62,7 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                l10n.settingsLiteAgentConfigure,
+                l10n.settingsLiteAgentTitle,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,

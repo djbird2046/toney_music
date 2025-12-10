@@ -340,7 +340,7 @@ class _LiteAgentRow extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(
-        'LiteAgent',
+        l10n.settingsLiteAgentTitle,
         style: TextStyle(color: colors.heading, fontWeight: FontWeight.w400),
       ),
       subtitle: isBusy

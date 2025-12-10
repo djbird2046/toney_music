@@ -299,8 +299,14 @@ abstract class AppLocalizations {
   /// No description provided for @settingsLiteAgentConfigure.
   ///
   /// In en, this message translates to:
-  /// **'LiteAgent'**
+  /// **'Configure'**
   String get settingsLiteAgentConfigure;
+
+  /// No description provided for @settingsLiteAgentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'LiteAgent'**
+  String get settingsLiteAgentTitle;
 
   /// No description provided for @liteAgentConnectPrompt.
   ///

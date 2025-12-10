@@ -114,7 +114,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLiteAgentLogout => '退出';
 
   @override
-  String get settingsLiteAgentConfigure => 'LiteAgent';
+  String get settingsLiteAgentConfigure => '去配置';
+
+  @override
+  String get settingsLiteAgentTitle => 'LiteAgent';
 
   @override
   String get liteAgentConnectPrompt => '输入凭据以连接。';
