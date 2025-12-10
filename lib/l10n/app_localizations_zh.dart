@@ -117,6 +117,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLiteAgentConfigure => '去配置';
 
   @override
+  String get liteAgentBaseUrl => 'BaseUrl';
+
+  @override
+  String get liteAgentApiKey => 'ApiKey';
+
+  @override
+  String get commonTest => '测试';
+
+  @override
+  String get commonConfirm => '确认';
+
+  @override
   String get settingsBitPerfectUnavailableTitle => '无法切换比特完美模式';
 
   @override

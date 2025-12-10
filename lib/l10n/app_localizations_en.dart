@@ -121,6 +121,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLiteAgentConfigure => 'Configure';
 
   @override
+  String get liteAgentBaseUrl => 'BaseUrl';
+
+  @override
+  String get liteAgentApiKey => 'ApiKey';
+
+  @override
+  String get commonTest => 'Test';
+
+  @override
+  String get commonConfirm => 'Confirm';
+
+  @override
   String get settingsBitPerfectUnavailableTitle =>
       'Bit-perfect mode unavailable';
 

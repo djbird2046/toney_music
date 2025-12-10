@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:liteagent_sdk_dart/liteagent_sdk_dart.dart';
+import 'package:toney_music/l10n/app_localizations.dart';
 
 import '../../../core/agent/liteagent_util.dart';
 import '../../../core/storage/liteagent_config_storage.dart';
-import 'package:liteagent_sdk_dart/liteagent_sdk_dart.dart';
 import '../macos_colors.dart';
 
 class LiteAgentConfigView extends StatefulWidget {
@@ -45,6 +46,7 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
   @override
   Widget build(BuildContext context) {
     final colors = context.macosColors;
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: SizedBox(
         width: 600,
@@ -54,7 +56,7 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'LiteAgent',
+                l10n.settingsLiteAgentConfigure,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -66,7 +68,7 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
                 controller: _baseUrlController,
                 style: TextStyle(color: colors.heading),
                 decoration: InputDecoration(
-                  labelText: 'BaseUrl',
+                  labelText: l10n.liteAgentBaseUrl,
                   labelStyle: TextStyle(color: colors.mutedGrey),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -88,7 +90,7 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
                 controller: _apiKeyController,
                 style: TextStyle(color: colors.heading),
                 decoration: InputDecoration(
-                  labelText: 'ApiKey',
+                  labelText: l10n.liteAgentApiKey,
                   labelStyle: TextStyle(color: colors.mutedGrey),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -117,7 +119,7 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
                   ),
                   ElevatedButton(
                     onPressed: _testConnection,
-                    child: const Text('Test'),
+                    child: Text(l10n.commonTest),
                   ),
                   const SizedBox(width: 8.0),
                   ElevatedButton(
@@ -128,7 +130,7 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
                       disabledBackgroundColor: colors.accentBlue.withAlpha(128),
                       disabledForegroundColor: Colors.white.withAlpha(128),
                     ),
-                    child: const Text('Confirm'),
+                    child: Text(l10n.commonConfirm),
                   ),
                 ],
               ),
@@ -141,8 +143,10 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
 
   Future<void> _testConnection() async {
     setState(() {
-      _connectionMessage = 'Testing connection…';
-      _messageColor = Colors.grey;
+      _connectionMessage = AppLocalizations.of(
+        context,
+      )!.settingsLiteAgentChecking;
+      _messageColor = context.macosColors.mutedGrey;
       _isConnectionSuccessful = false;
     });
 
@@ -164,13 +168,17 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
       final version = await util.testConnect();
 
       setState(() {
-        _connectionMessage = 'Connection Successful! (v$version)';
+        _connectionMessage = AppLocalizations.of(
+          context,
+        )!.settingsLiteAgentConnected(version);
         _messageColor = Colors.green;
         _isConnectionSuccessful = true;
       });
     } catch (e) {
       setState(() {
-        _connectionMessage = 'Connection Failed: ${e.toString()}';
+        _connectionMessage = AppLocalizations.of(
+          context,
+        )!.settingsLiteAgentConnectionFailed(e.toString());
         _messageColor = Colors.red;
         _isConnectionSuccessful = false;
       });

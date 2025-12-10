@@ -302,6 +302,30 @@ abstract class AppLocalizations {
   /// **'Configure'**
   String get settingsLiteAgentConfigure;
 
+  /// No description provided for @liteAgentBaseUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'BaseUrl'**
+  String get liteAgentBaseUrl;
+
+  /// No description provided for @liteAgentApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'ApiKey'**
+  String get liteAgentApiKey;
+
+  /// No description provided for @commonTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test'**
+  String get commonTest;
+
+  /// No description provided for @commonConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get commonConfirm;
+
   /// No description provided for @settingsBitPerfectUnavailableTitle.
   ///
   /// In en, this message translates to:
