@@ -299,8 +299,14 @@ abstract class AppLocalizations {
   /// No description provided for @settingsLiteAgentConfigure.
   ///
   /// In en, this message translates to:
-  /// **'Configure'**
+  /// **'LiteAgent'**
   String get settingsLiteAgentConfigure;
+
+  /// No description provided for @liteAgentConnectPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your credentials to connect.'**
+  String get liteAgentConnectPrompt;
 
   /// No description provided for @liteAgentBaseUrl.
   ///

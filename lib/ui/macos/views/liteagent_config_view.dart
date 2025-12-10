@@ -34,6 +34,9 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
     final config = _configStorage.load();
     _baseUrlController.text = config.baseUrl;
     _apiKeyController.text = config.apiKey;
+    if (_connectionMessage.isNotEmpty) {
+      _connectionMessage = AppLocalizations.of(context)!.liteAgentConnectPrompt;
+    }
   }
 
   @override
