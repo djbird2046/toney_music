@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/agent/liteagent_util.dart';
 import '../../../core/storage/liteagent_config_storage.dart';
 import 'package:liteagent_sdk_dart/liteagent_sdk_dart.dart';
+import '../macos_colors.dart';
 
 class LiteAgentConfigView extends StatefulWidget {
   const LiteAgentConfigView({super.key, required this.onConfigSaved});
@@ -43,52 +44,65 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.macosColors;
     return Center(
       child: SizedBox(
         width: 600,
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'LiteAgent',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: colors.heading,
                 ),
               ),
               const SizedBox(height: 32),
               TextField(
                 controller: _baseUrlController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: colors.heading),
+                decoration: InputDecoration(
                   labelText: 'BaseUrl',
-                  labelStyle: TextStyle(color: Colors.white70),
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: colors.mutedGrey),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24),
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: colors.innerDivider),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white),
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: colors.accentBlue),
                   ),
+                  filled: true,
+                  fillColor: colors.sidebar,
                 ),
               ),
               const SizedBox(height: 16.0),
               TextField(
                 controller: _apiKeyController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: colors.heading),
+                decoration: InputDecoration(
                   labelText: 'ApiKey',
-                  labelStyle: TextStyle(color: Colors.white70),
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: colors.mutedGrey),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24),
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: colors.innerDivider),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white),
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: colors.accentBlue),
                   ),
+                  filled: true,
+                  fillColor: colors.sidebar,
                 ),
                 obscureText: true,
               ),
@@ -98,7 +112,7 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
                   Expanded(
                     child: Text(
                       _connectionMessage,
-                      style: TextStyle(color: _messageColor),
+                      style: TextStyle(color: _messageColor, fontSize: 13),
                     ),
                   ),
                   ElevatedButton(
@@ -109,9 +123,9 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
                   ElevatedButton(
                     onPressed: _isConnectionSuccessful ? _confirmConfig : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: colors.accentBlue,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: Colors.blue.withAlpha(128),
+                      disabledBackgroundColor: colors.accentBlue.withAlpha(128),
                       disabledForegroundColor: Colors.white.withAlpha(128),
                     ),
                     child: const Text('Confirm'),
