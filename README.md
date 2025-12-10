@@ -6,24 +6,34 @@ Toney Music is a bitPerfect-focused music player targeting macOS today with expa
 
 ![playlist](images/playlist.png)
 
-## Why Toney Music Feels Different
+## What’s inside right now
 
-Traditional players stop at playback. Toney Music leans heavily on AI Agents to build smarter, more personal listening sessions:
+- **macOS (arm64) build** with unsigned release output at `build/macos/Build/Products/Release/toney.app` and a ready-to-share DMG in `build/toney-music-unsigned.dmg`.
+- **Playback pipeline**: now playing bar, queue management, favorites, playlists, and library import (local + remote via Samba/WebDAV/FTP/SFTP path records).
+- **Bit-perfect + auto sample-rate** toggles for CoreAudio; errors surface in selectable dialogs for easy copy.
+- **Music AI**: For You recommendations via LiteAgent SDK (configurable base URL/API key) and Chat with tool-calling wired to playback/library actions.
+- **Diagnostics**: app logs live under `~/Library/Application Support/<app>/log/app_debug.log`; AI chat stores message logs for per-message detail view.
+- **Internationalization**: English/简体中文 already shipped via generated `lib/l10n/app_localizations*.dart`.
 
-- **Contextual curation** powered by location, time, weather, trending topics, and mood signals.
-- **Agent-guided playlist creation** where users can converse with an AI to generate bespoke mixes.
-- **Private library tagging** to keep local collections organized effortlessly.
-- **AI-powered song stories** that surface the history behind tracks, artists, production teams, plus community reactions.
-- **More agent-driven experiences** are on the way as new workflows unlock.
+## Build & run (macOS)
 
-## Current Status
+Prereqs: Flutter (desktop enabled), Xcode toolchain, macOS arm64. Bit-perfect requires CoreAudio device access (app will prompt for folder access to create logs).
 
-- **UI framework**: Music AI hub, playlists, library, settings, and a persistent playback bar.
-- **Implemented features**: playlist browsing, local library management, and a playback bar complete with the current queue.
+```bash
+flutter gen-l10n        # regenerate localization files (optional, already checked in)
+flutter build macos --release
+# app: build/macos/Build/Products/Release/toney.app
+# DMG (optional):
+rm -rf build/dmg-staging
+mkdir -p build/dmg-staging
+cp -R build/macos/Build/Products/Release/toney.app build/dmg-staging/
+ln -sf /Applications build/dmg-staging/Applications
+echo "Drag toney.app into Applications to install." > build/dmg-staging/README.txt
+hdiutil create -volname "Toney Music" -srcfolder build/dmg-staging -ov -format UDZO build/toney-music-unsigned.dmg
+```
 
-## Roadmap / TODO
+## Roadmap / upcoming
 
-- **Library expansion**: integrate NetDisk, Samba, WebDAV, and NFS with path prefetching and download caching.
-- **Music AI**: wire up LiteAgentSDK plus OpenTool callbacks to bridge agents and in-app controls.
-- **Settings**: add localization plus light, dark, and system themes.
-- **Platforms**: ship optimized builds for Windows, iOS, Android, and even HarmonyOS.
+- Windows/iOS/Android builds once FFmpeg + audio stack are prepared per-platform.
++- NetDisk/NFS and smarter caching/prefetch for remote sources.
+- More AI surfaces (stories, tagging flows) and richer agent diagnostics.

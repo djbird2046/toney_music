@@ -6,24 +6,34 @@ Toney Music 是一款以 bitPerfect 为目标的音乐播放器，目前主打 m
 
 ![playlist](images/playlist.png)
 
-## 与传统播放器的不同
-
-传统播放器只关注播放，Toney Music 大量引入 AI Agent，帮助用户更聪明、更个性化地听歌：
-
-- **场景化歌单推荐**：结合地点、时间、天气、热点、情绪等上下文实时推荐。
-- **Agent 对话式歌单定制**：通过交互式对话生成专属歌单。
-- **私有音乐库标签整理**：自动打标签，让本地收藏井然有序。
-- **歌曲 AI 故事**：了解歌曲、歌手、制作团队背后的故事以及网友评价。
-- **更多 AI Agent 玩法**：持续解锁新的智能听歌方式。
-
 ## 当前能力
 
-- **UI 框架**：AI 日推、歌单、音乐库、设置、播放栏。
-- **已实现功能**：歌单、本地音乐库、带当前播放列表的播放栏。
+- **macOS (arm64) 构建**：Release 产物 `build/macos/Build/Products/Release/toney.app`；提供未签名 DMG `build/toney-music-unsigned.dmg`。
+- **播放链路**：正在播放栏、队列管理、收藏、歌单、音乐库导入（支持本地与 Samba/WebDAV/FTP/SFTP 远程记录）。
+- **Bit-perfect + 自动采样率**：CoreAudio 输出可切换，比特完美/自动采样率开关带可复制的错误弹窗。
+- **音乐 AI**：LiteAgent SDK 驱动的 “为你推荐” 与对话式 Chat，Chat 已绑定工具调用（播放/歌库操作），可配置 baseUrl/API key。
+- **诊断**：AI 消息支持查看日志；应用日志写入 `~/Library/Application Support/<app>/log/app_debug.log`。
+- **多语言**：英文/简体中文的本地化代码已生成在 `lib/l10n/app_localizations*.dart`。
 
-## TODO
+## 构建与运行（macOS）
 
-- **音乐库**：集成网盘、Samba、WebDAV、NFS，并支持路径预读与下载缓存。
-- **AI 日推**：接入 LiteAgentSDK + OpenTool Callback 以访问 App 接口。
-- **设置**：多语言、日/夜/跟随系统模式。
-- **平台**：支持 Windows、iOS、Android 以及 HarmonyOS。
+前置：已开启 Flutter 桌面支持，安装 Xcode，macOS arm64。首次运行可能请求文件夹访问用于创建日志目录。
+
+```bash
+flutter gen-l10n        # 可选，已提交
+flutter build macos --release
+# app: build/macos/Build/Products/Release/toney.app
+# 如需 DMG：
+rm -rf build/dmg-staging
+mkdir -p build/dmg-staging
+cp -R build/macos/Build/Products/Release/toney.app build/dmg-staging/
+ln -sf /Applications build/dmg-staging/Applications
+echo "Drag toney.app into Applications to install." > build/dmg-staging/README.txt
+hdiutil create -volname "Toney Music" -srcfolder build/dmg-staging -ov -format UDZO build/toney-music-unsigned.dmg
+```
+
+## 计划
+
+- Windows/iOS/Android 构建（需准备对应平台的 FFmpeg/音频栈）。
+- 更多存储接入（网盘/NFS）及更智能的缓存/预读。
+- AI 故事、标签等更多智能入口，以及更完善的 Agent 诊断。
