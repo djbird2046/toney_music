@@ -369,6 +369,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nowPlayingStoryPlaceholder => 'No story yet';
 
   @override
+  String get miniPlayerEmptyTitle => 'Nothing playing yet';
+
+  @override
+  String get miniPlayerEmptySubtitle =>
+      'Select a track to start playback';
+
+  @override
   String libraryScanningLocations(Object count) {
     return 'Scanning $count location(s)…';
   }

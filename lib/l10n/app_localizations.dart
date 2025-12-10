@@ -770,6 +770,18 @@ abstract class AppLocalizations {
   /// **'No story yet'**
   String get nowPlayingStoryPlaceholder;
 
+  /// No description provided for @miniPlayerEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing playing yet'**
+  String get miniPlayerEmptyTitle;
+
+  /// No description provided for @miniPlayerEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a track to start playback'**
+  String get miniPlayerEmptySubtitle;
+
   /// No description provided for @libraryScanningLocations.
   ///
   /// In en, this message translates to:

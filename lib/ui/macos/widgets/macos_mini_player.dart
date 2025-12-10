@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:toney_music/l10n/app_localizations.dart';
 import 'package:toney_music/toney_core.dart';
 import '../../../core/favorites_controller.dart';
 
@@ -1115,8 +1116,9 @@ class _NowPlayingInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.macosColors;
-    final title = metadata?.title ?? 'Nothing playing yet';
-    final artist = metadata?.artist ?? 'Select a track to start playback';
+    final l10n = AppLocalizations.of(context)!;
+    final title = metadata?.title ?? l10n.miniPlayerEmptyTitle;
+    final artist = metadata?.artist ?? l10n.miniPlayerEmptySubtitle;
     final artwork = metadata?.artwork;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,

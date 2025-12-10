@@ -143,6 +143,8 @@
   "nowPlayingCollapse": "Collapse",
   "nowPlayingStoryButton": "Music Story",
   "nowPlayingStoryPlaceholder": "No story yet",
+  "miniPlayerEmptyTitle": "Nothing playing yet",
+  "miniPlayerEmptySubtitle": "Select a track to start playback",
   "libraryScanningLocations": "Scanning {count} location(s)…",
   "@libraryScanningLocations": {
     "placeholders": {

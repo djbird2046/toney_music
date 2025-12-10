@@ -359,6 +359,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get nowPlayingStoryPlaceholder => '暂无故事';
 
   @override
+  String get miniPlayerEmptyTitle => '暂未播放';
+
+  @override
+  String get miniPlayerEmptySubtitle => '选择一首曲目开始播放';
+
+  @override
   String libraryScanningLocations(Object count) {
     return '正在扫描 $count 个位置…';
   }

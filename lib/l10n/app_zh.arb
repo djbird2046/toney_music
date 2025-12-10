@@ -143,6 +143,8 @@
   "nowPlayingCollapse": "收起",
   "nowPlayingStoryButton": "音乐故事",
   "nowPlayingStoryPlaceholder": "暂无故事",
+  "miniPlayerEmptyTitle": "暂未播放",
+  "miniPlayerEmptySubtitle": "选择一首曲目开始播放",
   "libraryScanningLocations": "正在扫描 {count} 个位置…",
   "@libraryScanningLocations": {
     "placeholders": {
