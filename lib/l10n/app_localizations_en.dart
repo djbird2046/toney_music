@@ -118,10 +118,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLiteAgentLogout => 'Sign out';
 
   @override
-  String get settingsLiteAgentConfigure => 'Configure';
+  String get settingsLiteAgentTitle => 'LiteAgent';
 
   @override
-  String get settingsLiteAgentTitle => 'LiteAgent';
+  String get settingsLiteAgentConfigure => 'Configure';
 
   @override
   String get liteAgentConnectPrompt => 'Enter your credentials to connect.';
@@ -375,8 +375,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get miniPlayerEmptyTitle => 'Nothing playing yet';
 
   @override
-  String get miniPlayerEmptySubtitle =>
-      'Select a track to start playback';
+  String get miniPlayerEmptySubtitle => 'Select a track to start playback';
 
   @override
   String libraryScanningLocations(Object count) {
