@@ -51,6 +51,8 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 
 # Local native audio engine (WASAPI)
 add_subdirectory("../libs/AudioEngineWindows" "AudioEngineWindows")
+# Local native mood engine (signals collector)
+add_subdirectory("../libs/MoodEngineWindows" "MoodEngineWindows")
 
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
