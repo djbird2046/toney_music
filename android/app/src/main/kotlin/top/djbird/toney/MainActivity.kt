@@ -8,5 +8,6 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         // Register the Android AudioEngine stub (FFmpeg-based engine can be added later).
         AudioEnginePlugin.registerWith(flutterEngine)
+        MoodEnginePlugin.registerWith(this, flutterEngine)
     }
 }
