@@ -91,6 +91,70 @@ const char *ffdecoder_last_error(void) {
     return gFFDecoderLastError;
 }
 
+static int ffdecoder_is_pcm_codec(enum AVCodecID codecId) {
+    switch (codecId) {
+        case AV_CODEC_ID_PCM_S16LE:
+        case AV_CODEC_ID_PCM_S16BE:
+        case AV_CODEC_ID_PCM_S24LE:
+        case AV_CODEC_ID_PCM_S24BE:
+        case AV_CODEC_ID_PCM_S32LE:
+        case AV_CODEC_ID_PCM_S32BE:
+        case AV_CODEC_ID_PCM_F32LE:
+        case AV_CODEC_ID_PCM_F32BE:
+        case AV_CODEC_ID_PCM_F64LE:
+        case AV_CODEC_ID_PCM_F64BE:
+        case AV_CODEC_ID_PCM_U8:
+        case AV_CODEC_ID_PCM_U16LE:
+        case AV_CODEC_ID_PCM_U16BE:
+        case AV_CODEC_ID_PCM_U24LE:
+        case AV_CODEC_ID_PCM_U24BE:
+        case AV_CODEC_ID_PCM_U32LE:
+        case AV_CODEC_ID_PCM_U32BE:
+        case AV_CODEC_ID_PCM_S16LE_PLANAR:
+        case AV_CODEC_ID_PCM_S32LE_PLANAR:
+        case AV_CODEC_ID_PCM_S24LE_PLANAR:
+        case AV_CODEC_ID_PCM_S16BE_PLANAR:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+static enum AVSampleFormat ffdecoder_pcm_sample_fmt(enum AVCodecID codecId) {
+    switch (codecId) {
+        case AV_CODEC_ID_PCM_S16LE:
+        case AV_CODEC_ID_PCM_S16BE:
+        case AV_CODEC_ID_PCM_S16LE_PLANAR:
+        case AV_CODEC_ID_PCM_S16BE_PLANAR:
+            return AV_SAMPLE_FMT_S16;
+        case AV_CODEC_ID_PCM_S24LE:
+        case AV_CODEC_ID_PCM_S24BE:
+        case AV_CODEC_ID_PCM_S24LE_PLANAR:
+        case AV_CODEC_ID_PCM_U24LE:
+        case AV_CODEC_ID_PCM_U24BE:
+            return AV_SAMPLE_FMT_S32;
+        case AV_CODEC_ID_PCM_S32LE:
+        case AV_CODEC_ID_PCM_S32BE:
+        case AV_CODEC_ID_PCM_S32LE_PLANAR:
+        case AV_CODEC_ID_PCM_U32LE:
+        case AV_CODEC_ID_PCM_U32BE:
+            return AV_SAMPLE_FMT_S32;
+        case AV_CODEC_ID_PCM_F32LE:
+        case AV_CODEC_ID_PCM_F32BE:
+            return AV_SAMPLE_FMT_FLT;
+        case AV_CODEC_ID_PCM_F64LE:
+        case AV_CODEC_ID_PCM_F64BE:
+            return AV_SAMPLE_FMT_DBL;
+        case AV_CODEC_ID_PCM_U8:
+            return AV_SAMPLE_FMT_U8;
+        case AV_CODEC_ID_PCM_U16LE:
+        case AV_CODEC_ID_PCM_U16BE:
+            return AV_SAMPLE_FMT_S16;
+        default:
+            return AV_SAMPLE_FMT_NONE;
+    }
+}
+
 static int ffdecoder_prepare_decoder(FFDecoderHandle *handle, const char *path) {
     int result = avformat_open_input(&handle->format, path, NULL, NULL);
     if (result < 0) {
@@ -109,53 +173,74 @@ static int ffdecoder_prepare_decoder(FFDecoderHandle *handle, const char *path) 
     }
     handle->stream = handle->format->streams[streamIndex];
     AVCodecParameters *codecpar = handle->stream->codecpar;
-    if (codecpar->codec_id == AV_CODEC_ID_DSD_LSBF ||
-        codecpar->codec_id == AV_CODEC_ID_DSD_MSBF ||
-        codecpar->codec_id == AV_CODEC_ID_DSD_LSBF_PLANAR ||
-        codecpar->codec_id == AV_CODEC_ID_DSD_MSBF_PLANAR) {
-        ffdecoder_set_error("DSD decoding to DoP is not implemented yet");
-        return AVERROR(ENOTSUP);
-    }
-
     const AVCodec *codec = avcodec_find_decoder(codecpar->codec_id);
-    if (!codec) {
+    handle->packet = av_packet_alloc();
+    if (!handle->packet) {
+        ffdecoder_set_error("Failed to allocate packet");
+        return AVERROR(ENOMEM);
+    }
+    handle->isPassthrough = 0;
+
+    if (codec) {
+        handle->codec = avcodec_alloc_context3(codec);
+        if (!handle->codec) {
+            ffdecoder_set_error("Failed to alloc codec context");
+            return AVERROR(ENOMEM);
+        }
+        result = avcodec_parameters_to_context(handle->codec, codecpar);
+        if (result < 0) {
+            ffdecoder_set_error(av_err2str(result));
+            return result;
+        }
+        result = avcodec_open2(handle->codec, codec, NULL);
+        if (result < 0) {
+            ffdecoder_set_error(av_err2str(result));
+            return result;
+        }
+        handle->frame = av_frame_alloc();
+        if (!handle->frame) {
+            ffdecoder_set_error("Failed to allocate frame");
+            return AVERROR(ENOMEM);
+        }
+        handle->sampleFormat = handle->codec->sample_fmt;
+        handle->bytesPerSample = av_get_bytes_per_sample(handle->sampleFormat);
+        if (handle->bytesPerSample == 0) {
+            ffdecoder_set_error("Unsupported sample format");
+            return AVERROR(EINVAL);
+        }
+        handle->channels = handle->codec->channels;
+        handle->sampleRate = handle->codec->sample_rate;
+        handle->bitDepth = handle->codec->bits_per_raw_sample;
+        if (handle->bitDepth <= 0 || handle->bitDepth < (int)(handle->bytesPerSample * 8)) {
+            handle->bitDepth = (int)(handle->bytesPerSample * 8);
+        }
+        handle->bytesPerFrame = handle->bytesPerSample * handle->channels;
+    } else if (ffdecoder_is_pcm_codec(codecpar->codec_id)) {
+        // Passthrough for builds without PCM decoders: packets already contain PCM data
+        handle->isPassthrough = 1;
+        handle->codec = NULL;
+        handle->frame = NULL;
+        handle->sampleFormat = ffdecoder_pcm_sample_fmt(codecpar->codec_id);
+        if (handle->sampleFormat == AV_SAMPLE_FMT_NONE) {
+            ffdecoder_set_error("Unsupported PCM format");
+            return AVERROR(EINVAL);
+        }
+        handle->bytesPerSample = av_get_bytes_per_sample(handle->sampleFormat);
+        if (handle->bytesPerSample == 0) {
+            ffdecoder_set_error("Unsupported PCM sample format");
+            return AVERROR(EINVAL);
+        }
+        handle->channels = codecpar->channels;
+        handle->sampleRate = codecpar->sample_rate;
+        handle->bitDepth = codecpar->bits_per_coded_sample;
+        if (handle->bitDepth <= 0 || handle->bitDepth < (int)(handle->bytesPerSample * 8)) {
+            handle->bitDepth = (int)(handle->bytesPerSample * 8);
+        }
+        handle->bytesPerFrame = handle->bytesPerSample * handle->channels;
+    } else {
         ffdecoder_set_error("Decoder unavailable");
         return -1;
     }
-    handle->codec = avcodec_alloc_context3(codec);
-    if (!handle->codec) {
-        ffdecoder_set_error("Failed to alloc codec context");
-        return AVERROR(ENOMEM);
-    }
-    result = avcodec_parameters_to_context(handle->codec, codecpar);
-    if (result < 0) {
-        ffdecoder_set_error(av_err2str(result));
-        return result;
-    }
-    result = avcodec_open2(handle->codec, codec, NULL);
-    if (result < 0) {
-        ffdecoder_set_error(av_err2str(result));
-        return result;
-    }
-    handle->frame = av_frame_alloc();
-    handle->packet = av_packet_alloc();
-    if (!handle->frame || !handle->packet) {
-        ffdecoder_set_error("Failed to allocate frame or packet");
-        return AVERROR(ENOMEM);
-    }
-    handle->sampleFormat = handle->codec->sample_fmt;
-    handle->bytesPerSample = av_get_bytes_per_sample(handle->sampleFormat);
-    if (handle->bytesPerSample == 0) {
-        ffdecoder_set_error("Unsupported sample format");
-        return AVERROR(EINVAL);
-    }
-    handle->channels = handle->codec->channels;
-    handle->sampleRate = handle->codec->sample_rate;
-    handle->bitDepth = handle->codec->bits_per_raw_sample;
-    if (handle->bitDepth <= 0 || handle->bitDepth < (int)(handle->bytesPerSample * 8)) {
-        handle->bitDepth = (int)(handle->bytesPerSample * 8);
-    }
-    handle->bytesPerFrame = handle->bytesPerSample * handle->channels;
     handle->durationMs = 0;
     if (handle->stream->duration > 0) {
         double seconds = handle->stream->duration * av_q2d(handle->stream->time_base);
@@ -168,6 +253,8 @@ static int ffdecoder_prepare_decoder(FFDecoderHandle *handle, const char *path) 
     const char *codecLabel = codecLongName ? codecLongName : codecShortName;
     if (codecLabel) {
         snprintf(handle->codecName, sizeof(handle->codecName), "%s", codecLabel);
+    } else if (handle->isPassthrough) {
+        snprintf(handle->codecName, sizeof(handle->codecName), "PCM Passthrough");
     } else {
         handle->codecName[0] = '\0';
     }
@@ -192,12 +279,14 @@ static int ffdecoder_prepare_decoder(FFDecoderHandle *handle, const char *path) 
     if (codecpar->channel_layout != 0) {
         handle->channelLayout = codecpar->channel_layout;
     } else {
-    handle->channelLayout = av_get_default_channel_layout(handle->channels);
+        handle->channelLayout = av_get_default_channel_layout(handle->channels);
     }
 
-    const char *sampleFmtName = av_get_sample_fmt_name(handle->codec->sample_fmt);
+    const char *sampleFmtName = av_get_sample_fmt_name(handle->sampleFormat);
     if (sampleFmtName) {
         snprintf(handle->sampleFormatName, sizeof(handle->sampleFormatName), "%s", sampleFmtName);
+    } else if (handle->isPassthrough) {
+        snprintf(handle->sampleFormatName, sizeof(handle->sampleFormatName), "pcm");
     } else {
         handle->sampleFormatName[0] = '\0';
     }
@@ -437,6 +526,38 @@ static int ffdecoder_fill_buffer(struct FFDecoderHandle *handle) {
     handle->bufferedOffset = 0;
     int ret;
     while (1) {
+        if (handle->isPassthrough) {
+            while (1) {
+                ret = av_read_frame(handle->format, handle->packet);
+                if (ret == AVERROR_EOF) {
+                    handle->eofReached = 1;
+                    return 0;
+                }
+                if (ret < 0) {
+                    ffdecoder_set_error(av_err2str(ret));
+                    return ret;
+                }
+                if (handle->packet->stream_index != handle->stream->index) {
+                    av_packet_unref(handle->packet);
+                    continue;
+                }
+                size_t required = (size_t)handle->packet->size;
+                if (required > handle->interleavedSize) {
+                    uint8_t *newBuffer = av_realloc(handle->interleavedBuffer, required);
+                    if (!newBuffer) {
+                        ffdecoder_set_error("Failed to grow buffer");
+                        av_packet_unref(handle->packet);
+                        return AVERROR(ENOMEM);
+                    }
+                    handle->interleavedBuffer = newBuffer;
+                    handle->interleavedSize = required;
+                }
+                memcpy(handle->interleavedBuffer, handle->packet->data, required);
+                av_packet_unref(handle->packet);
+                handle->bufferedBytes = required;
+                return (int)required;
+            }
+        }
         ret = avcodec_receive_frame(handle->codec, handle->frame);
         if (ret == 0) {
             int planar = av_sample_fmt_is_planar(handle->sampleFormat);
@@ -532,7 +653,9 @@ int ffdecoder_seek_ms(FFDecoderHandle *handle, int64_t positionMs) {
         ffdecoder_set_error(av_err2str(result));
         return result;
     }
-    avcodec_flush_buffers(handle->codec);
+    if (handle->codec) {
+        avcodec_flush_buffers(handle->codec);
+    }
     handle->bufferedBytes = 0;
     handle->bufferedOffset = 0;
     handle->eofReached = 0;

@@ -69,8 +69,12 @@ final class FFmpegDecoder {
     let r128AlbumGain: Double?
 
     init?(url: URL) {
-        let path = url.path
-        guard let cHandle = path.withCString({ ffdecoder_open($0) }) else {
+        let cHandle = url.withUnsafeFileSystemRepresentation { fsPath -> UnsafeMutablePointer<FFDecoderHandle>? in
+            guard let fsPath else { return nil }
+            return ffdecoder_open(fsPath)
+        } ?? url.path.withCString { ffdecoder_open($0) }
+
+        guard let cHandle else {
             return nil
         }
         self.handle = cHandle

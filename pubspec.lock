@@ -800,14 +800,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.9"
-  snowflaker:
-    dependency: transitive
-    description:
-      name: snowflaker
-      sha256: "521c696255a6271b73a4e0bfcae6bdcb023253c45050f0f089d67b012b298d1c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
   source_gen:
     dependency: transitive
     description:

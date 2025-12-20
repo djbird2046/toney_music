@@ -47,6 +47,7 @@ struct FFDecoderHandle {
     size_t bytesPerFrame;
     enum AVSampleFormat sampleFormat;
     int eofReached;
+    int isPassthrough;
     char codecName[128];
     char containerName[128];
     int64_t sourceBitRate;

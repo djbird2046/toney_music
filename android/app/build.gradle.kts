@@ -10,6 +10,8 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    sourceSets["main"].kotlin.srcDir("../libs/MoodEngineAndroid/src/main/kotlin")
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
