@@ -1,4 +1,4 @@
-package top.djbird.toney
+package net.djbird.toney
 
 import android.os.Handler
 import android.os.Looper

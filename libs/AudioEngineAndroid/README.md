@@ -24,7 +24,7 @@ libs/AudioEngineAndroid/
   CMakeLists.txt          # builds JNI + links prebuilt FFmpeg + aaudio/log
 ```
 
-> Note: The Flutter plugin (`android/app/src/main/kotlin/top/djbird/toney/AudioEnginePlugin.kt`)
+> Note: The Flutter plugin (`android/app/src/main/kotlin/net/djbird/toney/AudioEnginePlugin.kt`)
 > delegates to the native engine if the shared library is present. Without
 > prebuilts, it will fall back to no-op behavior.
 

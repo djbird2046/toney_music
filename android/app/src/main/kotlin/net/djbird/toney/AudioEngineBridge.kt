@@ -1,4 +1,4 @@
-package top.djbird.toney
+package net.djbird.toney
 
 /**
  * Optional native bridge backed by the FFmpeg-based AudioEngineAndroid.

@@ -8,7 +8,7 @@
 PRODUCT_NAME = toney
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = top.djbird.toney
+PRODUCT_BUNDLE_IDENTIFIER = net.djbird.toney
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2025 top.djbird. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2025 net.djbird. All rights reserved.

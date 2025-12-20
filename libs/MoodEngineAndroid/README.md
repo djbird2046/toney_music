@@ -13,14 +13,14 @@ Android 实现的情绪/环境信号采集引擎，对齐 macOS/iOS 的 `MoodEng
 ```
 libs/MoodEngineAndroid/
   README.md
-  src/main/kotlin/top/djbird/toney/mood/MoodEngineAndroid.kt
+  src/main/kotlin/net/djbird/toney/mood/MoodEngineAndroid.kt
 ```
 
 `MoodEngineAndroid` 是一个纯 Kotlin 类，供 Android 插件调用；不依赖 JNI。
 
 ## 在 Flutter 插件中的使用
 
-`android/app/src/main/kotlin/top/djbird/toney/MoodEnginePlugin.kt` 会实例化并调用
+`android/app/src/main/kotlin/net/djbird/toney/MoodEnginePlugin.kt` 会实例化并调用
 `MoodEngineAndroid.collectSignals()`，通过 `mood_engine` MethodChannel 返回给 Dart 层。
 
 ## 注意

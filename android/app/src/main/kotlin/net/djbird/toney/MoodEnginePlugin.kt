@@ -1,4 +1,4 @@
-package top.djbird.toney
+package net.djbird.toney
 
 import android.content.Context
 import android.os.Handler
@@ -10,7 +10,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import top.djbird.toney.mood.MoodEngineAndroid
+import net.djbird.toney.mood.MoodEngineAndroid
 
 /**
  * Android implementation of the MoodEngine used on macOS/iOS.

@@ -1,4 +1,4 @@
-package top.djbird.toney.mood
+package net.djbird.toney.mood
 
 import android.content.Context
 import android.content.Intent
