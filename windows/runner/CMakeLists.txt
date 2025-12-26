@@ -38,10 +38,13 @@ target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
 target_link_libraries(${BINARY_NAME} PRIVATE AudioEngineWindows)
 target_link_libraries(${BINARY_NAME} PRIVATE MoodEngineWindows)
+target_link_libraries(${BINARY_NAME} PRIVATE MediaSessionWindows)
 target_link_libraries(${BINARY_NAME} PRIVATE mfreadwrite mfplat mfuuid)
+target_link_libraries(${BINARY_NAME} PRIVATE propsys)
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/../libs/AudioEngineWindows/include")
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/../libs/MoodEngineWindows/include")
+target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/../libs/MediaSessionWindows/include")
 
 # Copy FFmpeg runtime DLLs beside the executable.
 set(FFMPEG_BIN_DIR "${CMAKE_SOURCE_DIR}/../third_party/ffmpeg-audio/bin")

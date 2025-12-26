@@ -6,6 +6,8 @@
 #include "audio_engine_channel.h"
 #include "mood_engine_channel.h"
 
+#include "MediaSessionWindows/plugin.h"
+
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
 
@@ -29,6 +31,8 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   RegisterAudioEngineChannel(flutter_controller_->engine());
   RegisterMoodEngineChannel(flutter_controller_->engine());
+  mediasession_windows::RegisterMediaSessionWindows(
+      flutter_controller_->engine(), GetHandle());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {

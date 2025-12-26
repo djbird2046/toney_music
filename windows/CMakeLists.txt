@@ -53,6 +53,8 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 add_subdirectory("../libs/AudioEngineWindows" "AudioEngineWindows")
 # Local native mood engine (signals collector)
 add_subdirectory("../libs/MoodEngineWindows" "MoodEngineWindows")
+# Local Windows media session (SMTC) bridge
+add_subdirectory("../libs/MediaSessionWindows" "MediaSessionWindows")
 
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")

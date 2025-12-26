@@ -75,10 +75,16 @@ void RegisterMoodEngineChannel(flutter::FlutterEngine* engine) {
           messenger, "mood_engine", &flutter::StandardMethodCodec::GetInstance());
 
   channel->SetMethodCallHandler(
-      [channel, &moodEngine](const flutter::MethodCall<EncodableValue>& call,
-                             std::unique_ptr<flutter::MethodResult<EncodableValue>> result) {
+      [channel](const flutter::MethodCall<EncodableValue>& call,
+                std::unique_ptr<flutter::MethodResult<EncodableValue>> result) {
+        static moodengine::MoodEngineWindows* mood_engine = nullptr;
+        if (!mood_engine) {
+          static moodengine::MoodEngineWindows moodEngineInstance;
+          mood_engine = &moodEngineInstance;
+        }
+
         if (call.method_name() == "collectSignals") {
-          const auto signals = moodEngine.CollectSignals();
+          auto signals = mood_engine->CollectSignals();
           result->Success(EncodableValue(SerializeSignals(signals)));
         } else {
           result->NotImplemented();

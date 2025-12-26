@@ -16,8 +16,10 @@ target_compile_options(MoodEngineWindows PRIVATE /utf-8)
 
 target_link_libraries(MoodEngineWindows
   PUBLIC
+    ws2_32
     iphlpapi
     advapi32
     ole32
     mmdevapi
+    propsys
 )

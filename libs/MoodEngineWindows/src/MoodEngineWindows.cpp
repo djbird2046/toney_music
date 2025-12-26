@@ -1,6 +1,9 @@
 #include "MoodEngineWindows/MoodEngineWindows.h"
 
+#include <winsock2.h>  // Must precede Windows.h for IP helper API
+#include <ws2def.h>
 #include <Windows.h>
+#include <propkey.h>
 #include <Functiondiscoverykeys_devpkey.h>
 #include <iphlpapi.h>
 #include <mmdeviceapi.h>
@@ -14,6 +17,11 @@
 namespace moodengine {
 
 namespace {
+
+// Ensure the property key is defined even when the SDK doesn't provide a lib symbol.
+EXTERN_C const PROPERTYKEY PKEY_AudioEndpoint_FormFactor = {
+    {0x1da5d803, 0xd492, 0x4edd, {0x8c, 0x23, 0xe0, 0xc0, 0xff, 0xee, 0x7f, 0x0e}},
+    0};
 
 struct BatteryState {
   float level = 1.0f;

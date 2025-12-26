@@ -4,6 +4,7 @@
 #include <flutter_windows.h>
 
 #include "resource.h"
+#include "MediaSessionWindows/plugin.h"
 
 namespace {
 
@@ -217,6 +218,14 @@ Win32Window::MessageHandler(HWND hwnd,
     case WM_DWMCOLORIZATIONCOLORCHANGED:
       UpdateTheme(hwnd);
       return 0;
+
+    case WM_COMMAND: {
+      const int command_id = LOWORD(wparam);
+      if (mediasession_windows::HandleMediaSessionWindowsCommand(command_id)) {
+        return 0;
+      }
+      break;
+    }
 
     case WM_SYSCOMMAND:
       if ((wparam & 0xFFF0) == SC_CLOSE) {
