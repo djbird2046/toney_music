@@ -341,13 +341,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get libraryProtocolSftpDescription => '安全文件传输';
 
   @override
-  String get libraryUnknownArtist => '未知艺术家';
+  String get libraryUnknownArtist => '--';
 
   @override
-  String get libraryUnknownAlbum => '未知专辑';
+  String get libraryUnknownAlbum => '--';
 
   @override
-  String get libraryUnknownValue => '未知';
+  String get libraryUnknownValue => '--';
 
   @override
   String get nowPlayingNotPlaying => '未在播放';
@@ -362,10 +362,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get nowPlayingStoryPlaceholder => '暂无故事';
 
   @override
-  String get miniPlayerEmptyTitle => '暂未播放';
+  String get miniPlayerEmptyTitle => '--';
 
   @override
-  String get miniPlayerEmptySubtitle => '选择一首曲目开始播放';
+  String get miniPlayerEmptySubtitle => '--';
 
   @override
   String libraryScanningLocations(Object count) {

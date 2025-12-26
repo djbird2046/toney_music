@@ -96,6 +96,7 @@
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		A1C1B1D32B9B23F2007840C5 /* AudioEngineBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngineBridge.swift; sourceTree = "<group>"; };
 		B12525289267B3EE7799AABD /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
+		B1F6D8A42C6C4E1F00A1B2CC /* SecurityScopedAccessPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityScopedAccessPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -190,6 +191,7 @@
 				33CC10F02044A3C60003C045 /* AppDelegate.swift */,
 				33CC11122044BFA00003C045 /* MainFlutterWindow.swift */,
 				A1C1B1D32B9B23F2007840C5 /* AudioEngineBridge.swift */,
+				B1F6D8A42C6C4E1F00A1B2CC /* SecurityScopedAccessPlugin.swift */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
 				33CC11242044D66E0003C045 /* Resources */,
@@ -454,7 +456,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		33CC10E92044A3C60003C045 /* Sources */ = {
+				33CC10E92044A3C60003C045 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -464,6 +466,7 @@
 				3D9555BB2ED40DC400872C25 /* AudioEnginePlugin.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
 				A1D7B2532C0E7EA5007840C5 /* MoodEnginePlugin.swift in Sources */,
+				B1F6D8A52C6C4E1F00A1B2CC /* SecurityScopedAccessPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

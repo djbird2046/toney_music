@@ -351,13 +351,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryProtocolSftpDescription => 'Secure file transfer';
 
   @override
-  String get libraryUnknownArtist => 'Unknown Artist';
+  String get libraryUnknownArtist => '--';
 
   @override
-  String get libraryUnknownAlbum => 'Unknown Album';
+  String get libraryUnknownAlbum => '--';
 
   @override
-  String get libraryUnknownValue => 'Unknown';
+  String get libraryUnknownValue => '--';
 
   @override
   String get nowPlayingNotPlaying => 'Not playing';
@@ -372,10 +372,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nowPlayingStoryPlaceholder => 'No story yet';
 
   @override
-  String get miniPlayerEmptyTitle => 'Nothing playing yet';
+  String get miniPlayerEmptyTitle => '--';
 
   @override
-  String get miniPlayerEmptySubtitle => 'Select a track to start playback';
+  String get miniPlayerEmptySubtitle => '--';
 
   @override
   String libraryScanningLocations(Object count) {

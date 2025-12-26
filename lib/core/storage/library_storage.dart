@@ -32,6 +32,7 @@ class LibraryEntry {
     required this.metadata,
     required this.importedAt,
     this.remoteInfo,
+    this.bookmark,
   });
 
   final String path;
@@ -41,6 +42,7 @@ class LibraryEntry {
 
   /// Remote file info (only has value when sourceType is remote type)
   final RemoteFileInfo? remoteInfo;
+  final String? bookmark;
 
   Map<String, dynamic> toJson() {
     return {
@@ -49,6 +51,7 @@ class LibraryEntry {
       'metadata': metadata.toJson(includeArtwork: false),
       'importedAt': importedAt.millisecondsSinceEpoch,
       if (remoteInfo != null) 'remoteInfo': remoteInfo!.toJson(),
+      if (bookmark != null) 'bookmark': bookmark,
     };
   }
 
@@ -71,6 +74,7 @@ class LibraryEntry {
     );
     final importedAtMs = json['importedAt'] as int?;
     final remoteInfoRaw = json['remoteInfo'];
+    final bookmark = json['bookmark'] as String?;
 
     RemoteFileInfo? remoteInfo;
     if (remoteInfoRaw is Map) {
@@ -91,6 +95,7 @@ class LibraryEntry {
           ? DateTime.now()
           : DateTime.fromMillisecondsSinceEpoch(importedAtMs),
       remoteInfo: remoteInfo,
+      bookmark: bookmark,
     );
   }
 

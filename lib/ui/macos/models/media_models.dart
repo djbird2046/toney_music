@@ -61,12 +61,14 @@ class PlaylistEntry {
     required this.metadata,
     this.sourceType,
     this.remoteInfo,
+    this.bookmark,
   });
 
   final String path;
   final SongMetadata metadata;
   final LibrarySourceType? sourceType;
   final RemoteFileInfo? remoteInfo;
+  final String? bookmark;
 
   /// Whether is remote file
   bool get isRemote =>
@@ -78,12 +80,14 @@ class PlaylistEntry {
     LibrarySourceType? sourceType,
     RemoteFileInfo? remoteInfo,
     bool clearRemoteInfo = false,
+    String? bookmark,
   }) {
     return PlaylistEntry(
       path: path ?? this.path,
       metadata: metadata ?? this.metadata,
       sourceType: sourceType ?? this.sourceType,
       remoteInfo: clearRemoteInfo ? null : (remoteInfo ?? this.remoteInfo),
+      bookmark: bookmark ?? this.bookmark,
     );
   }
 }

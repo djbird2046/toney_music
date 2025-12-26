@@ -24,6 +24,7 @@ import 'package:toney_music/core/storage/playlist_storage.dart';
 import 'package:toney_music/core/storage/library_storage.dart';
 import 'package:toney_music/core/storage/liteagent_config_storage.dart';
 import 'package:toney_music/core/storage/playback_settings_storage.dart';
+import 'package:toney_music/core/storage/security_scoped_bookmarks.dart';
 import 'package:toney_music/core/theme/app_theme_mode.dart';
 import 'package:toney_music/core/theme/theme_controller.dart';
 import 'package:liteagent_sdk_dart/liteagent_sdk_dart.dart';
@@ -359,8 +360,29 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         metadata: normalizedMetadata,
         importedAt: entry.importedAt,
         remoteInfo: entry.remoteInfo,
+        bookmark: entry.bookmark,
       );
     }).toList();
+    for (var i = 0; i < normalizedEntries.length; i++) {
+      final entry = normalizedEntries[i];
+      if (entry.isRemote) continue;
+      var bookmark = entry.bookmark;
+      if (bookmark == null) {
+        bookmark = await SecurityScopedBookmarks.createBookmark(entry.path);
+        if (bookmark != null) {
+          libraryUpdated = true;
+          normalizedEntries[i] = LibraryEntry(
+            path: entry.path,
+            sourceType: entry.sourceType,
+            metadata: entry.metadata,
+            importedAt: entry.importedAt,
+            remoteInfo: entry.remoteInfo,
+            bookmark: bookmark,
+          );
+        }
+      }
+      await _ensureFileAccess(entry.path, bookmark);
+    }
     if (!mounted) return;
     setState(() {
       _libraryEntries
@@ -413,7 +435,12 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
 
     // For remote files, use paths directly; for local files, need recursive scan
     List<String> files;
+    Map<String, String?> rootBookmarks = {};
     if (request.type == LibrarySourceType.local) {
+      rootBookmarks = request.bookmarks ?? await _createBookmarks(request.paths);
+      for (final path in request.paths) {
+        await _ensureFileAccess(path, rootBookmarks[path]);
+      }
       files = await _collectAudioFiles(request.paths);
     } else {
       // Remote files: use path list directly, RemoteFileBrowserDialog only returns audio files
@@ -440,6 +467,12 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     final newFiles = files
         .where((path) => !_libraryTrackPaths.contains(path))
         .toList();
+    final fileBookmarks = <String, String?>{};
+    if (request.type == LibrarySourceType.local) {
+      for (final path in newFiles) {
+        fileBookmarks[path] = await SecurityScopedBookmarks.createBookmark(path);
+      }
+    }
     if (newFiles.isEmpty) {
       setState(() {
         _libraryImportState = LibraryImportState(
@@ -464,6 +497,12 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       try {
         // Select metadata extraction method based on source type
         SongMetadata metadata;
+        final bookmark = request.type == LibrarySourceType.local
+            ? fileBookmarks[path]
+            : null;
+        if (request.type == LibrarySourceType.local) {
+          await _ensureFileAccess(path, bookmark);
+        }
         if (request.type == LibrarySourceType.local) {
           // Local file: extract metadata directly
           metadata = await _metadataUtil.loadFromPath(path);
@@ -504,6 +543,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           metadata: enriched,
           importedAt: DateTime.now(),
           remoteInfo: remoteInfo,
+          bookmark: bookmark,
         );
         processed++;
         added++;
@@ -712,11 +752,13 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     final libraryIndex = _libraryPathIndex[track.path];
     LibrarySourceType? sourceType;
     RemoteFileInfo? remoteInfo;
+    String? bookmark;
 
     if (libraryIndex != null && libraryIndex < _libraryEntries.length) {
       final libraryEntry = _libraryEntries[libraryIndex];
       sourceType = libraryEntry.sourceType;
       remoteInfo = libraryEntry.remoteInfo;
+      bookmark = libraryEntry.bookmark;
     }
 
     final entry = PlaylistEntry(
@@ -724,6 +766,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       metadata: metadata,
       sourceType: sourceType,
       remoteInfo: remoteInfo,
+      bookmark: bookmark,
     );
     _playlistEntries.putIfAbsent(playlistName, () => <PlaylistEntry>[]);
     final updated = List<PlaylistEntry>.from(_playlistEntries[playlistName]!)
@@ -742,6 +785,14 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     for (final reference in references) {
       final path = reference.path;
       SongMetadata metadata;
+      var bookmark = reference.bookmark;
+      if (bookmark == null) {
+        bookmark = await SecurityScopedBookmarks.createBookmark(path);
+        if (bookmark != null) {
+          updated = true;
+        }
+      }
+      await _ensureFileAccess(path, bookmark);
 
       bool needsRefresh = false;
       if (reference.metadata != null) {
@@ -780,6 +831,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           metadata: enriched,
           sourceType: reference.sourceType,
           remoteInfo: reference.remoteInfo,
+          bookmark: bookmark,
         ),
       );
     }
@@ -950,6 +1002,18 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     _playlistEntries.putIfAbsent(playlistName, () => <PlaylistEntry>[]);
   }
 
+  Future<void> _ensureFileAccess(String path, String? bookmark) async {
+    await SecurityScopedBookmarks.startAccess(path: path, bookmark: bookmark);
+  }
+
+  Future<Map<String, String?>> _createBookmarks(List<String> paths) async {
+    final map = <String, String?>{};
+    for (final path in paths) {
+      map[path] = await SecurityScopedBookmarks.createBookmark(path);
+    }
+    return map;
+  }
+
   String get _currentPlaylistName => playlists[selectedPlaylist];
 
   List<PlaylistEntry> get _currentPlaylistEntries {
@@ -972,6 +1036,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     required String path,
     required LibrarySourceType sourceType,
     RemoteFileInfo? remoteInfo,
+    String? bookmark,
   }) {
     final enriched = _ensureDurationExtras(
       metadata,
@@ -983,6 +1048,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       metadata: enriched,
       importedAt: DateTime.now(),
       remoteInfo: remoteInfo,
+      bookmark: bookmark,
     );
 
     setState(() {
@@ -1026,17 +1092,25 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     );
     final paths = files.map((file) => file.path).whereType<String>().toList();
     if (paths.isEmpty) return;
-    await _addFilesToCurrentPlaylist(paths);
+    final bookmarks = await _createBookmarks(paths);
+    await _addFilesToCurrentPlaylist(paths, bookmarks: bookmarks);
   }
 
-  Future<void> _addFilesToCurrentPlaylist(List<String> paths) async {
+  Future<void> _addFilesToCurrentPlaylist(
+    List<String> paths, {
+    Map<String, String?>? bookmarks,
+  }) async {
+    final pathBookmarks = bookmarks ?? await _createBookmarks(paths);
     final newEntries = <PlaylistEntry>[];
     for (final path in paths) {
+      final bookmark = pathBookmarks[path];
+      await _ensureFileAccess(path, bookmark);
       final metadata = await _metadataUtil.loadFromPath(path);
       final entry = _addOrPromoteLibraryEntry(
         metadata: metadata,
         path: path,
         sourceType: LibrarySourceType.local,
+        bookmark: bookmark,
       );
       newEntries.add(
         PlaylistEntry(
@@ -1044,6 +1118,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           metadata: entry.metadata,
           sourceType: entry.sourceType,
           remoteInfo: entry.remoteInfo,
+          bookmark: bookmark,
         ),
       );
     }
@@ -1148,6 +1223,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
                   metadata: entry.metadata,
                   sourceType: entry.sourceType,
                   remoteInfo: entry.remoteInfo,
+                  bookmark: entry.bookmark,
                 ),
               )
               .toList(),
@@ -1208,6 +1284,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           metadata: entry.metadata,
           importedAt: DateTime.now(),
           remoteInfo: remoteInfo,
+          bookmark: entry.bookmark,
         );
 
         // Use PlaybackHelper to prepare playback file (auto downloads cache)

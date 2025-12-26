@@ -276,11 +276,7 @@ static int ffdecoder_prepare_decoder(FFDecoderHandle *handle, const char *path) 
         handle->sourceBitRate = 0;
     }
 
-    if (codecpar->channel_layout != 0) {
-        handle->channelLayout = codecpar->channel_layout;
-    } else {
-        handle->channelLayout = av_get_default_channel_layout(handle->channels);
-    }
+    handle->channelLayout = codecpar->channel_layout;
 
     const char *sampleFmtName = av_get_sample_fmt_name(handle->sampleFormat);
     if (sampleFmtName) {

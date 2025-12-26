@@ -1117,8 +1117,12 @@ class _NowPlayingInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.macosColors;
     final l10n = AppLocalizations.of(context)!;
-    final title = metadata?.title ?? l10n.miniPlayerEmptyTitle;
-    final artist = metadata?.artist ?? l10n.miniPlayerEmptySubtitle;
+    final title = (metadata?.title?.trim().isNotEmpty ?? false)
+        ? metadata!.title
+        : l10n.miniPlayerEmptyTitle;
+    final artist = (metadata?.artist?.trim().isNotEmpty ?? false)
+        ? metadata!.artist
+        : l10n.miniPlayerEmptySubtitle;
     final artwork = metadata?.artwork;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,

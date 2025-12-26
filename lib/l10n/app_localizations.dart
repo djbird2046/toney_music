@@ -737,19 +737,19 @@ abstract class AppLocalizations {
   /// No description provided for @libraryUnknownArtist.
   ///
   /// In en, this message translates to:
-  /// **'Unknown Artist'**
+  /// **'--'**
   String get libraryUnknownArtist;
 
   /// No description provided for @libraryUnknownAlbum.
   ///
   /// In en, this message translates to:
-  /// **'Unknown Album'**
+  /// **'--'**
   String get libraryUnknownAlbum;
 
   /// No description provided for @libraryUnknownValue.
   ///
   /// In en, this message translates to:
-  /// **'Unknown'**
+  /// **'--'**
   String get libraryUnknownValue;
 
   /// No description provided for @nowPlayingNotPlaying.
@@ -779,13 +779,13 @@ abstract class AppLocalizations {
   /// No description provided for @miniPlayerEmptyTitle.
   ///
   /// In en, this message translates to:
-  /// **'Nothing playing yet'**
+  /// **'--'**
   String get miniPlayerEmptyTitle;
 
   /// No description provided for @miniPlayerEmptySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Select a track to start playback'**
+  /// **'--'**
   String get miniPlayerEmptySubtitle;
 
   /// No description provided for @libraryScanningLocations.

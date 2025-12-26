@@ -19,9 +19,9 @@ class SongMetadata {
   final Uint8List? artwork;
 
   factory SongMetadata.unknown(String fallbackTitle) => SongMetadata(
-    title: fallbackTitle.isEmpty ? 'Unknown Title' : fallbackTitle,
-    artist: 'Unknown Artist',
-    album: 'Unknown Album',
+    title: fallbackTitle.isEmpty ? '--' : fallbackTitle,
+    artist: '--',
+    album: '--',
     extras: const {},
     isFallback: true,
   );

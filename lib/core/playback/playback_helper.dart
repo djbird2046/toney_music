@@ -1,5 +1,6 @@
 import '../storage/library_storage.dart';
 import '../remote/services/cache_manager.dart';
+import '../storage/security_scoped_bookmarks.dart';
 
 /// Playback helper service
 /// 
@@ -33,6 +34,10 @@ class PlaybackHelper {
   }) async {
     // If local file, return directly
     if (!entry.isRemote) {
+      await SecurityScopedBookmarks.startAccess(
+        path: entry.path,
+        bookmark: entry.bookmark,
+      );
       return PlayableFile(
         path: entry.path,
         isFromCache: false,

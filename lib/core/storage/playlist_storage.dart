@@ -11,12 +11,14 @@ class PlaylistReference {
     this.metadata,
     this.sourceType,
     this.remoteInfo,
+    this.bookmark,
   });
 
   final String path;
   final SongMetadata? metadata;
   final LibrarySourceType? sourceType;
   final RemoteFileInfo? remoteInfo;
+  final String? bookmark;
 
   /// Whether is remote file
   bool get isRemote =>
@@ -27,6 +29,7 @@ class PlaylistReference {
     if (metadata != null) 'metadata': metadata!.toJson(),
     if (sourceType != null) 'sourceType': sourceType!.name,
     if (remoteInfo != null) 'remoteInfo': remoteInfo!.toJson(),
+    if (bookmark != null) 'bookmark': bookmark,
   };
 
   static PlaylistReference fromJson(dynamic json) {
@@ -77,12 +80,14 @@ class PlaylistReference {
         remoteInfo = null;
       }
     }
+    final bookmark = json['bookmark'] as String?;
 
     return PlaylistReference(
       path: path,
       metadata: metadata,
       sourceType: sourceType,
       remoteInfo: remoteInfo,
+      bookmark: bookmark,
     );
   }
 }

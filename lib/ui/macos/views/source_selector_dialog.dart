@@ -5,6 +5,7 @@ import '../../../core/library/library_source.dart';
 import '../../../core/media/audio_formats.dart';
 import '../../../core/remote/models/connection_config.dart';
 import '../../../core/remote/services/config_manager.dart';
+import '../../../core/storage/security_scoped_bookmarks.dart';
 import '../macos_colors.dart';
 import 'remote_config_dialog.dart';
 import 'remote_file_browser_dialog.dart';
@@ -15,11 +16,13 @@ class LibrarySourceRequest {
     required this.type,
     required this.paths,
     this.connectionConfigId,
+    this.bookmarks,
   });
 
   final LibrarySourceType type;
   final List<String> paths;
   final String? connectionConfigId;
+  final Map<String, String?>? bookmarks;
 }
 
 /// Show source selector dialog
@@ -333,8 +336,13 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
       );
 
       if (result != null && result.isNotEmpty && mounted) {
+        final bookmarks = await _createBookmarks(result);
         Navigator.of(context).pop(
-          LibrarySourceRequest(type: LibrarySourceType.local, paths: result),
+          LibrarySourceRequest(
+            type: LibrarySourceType.local,
+            paths: result,
+            bookmarks: bookmarks,
+          ),
         );
       }
     } finally {
@@ -381,6 +389,14 @@ class _SourceSelectorDialogState extends State<_SourceSelectorDialog> {
     if (updated != null) {
       await _loadRemoteConfigs();
     }
+  }
+
+  Future<Map<String, String?>> _createBookmarks(List<String> paths) async {
+    final map = <String, String?>{};
+    for (final path in paths) {
+      map[path] = await SecurityScopedBookmarks.createBookmark(path);
+    }
+    return map;
   }
 
   Future<void> _deleteRemote(ConnectionConfig config) async {
