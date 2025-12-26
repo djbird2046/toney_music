@@ -2,9 +2,10 @@
 #define AppPublisher "DJBird"
 #define AppVersion "0.1.0"
 #define AppExeName "toney.exe"
+#define MyAppId "E54E4F02-4DB7-4D06-9C60-9F5D7C3B8F2F"
 
 [Setup]
-AppId=E54E4F02-4DB7-4D06-9C60-9F5D7C3B8F2F
+AppId={#MyAppId}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
