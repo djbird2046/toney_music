@@ -770,9 +770,17 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     );
     _playlistEntries.putIfAbsent(playlistName, () => <PlaylistEntry>[]);
     final updated = List<PlaylistEntry>.from(_playlistEntries[playlistName]!)
-      ..add(entry);
+      ..insert(0, entry);
     setState(() {
       _playlistEntries[playlistName] = updated;
+      if (playlistName == _currentPlaylistName) {
+        _selectedPlaylistRows = _selectedPlaylistRows
+            .map((index) => index + 1)
+            .toSet();
+        if (_nowPlayingIndex != null) {
+          _nowPlayingIndex = _nowPlayingIndex! + 1;
+        }
+      }
     });
     _schedulePersist();
   }
@@ -1125,8 +1133,16 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
     if (!mounted) return;
     setState(() {
       final entries = List<PlaylistEntry>.from(_currentPlaylistEntries)
-        ..addAll(newEntries);
+        ..insertAll(0, newEntries);
       _playlistEntries[_currentPlaylistName] = entries;
+      if (newEntries.isNotEmpty) {
+        _selectedPlaylistRows = _selectedPlaylistRows
+            .map((index) => index + newEntries.length)
+            .toSet();
+        if (_nowPlayingIndex != null) {
+          _nowPlayingIndex = _nowPlayingIndex! + newEntries.length;
+        }
+      }
     });
     await _libraryStorage.save(_libraryEntries);
     _schedulePersist();
