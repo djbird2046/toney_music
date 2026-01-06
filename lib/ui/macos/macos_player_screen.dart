@@ -40,6 +40,7 @@ import 'views/favorites_view.dart';
 import 'views/settings_view.dart';
 import 'widgets/macos_now_playing_sheet.dart';
 import 'widgets/macos_mini_player.dart';
+import 'widgets/metadata_display_util.dart';
 
 class MacosPlayerScreen extends StatefulWidget {
   const MacosPlayerScreen({
@@ -95,6 +96,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   bool _liteAgentConfigValid = false;
   bool _liteAgentConfigBusy = false;
   String? _liteAgentError;
+  String? _liteAgentVersion;
   final PlaybackSettingsStorage _playbackSettingsStorage =
       PlaybackSettingsStorage();
   bool _autoSampleRateEnabled = true;
@@ -223,6 +225,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           _liteAgentConfig = null;
           _liteAgentConfigValid = false;
           _liteAgentError = null;
+          _liteAgentVersion = null;
         });
         return;
       }
@@ -241,13 +244,14 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         onDoneCallback: () {},
         onErrorCallback: (e) {},
       );
-      await util.testConnect();
+      final version = await util.testConnect();
 
       if (!mounted) return;
       setState(() {
         _liteAgentConfig = config;
         _liteAgentConfigValid = true;
         _liteAgentError = null;
+        _liteAgentVersion = version.version;
       });
     } catch (error) {
       debugPrint('LiteAgent status check failed: $error');
@@ -256,6 +260,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
         _liteAgentConfig = _liteAgentConfigStorage.load();
         _liteAgentConfigValid = false;
         _liteAgentError = error.toString();
+        _liteAgentVersion = null;
       });
     } finally {
       if (mounted) {
@@ -281,6 +286,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           _liteAgentConfigValid = false;
           _liteAgentConfigBusy = false;
           _liteAgentError = null;
+          _liteAgentVersion = null;
         });
       }
     }
@@ -1255,6 +1261,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
             path: entry.path,
             metadata: entry.metadata,
             duration: _durationFromMetadata(entry.metadata),
+            bookmark: entry.bookmark,
           ),
         )
         .toList();
@@ -1351,7 +1358,15 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           _selectedPlaylistRows = {nextIndex};
           _nowPlayingIndex = nextIndex;
         });
-        unawaited(widget.controller.playAt(nextIndex));
+        unawaited(
+          widget.controller.playAt(nextIndex).catchError((error, stackTrace) {
+            debugPrint(
+              'Failed to play track at $nextIndex: $error\n$stackTrace',
+            );
+            if (!mounted) return;
+            unawaited(_showPlaybackErrorDialog(error));
+          }),
+        );
         return;
       }
 
@@ -1595,6 +1610,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
               _liteAgentConfigValid && _liteAgentConfig != null,
           liteAgentConnected: _liteAgentConfigValid,
           liteAgentBaseUrl: _liteAgentConfig?.baseUrl ?? '',
+          liteAgentVersion: _liteAgentVersion,
           liteAgentError: _liteAgentError,
           liteAgentBusy: _liteAgentConfigBusy,
           onConfigureLiteAgent: _navigateToLiteAgentConfig,
@@ -1684,13 +1700,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
   }
 
   bool _isUnknownValue(String value) {
-    final normalized = value.trim();
-    if (normalized.isEmpty) return true;
-    final lower = normalized.toLowerCase();
-    if (lower == 'unknown' || lower.startsWith('unknown ')) return true;
-    const zhUnknowns = {'未知', '未知艺术家', '未知歌手', '未知专辑', '未知專輯', '未知艺人'};
-    if (zhUnknowns.contains(normalized)) return true;
-    return false;
+    return isUnknownMetadataValue(value);
   }
 
   Future<void> _generateStory() async {
@@ -1814,6 +1824,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
       path: track.path,
       metadata: updatedMetadata,
       duration: track.duration,
+      bookmark: track.bookmark,
     );
 
     _metadataCache[track.path] = updatedMetadata;
@@ -1827,6 +1838,7 @@ class _MacosPlayerScreenState extends State<MacosPlayerScreen> {
           metadata: updatedMetadata,
           importedAt: entry.importedAt,
           remoteInfo: entry.remoteInfo,
+          bookmark: entry.bookmark,
         );
       }
     }

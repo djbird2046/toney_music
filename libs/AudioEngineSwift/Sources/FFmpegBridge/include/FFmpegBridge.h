@@ -9,6 +9,7 @@
 #include <libavcodec/avcodec.h>
 #include <libavutil/samplefmt.h>
 #include <libavutil/opt.h>
+#include <libavutil/dict.h>
 #include <libavutil/mem.h>
 #include <libavutil/error.h>
 #include <libavutil/channel_layout.h>

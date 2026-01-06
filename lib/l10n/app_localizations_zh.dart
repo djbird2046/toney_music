@@ -359,7 +359,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get nowPlayingStoryButton => '音乐故事';
 
   @override
-  String get nowPlayingStoryPlaceholder => '暂无故事';
+  String get nowPlayingStoryPlaceholder => '--';
 
   @override
   String get miniPlayerEmptyTitle => '--';

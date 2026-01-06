@@ -369,7 +369,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nowPlayingStoryButton => 'Music Story';
 
   @override
-  String get nowPlayingStoryPlaceholder => 'No story yet';
+  String get nowPlayingStoryPlaceholder => '--';
 
   @override
   String get miniPlayerEmptyTitle => '--';

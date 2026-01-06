@@ -32,6 +32,25 @@ class SecurityScopedAccessPlugin: NSObject, FlutterPlugin {
         result(FlutterError(code: "BOOKMARK_FAILED", message: error.localizedDescription, details: nil))
       }
 
+    case "startAccessPath":
+      guard
+        let args = call.arguments as? [String: Any],
+        let path = args["path"] as? String
+      else {
+        return result(FlutterError(code: "INVALID", message: nil, details: nil))
+      }
+      let url = URL(fileURLWithPath: path)
+      let started = url.startAccessingSecurityScopedResource()
+      if !started {
+        return result(FlutterError(code: "ACCESS_DENIED", message: "Failed to start security scope", details: nil))
+      }
+      let token = UUID().uuidString
+      activeUrls[token] = url
+      result([
+        "token": token,
+        "path": url.path,
+      ])
+
     case "startAccess":
       guard
         let args = call.arguments as? [String: Any],

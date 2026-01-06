@@ -155,13 +155,29 @@ static enum AVSampleFormat ffdecoder_pcm_sample_fmt(enum AVCodecID codecId) {
     }
 }
 
-static int ffdecoder_prepare_decoder(FFDecoderHandle *handle, const char *path) {
-    int result = avformat_open_input(&handle->format, path, NULL, NULL);
+static int ffdecoder_open_input(FFDecoderHandle *handle, const char *path, const char *formatName) {
+    AVDictionary *opts = NULL;
+    av_dict_set(&opts, "probesize", "5000000", 0);
+    av_dict_set(&opts, "analyzeduration", "5000000", 0);
+    const AVInputFormat *inputFormat = NULL;
+    if (formatName && formatName[0] != '\0') {
+        inputFormat = av_find_input_format(formatName);
+    }
+    int result = avformat_open_input(&handle->format, path, inputFormat, &opts);
+    av_dict_free(&opts);
     if (result < 0) {
-        ffdecoder_set_error(av_err2str(result));
         return result;
     }
     result = avformat_find_stream_info(handle->format, NULL);
+    if (result < 0) {
+        avformat_close_input(&handle->format);
+        return result;
+    }
+    return 0;
+}
+
+static int ffdecoder_prepare_decoder(FFDecoderHandle *handle, const char *path) {
+    int result = ffdecoder_open_input(handle, path, NULL);
     if (result < 0) {
         ffdecoder_set_error(av_err2str(result));
         return result;
@@ -209,11 +225,14 @@ static int ffdecoder_prepare_decoder(FFDecoderHandle *handle, const char *path) 
             return AVERROR(EINVAL);
         }
         handle->channels = handle->codec->channels;
-        handle->sampleRate = handle->codec->sample_rate;
-        handle->bitDepth = handle->codec->bits_per_raw_sample;
-        if (handle->bitDepth <= 0 || handle->bitDepth < (int)(handle->bytesPerSample * 8)) {
-            handle->bitDepth = (int)(handle->bytesPerSample * 8);
+        if (handle->channels <= 0 && codecpar->channels > 0) {
+            handle->channels = codecpar->channels;
         }
+        handle->sampleRate = handle->codec->sample_rate;
+        if (handle->sampleRate <= 0 && codecpar->sample_rate > 0) {
+            handle->sampleRate = codecpar->sample_rate;
+        }
+        handle->bitDepth = (int)(handle->bytesPerSample * 8);
         handle->bytesPerFrame = handle->bytesPerSample * handle->channels;
     } else if (ffdecoder_is_pcm_codec(codecpar->codec_id)) {
         // Passthrough for builds without PCM decoders: packets already contain PCM data
@@ -232,15 +251,95 @@ static int ffdecoder_prepare_decoder(FFDecoderHandle *handle, const char *path) 
         }
         handle->channels = codecpar->channels;
         handle->sampleRate = codecpar->sample_rate;
-        handle->bitDepth = codecpar->bits_per_coded_sample;
-        if (handle->bitDepth <= 0 || handle->bitDepth < (int)(handle->bytesPerSample * 8)) {
-            handle->bitDepth = (int)(handle->bytesPerSample * 8);
-        }
+        handle->bitDepth = (int)(handle->bytesPerSample * 8);
         handle->bytesPerFrame = handle->bytesPerSample * handle->channels;
     } else {
         ffdecoder_set_error("Decoder unavailable");
         return -1;
     }
+    if (handle->codec && handle->frame && handle->packet) {
+        int gotFrame = 0;
+        int probeResult = 0;
+        for (int attempts = 0; attempts < 200; ++attempts) {
+            probeResult = av_read_frame(handle->format, handle->packet);
+            if (probeResult < 0) {
+                break;
+            }
+            if (handle->packet->stream_index != handle->stream->index) {
+                av_packet_unref(handle->packet);
+                continue;
+            }
+            probeResult = avcodec_send_packet(handle->codec, handle->packet);
+            av_packet_unref(handle->packet);
+            if (probeResult < 0) {
+                break;
+            }
+            probeResult = avcodec_receive_frame(handle->codec, handle->frame);
+            if (probeResult == 0) {
+                gotFrame = 1;
+                break;
+            }
+            if (probeResult == AVERROR(EAGAIN)) {
+                continue;
+            }
+            break;
+        }
+        if (gotFrame) {
+            if (handle->frame->sample_rate > 0 &&
+                (handle->sampleRate <= 1 ||
+                 abs(handle->frame->sample_rate - handle->sampleRate) > 1)) {
+                handle->sampleRate = handle->frame->sample_rate;
+            }
+            int frameChannels = handle->frame->channels;
+            if (frameChannels <= 0 && handle->frame->ch_layout.nb_channels > 0) {
+                frameChannels = handle->frame->ch_layout.nb_channels;
+            }
+            if (frameChannels > 0 &&
+                (handle->channels <= 0 || frameChannels != handle->channels)) {
+                handle->channels = frameChannels;
+            }
+            if (handle->frame->format != AV_SAMPLE_FMT_NONE) {
+                handle->sampleFormat = (enum AVSampleFormat)handle->frame->format;
+            }
+            handle->bytesPerSample = av_get_bytes_per_sample(handle->sampleFormat);
+            if (handle->bytesPerSample == 0) {
+                ffdecoder_set_error("Unsupported sample format");
+                return AVERROR(EINVAL);
+            }
+            if (handle->channels > 0) {
+                handle->bytesPerFrame = handle->bytesPerSample * handle->channels;
+            }
+            handle->bitDepth = (int)(handle->bytesPerSample * 8);
+            av_frame_unref(handle->frame);
+        }
+        if (handle->codec) {
+            avcodec_flush_buffers(handle->codec);
+        }
+        if (handle->format) {
+            av_seek_frame(handle->format, handle->stream->index, 0, AVSEEK_FLAG_BACKWARD);
+        }
+        handle->bufferedBytes = 0;
+        handle->bufferedOffset = 0;
+        handle->eofReached = 0;
+    }
+    if (handle->sampleRate <= 1 && handle->stream) {
+        AVRational timeBase = handle->stream->time_base;
+        if (timeBase.num > 0 && timeBase.den > 0) {
+            double guessed = (double)timeBase.den / (double)timeBase.num;
+            if (guessed >= 8000.0 && guessed <= 384000.0) {
+                handle->sampleRate = (int)(guessed + 0.5);
+            }
+        }
+    }
+    const char *probeSampleFmtName = av_get_sample_fmt_name(handle->sampleFormat);
+    if (probeSampleFmtName) {
+        snprintf(handle->sampleFormatName, sizeof(handle->sampleFormatName), "%s", probeSampleFmtName);
+    } else if (handle->isPassthrough) {
+        snprintf(handle->sampleFormatName, sizeof(handle->sampleFormatName), "pcm");
+    } else {
+        handle->sampleFormatName[0] = '\0';
+    }
+
     handle->durationMs = 0;
     if (handle->stream->duration > 0) {
         double seconds = handle->stream->duration * av_q2d(handle->stream->time_base);
@@ -323,6 +422,35 @@ static int ffdecoder_prepare_decoder(FFDecoderHandle *handle, const char *path) 
     handle->replayPeakAlbum = ffdecoder_metadata_double(handle, "REPLAYGAIN_ALBUM_PEAK");
     handle->r128TrackGain = ffdecoder_metadata_double(handle, "R128_TRACK_GAIN");
     handle->r128AlbumGain = ffdecoder_metadata_double(handle, "R128_ALBUM_GAIN");
+
+    int safeChannels = handle->channels;
+    if (safeChannels <= 0 && handle->codec && handle->codec->ch_layout.nb_channels > 0) {
+        safeChannels = handle->codec->ch_layout.nb_channels;
+    }
+    if (safeChannels <= 0 && codecpar->ch_layout.nb_channels > 0) {
+        safeChannels = codecpar->ch_layout.nb_channels;
+    }
+    if (safeChannels <= 0) {
+        safeChannels = 2;
+    }
+    handle->channels = safeChannels;
+    if (handle->bytesPerSample == 0) {
+        ffdecoder_set_error("Unsupported sample format");
+        return AVERROR(EINVAL);
+    }
+    if (handle->bytesPerSample > SIZE_MAX / (size_t)handle->channels) {
+        ffdecoder_set_error("Decode buffer size overflow");
+        return AVERROR(EINVAL);
+    }
+    handle->bytesPerFrame = handle->bytesPerSample * (size_t)handle->channels;
+    if (handle->bytesPerFrame == 0) {
+        ffdecoder_set_error("Invalid channel count");
+        return AVERROR(EINVAL);
+    }
+    if (handle->bytesPerFrame > SIZE_MAX / 2048) {
+        ffdecoder_set_error("Decode buffer size overflow");
+        return AVERROR(EINVAL);
+    }
 
     handle->interleavedSize = handle->bytesPerFrame * 2048;
     handle->interleavedBuffer = (uint8_t *)av_malloc(handle->interleavedSize);

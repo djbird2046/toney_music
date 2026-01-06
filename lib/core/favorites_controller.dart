@@ -34,6 +34,7 @@ class FavoritesController extends ChangeNotifier {
             metadata: enriched,
             sourceType: ref.sourceType,
             remoteInfo: ref.remoteInfo,
+            bookmark: ref.bookmark,
           ));
         } catch (_) {
            // If load fails, keep original
@@ -65,6 +66,7 @@ class FavoritesController extends ChangeNotifier {
       _favorites.add(PlaylistReference(
         path: track.path,
         metadata: track.metadata,
+        bookmark: track.bookmark,
       ));
     }
     notifyListeners();

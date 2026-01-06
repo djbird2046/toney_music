@@ -8,7 +8,7 @@ Toney Music 是一款以 bit-perfect 为目标的音乐播放器，融合 AI 原
 
 ## 当前能力
 
-- **macOS (arm64) 构建**：Release 产物 `build/macos/Build/Products/Release/toney.app`，未签名 DMG 在 `build/toney-music-unsigned.dmg`。
+- **macOS (arm64) 构建**：Release 产物 `build/macos/Build/Products/Release/toney.app`，未签名 DMG 在 `build/toney-music-{version}.dmg`（版本来自 `pubspec.yaml`，使用 `tool/build_dmg.sh` 生成）。
 - **Windows (x64) 构建**：Release 产物 `build/windows/x64/runner/Release/toney.exe`，FFmpeg DLL 来自 `third_party/ffmpeg-audio/bin`。
 - **播放链路**：正在播放栏、队列管理、收藏、歌单、音乐库导入（本地 + Samba/WebDAV/FTP/SFTP 远程路径记录）。
 - **Bit-perfect + 自动采样率**：macOS (CoreAudio) 与 Windows (WASAPI) 可切换，错误弹窗可复制。
@@ -25,12 +25,9 @@ flutter gen-l10n        # 可选，已生成
 flutter build macos --release
 # app: build/macos/Build/Products/Release/toney.app
 # 生成 DMG（可选）:
-rm -rf build/dmg-staging
-mkdir -p build/dmg-staging
-cp -R build/macos/Build/Products/Release/toney.app build/dmg-staging/
-ln -sf /Applications build/dmg-staging/Applications
-echo "Drag toney.app into Applications to install." > build/dmg-staging/README.txt
-hdiutil create -volname "Toney Music" -srcfolder build/dmg-staging -ov -format UDZO build/toney-music-unsigned.dmg
+tool/build_dmg.sh
+# 输出: build/toney-music-{version}.dmg
+# 布局：左侧 app，中间 drag to，右侧 Applications 别名
 ```
 
 ## 构建与运行（Windows）
@@ -45,8 +42,9 @@ flutter build windows --release
 ### Windows 安装包（Inno Setup）
 
 ```powershell
-ISCC windows/installer/toney.iss
-# 输出: build/installer/Toney-Setup-0.1.0.exe
+powershell -File tool/build_windows_installer.ps1
+# 输出: build/installer/Toney-Setup-{version}.exe
+# 版本来自 pubspec.yaml
 ```
 
 ## 计划

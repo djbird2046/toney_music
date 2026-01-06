@@ -185,6 +185,7 @@ class _MacosFavoritesViewState extends State<MacosFavoritesView> {
                                 path: e.path,
                                 metadata:
                                     e.metadata ?? SongMetadata.unknown(e.path),
+                                bookmark: e.bookmark,
                               ),
                             )
                             .toList();

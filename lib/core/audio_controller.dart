@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -9,6 +10,8 @@ import 'model/playback_mode.dart';
 import 'model/playback_track.dart';
 import 'model/playback_view_model.dart';
 import 'storage/playback_state_storage.dart';
+import 'storage/security_scoped_bookmarks.dart';
+import 'storage/library_storage.dart';
 
 /// Shared coordinator that wraps the MethodChannel API exposed by the native
 /// AudioEnginePlugin. UI layers should depend on this instead of touching
@@ -21,6 +24,8 @@ class AudioController {
 
   final MethodChannel _channel;
   final PlaybackStateStorage _storage = PlaybackStateStorage();
+  final LibraryStorage _libraryStorage = LibraryStorage();
+  Map<String, String?>? _bookmarkCache;
   List<PlaybackTrack> _queue = const [];
   int? _currentIndex;
   Timer? _positionTimer;
@@ -66,7 +71,7 @@ class AudioController {
 
         try {
           // Load the file but do not start playback
-          await load(track.path);
+          await load(track.path, bookmark: track.bookmark);
           // Restore position
           if (state.value.hasFile && snapshot.positionMs > 0) {
             try {
@@ -100,6 +105,14 @@ class AudioController {
     }
   }
 
+  void _playAtSafely(int index) {
+    unawaited(
+      playAt(index).catchError((error, stackTrace) {
+        debugPrint('Failed to advance playback: $error\n$stackTrace');
+      }),
+    );
+  }
+
   void _onPlaybackEnded() {
     if (_queue.isEmpty || _currentIndex == null) {
       stop();
@@ -109,12 +122,12 @@ class AudioController {
     switch (_playbackMode) {
       case PlayMode.single:
         // Loop current track
-        playAt(_currentIndex!);
+        _playAtSafely(_currentIndex!);
         break;
       case PlayMode.loop:
         // Play next or loop back to start
         final nextIndex = (_currentIndex! + 1) % _queue.length;
-        playAt(nextIndex);
+        _playAtSafely(nextIndex);
         break;
       case PlayMode.shuffle:
         // Pick random next track (avoiding current if possible)
@@ -123,17 +136,17 @@ class AudioController {
           do {
             nextIndex = _random.nextInt(_queue.length);
           } while (nextIndex == _currentIndex);
-          playAt(nextIndex);
+          _playAtSafely(nextIndex);
         } else {
           // Only one track, just replay it
-          playAt(0);
+          _playAtSafely(0);
         }
         break;
       case PlayMode.sequence:
         // Default behavior: play next, stop at end
         final nextIndex = _currentIndex! + 1;
         if (nextIndex < _queue.length) {
-          playAt(nextIndex);
+          _playAtSafely(nextIndex);
         } else {
           stop();
         }
@@ -147,12 +160,35 @@ class AudioController {
     _saveState();
   }
 
-  Future<void> load(String path) async {
+  Future<void> load(String path, {String? bookmark}) async {
+    var resolvedBookmark = await _resolveBookmark(path, bookmark);
+    final access = await SecurityScopedBookmarks.startAccess(
+      path: path,
+      bookmark: resolvedBookmark,
+    );
+    final resolvedPath = access?.path ?? path;
+    final refreshedBookmark = access?.bookmark;
+    if (refreshedBookmark != null && refreshedBookmark.isNotEmpty) {
+      resolvedBookmark = refreshedBookmark;
+      _bookmarkCache?[path] = refreshedBookmark;
+      await _persistBookmark(path, refreshedBookmark);
+    }
+    if (resolvedBookmark == null || resolvedBookmark.isEmpty) {
+      final created = await SecurityScopedBookmarks.createBookmark(resolvedPath);
+      if (created != null) {
+        resolvedBookmark = created;
+        _bookmarkCache?[path] = created;
+        await _persistBookmark(path, created);
+      }
+    }
     state.value = state.value.copyWith(
       updateEngineMetadata: true,
       engineMetadata: null,
     );
-    await _run('load', () => _channel.invokeMethod('load', {'path': path}));
+    await _run(
+      'load',
+      () => _channel.invokeMethod('load', {'path': resolvedPath}),
+    );
     _markLoaded();
     await _refreshEngineMetadata();
   }
@@ -176,8 +212,6 @@ class AudioController {
       hasFile: false,
       isPlaying: false,
       position: Duration.zero,
-      updateEngineMetadata: true,
-      engineMetadata: null,
     );
     _stopPositionTicker();
     _saveState();
@@ -250,7 +284,10 @@ class AudioController {
     _currentIndex = index;
     final track = _queue[index];
     final pathToLoad = overridePath ?? track.path;
-    await load(pathToLoad);
+    await load(
+      pathToLoad,
+      bookmark: overridePath == null ? track.bookmark : null,
+    );
     state.value = state.value.copyWith(
       queue: _queue,
       currentIndex: _currentIndex,
@@ -292,11 +329,15 @@ class AudioController {
 
   Future<void> togglePlayPause() async {
     try {
+      if (state.value.isBusy) return;
       if (state.value.isPlaying) {
         await pause();
         return;
       }
-      if (!state.value.hasFile) {
+      final duration = state.value.duration;
+      final atEnd =
+          duration > Duration.zero && state.value.position >= duration;
+      if (!state.value.hasFile || atEnd) {
         if (_queue.isEmpty) return;
         await playAt(_currentIndex ?? 0);
         return;
@@ -311,6 +352,53 @@ class AudioController {
     state.dispose();
     _stopPositionTicker();
     _volumeSubject.close();
+  }
+
+  Future<String?> _resolveBookmark(String path, String? hint) async {
+    if (hint != null && hint.isNotEmpty) return hint;
+    if (!Platform.isMacOS) return null;
+    _bookmarkCache ??= await _loadBookmarkCache();
+    return _bookmarkCache?[path];
+  }
+
+  Future<Map<String, String?>> _loadBookmarkCache() async {
+    try {
+      await _libraryStorage.init();
+      final entries = _libraryStorage.load();
+      return {
+        for (final entry in entries) entry.path: entry.bookmark,
+      };
+    } catch (error) {
+      debugPrint('Failed to load bookmark cache: $error');
+      return {};
+    }
+  }
+
+  Future<void> _persistBookmark(String path, String bookmark) async {
+    try {
+      await _libraryStorage.init();
+      final entries = _libraryStorage.load();
+      var updated = false;
+      final next = entries.map((entry) {
+        if (entry.path != path || entry.bookmark == bookmark) {
+          return entry;
+        }
+        updated = true;
+        return LibraryEntry(
+          path: entry.path,
+          sourceType: entry.sourceType,
+          metadata: entry.metadata,
+          importedAt: entry.importedAt,
+          remoteInfo: entry.remoteInfo,
+          bookmark: bookmark,
+        );
+      }).toList();
+      if (updated) {
+        await _libraryStorage.save(next);
+      }
+    } catch (error) {
+      debugPrint('Failed to persist bookmark for $path: $error');
+    }
   }
 
   void _markLoaded() {

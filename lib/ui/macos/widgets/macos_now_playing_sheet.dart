@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 import 'package:toney_music/core/audio_controller.dart';
 import 'package:toney_music/core/model/playback_view_model.dart';
@@ -9,6 +9,7 @@ import 'package:toney_music/core/model/song_metadata.dart';
 import 'package:toney_music/l10n/app_localizations.dart';
 
 import '../macos_colors.dart';
+import 'metadata_display_util.dart';
 
 class MacosNowPlayingSheet extends StatelessWidget {
   const MacosNowPlayingSheet({
@@ -81,18 +82,21 @@ class MacosNowPlayingSheet extends StatelessWidget {
                       valueListenable: controller.state,
                       builder: (context, playback, _) {
                         final metadata = playback.currentTrack?.metadata;
-                        final rawTitle = (metadata?.title ?? '').trim();
-                        final title = rawTitle.isNotEmpty
-                            ? rawTitle
-                            : l10n.nowPlayingNotPlaying;
-                        final artistRaw = (metadata?.artist ?? '').trim();
-                        final albumRaw = (metadata?.album ?? '').trim();
-                        final artist = artistRaw.isNotEmpty
-                            ? artistRaw
-                            : l10n.libraryUnknownArtist;
-                        final album = albumRaw.isNotEmpty
-                            ? albumRaw
-                            : l10n.libraryUnknownAlbum;
+                        final title =
+                            metadata == null
+                                ? l10n.nowPlayingNotPlaying
+                                : displayMetadataValue(
+                                    metadata.title,
+                                    l10n.libraryUnknownValue,
+                                  );
+                        final artist = displayMetadataValue(
+                          metadata?.artist,
+                          l10n.libraryUnknownArtist,
+                        );
+                        final album = displayMetadataValue(
+                          metadata?.album,
+                          l10n.libraryUnknownAlbum,
+                        );
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -318,7 +322,7 @@ class _HaloArtworkState extends State<_HaloArtwork>
                       child: artwork == null
                           ? Icon(
                               Icons.music_note,
-                              color: colors.secondaryGrey,
+                              color: Colors.white,
                               size: 84,
                             )
                           : null,

@@ -773,7 +773,7 @@ abstract class AppLocalizations {
   /// No description provided for @nowPlayingStoryPlaceholder.
   ///
   /// In en, this message translates to:
-  /// **'No story yet'**
+  /// **'--'**
   String get nowPlayingStoryPlaceholder;
 
   /// No description provided for @miniPlayerEmptyTitle.

@@ -9,6 +9,7 @@ import 'package:toney_music/toney_core.dart';
 import '../../../core/favorites_controller.dart';
 
 import '../macos_colors.dart';
+import 'metadata_display_util.dart';
 
 class MacosMiniPlayer extends StatefulWidget {
   const MacosMiniPlayer({
@@ -42,6 +43,7 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer>
   double _preMuteVolume = 0.7;
   bool _isQueueVisible = false;
   bool _isScrubbing = false;
+  bool _wasPlayingBeforeScrub = false;
   double? _scrubPositionSeconds;
   final ValueNotifier<int> _queueSelection = ValueNotifier<int>(0);
   OverlayEntry? _queueOverlayEntry;
@@ -261,7 +263,21 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer>
                                       ? (_) {
                                           setState(() {
                                             _isScrubbing = true;
+                                            _wasPlayingBeforeScrub =
+                                                playback.isPlaying;
                                           });
+                                          if (playback.isPlaying) {
+                                            unawaited(
+                                              widget.controller.pause().catchError((
+                                                error,
+                                                _,
+                                              ) {
+                                                debugPrint(
+                                                  'Pause before seek failed: $error',
+                                                );
+                                              }),
+                                            );
+                                          }
                                         }
                                       : null,
                                   onChanged: durationSeconds > 0
@@ -271,6 +287,8 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer>
                                       : null,
                                   onChangeEnd: durationSeconds > 0
                                       ? (value) async {
+                                          final shouldResume =
+                                              _wasPlayingBeforeScrub;
                                           final targetMs = (value * 1000).round();
                                           setState(() {
                                             _isScrubbing = false;
@@ -280,13 +298,16 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer>
                                             await widget.controller.seek(
                                               targetMs,
                                             );
-                                            await widget.controller.play();
+                                            if (shouldResume) {
+                                              await widget.controller.play();
+                                            }
                                           } catch (error) {
                                             debugPrint('Seek failed: $error');
                                           } finally {
                                             if (mounted) {
                                               setState(() {
                                                 _scrubPositionSeconds = null;
+                                                _wasPlayingBeforeScrub = false;
                                               });
                                             }
                                           }
@@ -368,7 +389,11 @@ class _MacosMiniPlayerState extends State<MacosMiniPlayer>
       return;
     }
     _queueSelection.value = index;
-    unawaited(widget.controller.playAt(index));
+    unawaited(
+      widget.controller.playAt(index).catchError((error, stackTrace) {
+        debugPrint('Failed to play queue item: $error\n$stackTrace');
+      }),
+    );
   }
 
   Future<void> _loadVolume() async {
@@ -881,6 +906,7 @@ class _QueueRowState extends State<_QueueRow> {
   @override
   Widget build(BuildContext context) {
     final colors = context.macosColors;
+    final l10n = AppLocalizations.of(context)!;
     final backgroundColor = widget.isCurrent
         ? colors.navSelectedBackground
         : widget.isSelected
@@ -894,6 +920,14 @@ class _QueueRowState extends State<_QueueRow> {
     final metadata = widget.track.metadata;
     final durationLabel =
         metadata.extras['Duration'] ?? metadata.extras['duration'] ?? '--:--';
+    final title = displayMetadataValue(
+      metadata.title,
+      l10n.miniPlayerEmptyTitle,
+    );
+    final artist = displayMetadataValue(
+      metadata.artist,
+      l10n.miniPlayerEmptySubtitle,
+    );
     final titleStyle = TextStyle(
       color: widget.isCurrent ? colors.accentBlue : colors.heading,
       fontSize: 14,
@@ -926,13 +960,13 @@ class _QueueRowState extends State<_QueueRow> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      metadata.title,
+                      title,
                       style: titleStyle,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      metadata.artist,
+                      artist,
                       style: subtitleStyle,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1117,12 +1151,14 @@ class _NowPlayingInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.macosColors;
     final l10n = AppLocalizations.of(context)!;
-    final title = (metadata?.title?.trim().isNotEmpty ?? false)
-        ? metadata!.title
-        : l10n.miniPlayerEmptyTitle;
-    final artist = (metadata?.artist?.trim().isNotEmpty ?? false)
-        ? metadata!.artist
-        : l10n.miniPlayerEmptySubtitle;
+    final title = displayMetadataValue(
+      metadata?.title,
+      l10n.miniPlayerEmptyTitle,
+    );
+    final artist = displayMetadataValue(
+      metadata?.artist,
+      l10n.miniPlayerEmptySubtitle,
+    );
     final artwork = metadata?.artwork;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,

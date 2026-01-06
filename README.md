@@ -8,7 +8,7 @@ Toney Music is a bit-perfect focused music player with AI-native discovery and c
 
 ## What's inside right now
 
-- **macOS (arm64) build**: release output at `build/macos/Build/Products/Release/toney.app` and a ready-to-share DMG at `build/toney-music-unsigned.dmg`.
+- **macOS (arm64) build**: release output at `build/macos/Build/Products/Release/toney.app` and a ready-to-share DMG at `build/toney-music-{version}.dmg` (version from `pubspec.yaml`, generated via `tool/build_dmg.sh`).
 - **Windows (x64) build**: release output at `build/windows/x64/runner/Release/toney.exe` with FFmpeg DLLs copied from `third_party/ffmpeg-audio/bin`.
 - **Playback pipeline**: now playing bar, queue management, favorites, playlists, and library import (local + remote via Samba/WebDAV/FTP/SFTP path records).
 - **Bit-perfect + auto sample-rate** toggles on macOS (CoreAudio) and Windows (WASAPI), with error dialogs that are easy to copy.
@@ -25,12 +25,9 @@ flutter gen-l10n        # optional, already checked in
 flutter build macos --release
 # app: build/macos/Build/Products/Release/toney.app
 # DMG (optional):
-rm -rf build/dmg-staging
-mkdir -p build/dmg-staging
-cp -R build/macos/Build/Products/Release/toney.app build/dmg-staging/
-ln -sf /Applications build/dmg-staging/Applications
-echo "Drag toney.app into Applications to install." > build/dmg-staging/README.txt
-hdiutil create -volname "Toney Music" -srcfolder build/dmg-staging -ov -format UDZO build/toney-music-unsigned.dmg
+tool/build_dmg.sh
+# output: build/toney-music-{version}.dmg
+# layout: app (left), drag to (center), Applications alias (right)
 ```
 
 ## Build & run (Windows)
@@ -45,8 +42,9 @@ flutter build windows --release
 ### Windows installer (Inno Setup)
 
 ```powershell
-ISCC windows/installer/toney.iss
-# output: build/installer/Toney-Setup-0.1.0.exe
+powershell -File tool/build_windows_installer.ps1
+# output: build/installer/Toney-Setup-{version}.exe
+# version: pubspec.yaml
 ```
 
 ## Roadmap / upcoming

@@ -363,14 +363,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_markdown:
+  flutter_markdown_plus:
     dependency: "direct main"
     description:
-      name: flutter_markdown
-      sha256: "08fb8315236099ff8e90cb87bb2b935e0a724a3af1623000a9cec930468e0f27"
+      name: flutter_markdown_plus
+      sha256: "039177906850278e8fb1cd364115ee0a46281135932fa8ecea8455522166d2de"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.7+1"
+    version: "1.0.7"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -604,14 +604,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.0"
-  objective_c:
-    dependency: transitive
-    description:
-      name: objective_c
-      sha256: "1f81ed9e41909d44162d7ec8663b2c647c202317cc0b56d3d56f6a13146a0b64"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.1.0"
   opentool_dart:
     dependency: "direct main"
     description:
@@ -652,13 +644,13 @@ packages:
     source: hosted
     version: "2.2.22"
   path_provider_foundation:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: path_provider_foundation
-      sha256: "6192e477f34018ef1ea790c56fffc7302e3bc3efede9e798b934c252c8c105ba"
+      sha256: "6d13aece7b3f5c5a9731eaf553ff9dcbc2eff41087fd2df587fd0fed9a3eb0c4"
       url: "https://pub.dev"
     source: hosted
-    version: "2.5.0"
+    version: "2.5.1"
   path_provider_linux:
     dependency: transitive
     description:
@@ -800,14 +792,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.9"
-  snowflaker:
-    dependency: transitive
-    description:
-      name: snowflaker
-      sha256: "521c696255a6271b73a4e0bfcae6bdcb023253c45050f0f089d67b012b298d1c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
   source_gen:
     dependency: transitive
     description:

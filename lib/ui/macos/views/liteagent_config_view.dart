@@ -176,7 +176,7 @@ class _LiteAgentConfigViewState extends State<LiteAgentConfigView> {
       setState(() {
         _connectionMessage = AppLocalizations.of(
           context,
-        )!.settingsLiteAgentConnected(version);
+        )!.settingsLiteAgentConnected(version.version);
         _messageColor = Colors.green;
         _isConnectionSuccessful = true;
       });

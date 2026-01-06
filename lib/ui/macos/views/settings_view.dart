@@ -18,6 +18,7 @@ class MacosSettingsView extends StatelessWidget {
     required this.liteAgentConnected,
     this.liteAgentError,
     required this.liteAgentBaseUrl,
+    this.liteAgentVersion,
     required this.liteAgentBusy,
     required this.onConfigureLiteAgent,
     required this.onLogoutLiteAgent,
@@ -37,6 +38,7 @@ class MacosSettingsView extends StatelessWidget {
   final bool liteAgentConnected;
   final String? liteAgentError;
   final String? liteAgentBaseUrl;
+  final String? liteAgentVersion;
   final bool liteAgentBusy;
   final VoidCallback onConfigureLiteAgent;
   final VoidCallback onLogoutLiteAgent;
@@ -100,6 +102,7 @@ class MacosSettingsView extends StatelessWidget {
             isBusy: liteAgentBusy,
             isConnected: liteAgentConnected,
             baseUrl: liteAgentConfigured ? liteAgentBaseUrl ?? '' : '',
+            version: liteAgentVersion,
             errorMessage: liteAgentError,
             onConfigure: onConfigureLiteAgent,
             onLogout: onLogoutLiteAgent,
@@ -320,6 +323,7 @@ class _LiteAgentRow extends StatelessWidget {
     required this.isBusy,
     required this.isConnected,
     required this.baseUrl,
+    required this.version,
     required this.errorMessage,
     required this.onConfigure,
     required this.onLogout,
@@ -328,6 +332,7 @@ class _LiteAgentRow extends StatelessWidget {
   final bool isBusy;
   final bool isConnected;
   final String baseUrl;
+  final String? version;
   final String? errorMessage;
   final VoidCallback onConfigure;
   final VoidCallback onLogout;
@@ -337,6 +342,10 @@ class _LiteAgentRow extends StatelessWidget {
     final colors = context.macosColors;
     final l10n = AppLocalizations.of(context)!;
     final hasConfig = baseUrl.isNotEmpty;
+    final detail =
+        isConnected && version != null && version!.isNotEmpty
+        ? '$baseUrl (v${version!})'
+        : baseUrl;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(
@@ -369,7 +378,7 @@ class _LiteAgentRow extends StatelessWidget {
           : Text(
               hasConfig
                   ? (isConnected
-                        ? l10n.settingsLiteAgentConnected(baseUrl)
+                        ? l10n.settingsLiteAgentConnected(detail)
                         : l10n.settingsLiteAgentConnectionFailed(
                             errorMessage ?? '',
                           ))

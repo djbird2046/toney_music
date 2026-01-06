@@ -1,6 +1,7 @@
 #define AppName "Toney"
 #define AppPublisher "DJBird"
-#define AppVersion "0.1.0"
+; Synced from pubspec.yaml via tool/build_windows_installer.ps1
+#define AppVersion "0.2.0"
 #define AppExeName "toney.exe"
 #define MyAppId "E54E4F02-4DB7-4D06-9C60-9F5D7C3B8F2F"
 

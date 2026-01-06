@@ -411,18 +411,7 @@ final class AudioEngine {
 
         // Wait for some data to be buffered before resuming
         if wasPlaying {
-            // Use smaller threshold for seek to reduce perceived latency
-            let seekBufferThreshold = min(Self.prebufferThreshold / 2, 256 * 1024)
-            let startTime = Date()
-            let timeout: TimeInterval = 1.0
-
-            while pcmPlayer.bufferedBytes < seekBufferThreshold {
-                if Date().timeIntervalSince(startTime) >= timeout {
-                    logger.warning("Seek prebuffer timeout")
-                    break
-                }
-                Thread.sleep(forTimeInterval: 0.005)
-            }
+            waitForPrebuffer()
 
             // Resume playback
             try controlQueue.sync {
